@@ -68,12 +68,35 @@ async function main(): Promise<void> {
 
   client.once(Events.ClientReady, async (c) => {
     log(`ログイン: ${c.user.tag}`);
-    const applicationId = c.application?.id ?? c.user.id;
-    const rest = new REST().setToken(inst.secrets.discordToken);
-    await rest.put(Routes.applicationGuildCommands(applicationId, config.guildId), {
-      body: buildCommands(),
-    });
-    log("スラッシュコマンドを登録しました");
+    const guilds = await c.guilds.fetch();
+    if (guilds.size === 0) {
+      L.error("Bot がどのサーバーにも参加していません。OAuth2 の招待 URL でサーバーに追加してください");
+    } else {
+      log(`参加中のサーバー: ${guilds.map((g) => `${g.name} (${g.id})`).join(", ")}`);
+    }
+    if (!guilds.has(config.guildId)) {
+      L.error(`config.jsonc の discord.guildId (${config.guildId}) のサーバーに Bot が参加していません。上の一覧の ID を guildId に設定して再起動してください`);
+      return;
+    }
+    try {
+      const applicationId = c.application?.id ?? c.user.id;
+      const rest = new REST().setToken(inst.secrets.discordToken);
+      await rest.put(Routes.applicationGuildCommands(applicationId, config.guildId), {
+        body: buildCommands(),
+      });
+      log("スラッシュコマンドを登録しました");
+    } catch (err) {
+      L.error(`スラッシュコマンド登録に失敗: ${String(err)}`);
+      return;
+    }
+    const me = await (await c.guilds.fetch(config.guildId)).members.fetchMe();
+    const perms = me.permissions;
+    const need: [string, bigint][] = [
+      ["ManageRoles", 1n << 28n], ["ManageChannels", 1n << 4n], ["ManageMessages", 1n << 13n], ["SendMessages", 1n << 11n], ["ViewChannel", 1n << 10n],
+    ];
+    const missing = need.filter(([, bit]) => !perms.has(bit)).map(([n]) => n);
+    if (missing.length) L.warn(`Bot に不足している権限: ${missing.join(", ")}（招待 URL の権限を見直してください）`);
+    log(`準備完了。Bot ロール位置=${me.roles.highest.position}（サーバーのロール数=${me.guild.roles.cache.size}）。setup-roles の前に Bot のロールを一番上へ`);
     triggerSync("startup");
     setInterval(() => triggerSync("interval"), config.syncIntervalMinutes * 60_000);
   });
