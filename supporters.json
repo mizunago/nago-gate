@@ -1,0 +1,14 @@
+{
+ "v": 1,
+ "generatedAt": "2026-09-08T03:06:08.516Z",
+ "tiers": [
+  {
+   "id": "supporter",
+   "rank": 1,
+   "label": "Supporter",
+   "color": "#F5C542"
+  }
+ ],
+ "access": {},
+ "credits": []
+}
