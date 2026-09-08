@@ -1,6 +1,6 @@
 {
  "v": 1,
- "generatedAt": "2026-09-08T03:08:44.184Z",
+ "generatedAt": "2026-09-08T03:33:39.478Z",
  "tiers": [
   {
    "id": "supporter",
@@ -15,6 +15,13 @@
    "color": "#8FD3FF"
   }
  ],
- "access": {},
- "credits": []
+ "access": {
+  "b64384034ab63fe5f657ac9e3a8ebdca781b4e9181ec34993d2f7e91cf61f038": 1
+ },
+ "credits": [
+  {
+   "n": "なごなご",
+   "r": 1
+  }
+ ]
 }
