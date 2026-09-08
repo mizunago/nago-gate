@@ -38,6 +38,13 @@ function write(level: Level, msg: string): void {
       // ログ書き込み失敗で本体を止めない
     }
   }
+  if (sink) {
+    try {
+      sink(line, level);
+    } catch {
+      // sink 側のエラーは無視
+    }
+  }
 }
 
 export const log = {
