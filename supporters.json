@@ -1,12 +1,18 @@
 {
  "v": 1,
- "generatedAt": "2026-09-08T03:06:08.516Z",
+ "generatedAt": "2026-09-08T03:08:44.184Z",
  "tiers": [
   {
    "id": "supporter",
    "rank": 1,
    "label": "Supporter",
    "color": "#F5C542"
+  },
+  {
+   "id": "platinum",
+   "rank": 2,
+   "label": "Platinum",
+   "color": "#8FD3FF"
   }
  ],
  "access": {},
