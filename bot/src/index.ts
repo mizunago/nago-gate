@@ -4,6 +4,7 @@ import { langOf, t } from "./i18n.js";
 import { handleButton, handleModal, handleRegisterChannelMessage } from "./panel.js";
 import { loadInstance } from "./config.js";
 import { initLog, log as L } from "./log.js";
+import { attachDiscordLog } from "./discordlog.js";
 import { Store } from "./store.js";
 import { publishIfChanged, runSync, type SyncContext } from "./sync.js";
 
@@ -36,7 +37,15 @@ async function main(): Promise<void> {
         const guild = await client.guilds.fetch(config.guildId);
         await runSync(ctx, guild, reason);
       } catch (err) {
-        L.error(`sync 失敗: ${String(err)}`);
+        const msg = String(err);
+        const m = msg.match(/[Rr]etry after ([\d.]+)/);
+        if (m) {
+          const wait = Math.ceil(parseFloat(m[1])) + 2;
+          L.warn(`sync がレート制限に当たったため ${wait} 秒後に再試行します`);
+          setTimeout(() => triggerSync("retry after rate limit"), wait * 1000);
+        } else {
+          L.error(`sync 失敗: ${msg}`);
+        }
       } finally {
         syncRunning = false;
         if (syncQueued) {
@@ -68,6 +77,11 @@ async function main(): Promise<void> {
 
   client.once(Events.ClientReady, async (c) => {
     log(`ログイン: ${c.user.tag}`);
+    if (config.logChannelId) {
+      const ok = await attachDiscordLog(c, config.logChannelId);
+      if (ok) log(`Discord ログチャンネルに接続 (${config.logChannelId})`);
+      else L.warn(`ログチャンネル ${config.logChannelId} が見つからないか送信できません`);
+    }
     const guilds = await c.guilds.fetch();
     if (guilds.size === 0) {
       L.error("Bot がどのサーバーにも参加していません。OAuth2 の招待 URL でサーバーに追加してください");

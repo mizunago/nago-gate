@@ -73,6 +73,8 @@ npm start
 5. `/vrc-admin setup-world jp:<公開ワールド名> en:<English name> visibility:全員` — 公開ワールドのカテゴリ
 6. `/vrc-admin setup-world jp:<限定ワールド名> en:<English name> visibility:Supporter` — 限定ワールドのカテゴリ（必要なら `nsfw:true`）
 
+7. 任意: 管理者だけが見えるカテゴリにテキストチャンネルを作り、その ID を `discord.logChannelId` に入れて再起動すると、Bot の操作ログ（ロール付与、登録、セットアップ、エラー）がそこに流れます。リモートからの動作確認に使えます
+
 どのコマンドも同名があれば作り直さず権限だけ揃えるので、何度実行しても増えません。
 `はじめに-start-here` の本文とウェルカム画面だけは手で書きます。
 

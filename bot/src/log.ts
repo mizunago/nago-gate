@@ -8,6 +8,13 @@ type Level = "INFO" | "WARN" | "ERROR";
 let logDir: string | null = null;
 const KEEP_DAYS = 30;
 
+/** 追加の出力先（Discord チャンネルなど）。失敗してもここには再帰しない */
+type Sink = (line: string, level: Level) => void;
+let sink: Sink | null = null;
+export function setLogSink(fn: Sink | null): void {
+  sink = fn;
+}
+
 export function initLog(instanceDir: string): void {
   logDir = path.join(instanceDir, "logs");
   mkdirSync(logDir, { recursive: true });

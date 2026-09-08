@@ -9,7 +9,9 @@
     // 登録専用チャンネルの ID（任意）。設定すると、このチャンネルへの通常投稿を Bot が拾い、
     // 「/vrc register name:xxx」をテキストで貼った人はそのまま登録、それ以外はボタンへ案内して投稿を消す。
     // 使うには Developer Portal で MESSAGE CONTENT INTENT を ON にし、Bot に「メッセージの管理」権限が必要
-    "registerChannelId": ""
+    "registerChannelId": "",
+    // Bot の操作ログを流すチャンネル ID（任意）。管理者だけが見える管理カテゴリ内に作る
+    "logChannelId": ""
   },
 
   // ティア定義。rank は大きいほど上位。上位ティアの人には下位の共通ロールも付く

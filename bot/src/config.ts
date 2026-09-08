@@ -28,6 +28,8 @@ export interface AppConfig {
   adminRoleIds: string[];
   /** 登録専用チャンネル。設定するとテキスト投稿を拾って案内/登録する */
   registerChannelId: string | null;
+  /** Bot の操作ログを流すチャンネル（管理者専用） */
+  logChannelId: string | null;
   graceDays: number;
   nameChangeCooldownDays: number;
   syncIntervalMinutes: number;
@@ -51,7 +53,7 @@ export interface Instance {
 
 /** config.jsonc のファイル構造 */
 interface ConfigFile {
-  discord?: { guildId?: string; adminRoleIds?: string[]; registerChannelId?: string };
+  discord?: { guildId?: string; adminRoleIds?: string[]; registerChannelId?: string; logChannelId?: string };
   tiers?: Partial<TierConfig>[];
   rules?: { graceDays?: number; nameChangeCooldownDays?: number; maxNameLength?: number };
   sync?: { intervalMinutes?: number };
@@ -151,6 +153,7 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     guildId,
     adminRoleIds: raw.discord?.adminRoleIds ?? [],
     registerChannelId: raw.discord?.registerChannelId || null,
+    logChannelId: raw.discord?.logChannelId || null,
     graceDays: raw.rules?.graceDays ?? 31,
     nameChangeCooldownDays: raw.rules?.nameChangeCooldownDays ?? 30,
     maxNameLength: raw.rules?.maxNameLength ?? 32,
