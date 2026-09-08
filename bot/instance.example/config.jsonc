@@ -1,0 +1,61 @@
+// SupporterGate Bot 設定（秘密情報は含めない。トークンは同じフォルダの .env に書く）
+// JSONC なのでコメントと末尾カンマが使える
+{
+  "discord": {
+    // 対象サーバーの ID（サーバー名を右クリック > サーバー ID をコピー。開発者モードが必要）
+    "guildId": "000000000000000000",
+    // 管理コマンド /vrc-admin を許可するロール ID。サーバー管理権限を持つ人は指定不要
+    "adminRoleIds": [],
+    // 登録専用チャンネルの ID（任意）。設定すると、このチャンネルへの通常投稿を Bot が拾い、
+    // 「/vrc register name:xxx」をテキストで貼った人はそのまま登録、それ以外はボタンへ案内して投稿を消す。
+    // 使うには Developer Portal で MESSAGE CONTENT INTENT を ON にし、Bot に「メッセージの管理」権限が必要
+    "registerChannelId": ""
+  },
+
+  // ティア定義。rank は大きいほど上位。上位ティアの人には下位の共通ロールも付く
+  "tiers": [
+    {
+      "id": "supporter",
+      "rank": 1,
+      "label": "Supporter",        // ワールド内の表示名
+      "color": "#F5C542",          // ワールド内の表示色
+      "roleId": "000000000000000000",   // この Bot が付与する共通ロール "Supporter"
+      "sourceRoleIds": [                // 支援サイト公式 Bot が付けるロール（どれか 1 つ持っていれば有効）
+        "000000000000000000",   // src-patreon-supporter
+        "000000000000000000"    // src-cien-supporter
+      ]
+    },
+    // プラチナティアを設ける場合（Supporter も同時に付く）
+    // {
+    //   "id": "platinum", "rank": 2, "label": "Platinum", "color": "#8FD3FF",
+    //   "roleId": "000000000000000000",   // "Platinum"
+    //   "sourceRoleIds": [
+    //     "000000000000000000",   // src-patreon-platinum
+    //     "000000000000000000"    // src-cien-platinum
+    //   ]
+    // }
+  ],
+
+  "rules": {
+    "graceDays": 31,                // 支援停止後もアクセスを維持する日数
+    "nameChangeCooldownDays": 30,   // /vrc register で名前を変更できる間隔
+    "maxNameLength": 32             // 登録できる表示名の最大文字数
+  },
+
+  "sync": {
+    "intervalMinutes": 10           // 全メンバーを走査してロール更新・JSON 公開する間隔
+  },
+
+  // 支援者リスト JSON の公開先。VRChat が設定なしで読めるのは GitHub Pages (*.github.io) / Gist
+  "publish": {
+    "type": "github",
+    "owner": "your-github-user",       // GitHub のユーザー名（または Organization）
+    "repo": "supporters",              // Pages を有効化した公開リポジトリ
+    "branch": "main",
+    "path": "supporters.json"          // Udon 側の URL は https://<owner>.github.io/<repo>/supporters.json
+  }
+  // Gist を使う場合:
+  // "publish": { "type": "gist", "gistId": "0123456789abcdef0123456789abcdef", "fileName": "supporters.json" }
+  // ローカルファイルに書くだけ（動作確認用）:
+  // "publish": { "type": "file", "path": "data/supporters.json" }
+}

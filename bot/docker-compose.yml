@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    container_name: supporter-gate-bot
+    restart: unless-stopped
+    volumes:
+      - ./instance:/app/instance   # .env / config.jsonc / data/db.json がここに入る
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

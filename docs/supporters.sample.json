@@ -1,0 +1,14 @@
+{
+ "v": 1,
+ "generatedAt": "2026-09-08T00:00:00.000Z",
+ "tiers": [
+  { "id": "supporter", "rank": 1, "label": "Supporter", "color": "#F5C542" },
+  { "id": "platinum", "rank": 2, "label": "Platinum", "color": "#8FD3FF" }
+ ],
+ "access": {
+  "130faa066e11d6ec5668ff66a150054dd8885f8b45bfc9d149ae5037e66109df": 2
+ },
+ "credits": [
+  { "n": "Mizunago", "r": 2 }
+ ]
+}

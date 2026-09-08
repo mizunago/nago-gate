@@ -1,0 +1,25 @@
+{
+  "name": "supporter-gate-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Patreon / Ci-en / FANBOX の支援ロールを統合し、VRChat 用の支援者リストを公開する Discord Bot",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "hash": "node dist/tools/hash-name.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

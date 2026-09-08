@@ -1,0 +1,18 @@
+# /etc/systemd/system/supporter-gate-bot.service
+# sudo systemctl enable --now supporter-gate-bot
+[Unit]
+Description=SupporterGate Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bot
+WorkingDirectory=/opt/supporter-gate-bot/bot
+Environment=INSTANCE_DIR=/opt/supporter-gate-bot/bot/instance
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
