@@ -95,6 +95,10 @@ export function desiredRoleIds(config: AppConfig, effectiveRank: number): Set<st
   return set;
 }
 
+function roleName(member: GuildMember, id: string): string {
+  return member.guild.roles.cache.get(id)?.name ?? id;
+}
+
 async function applyRoles(
   config: AppConfig,
   member: GuildMember,
@@ -112,10 +116,12 @@ async function applyRoles(
     if (toAdd.length > 0) {
       await member.roles.add(toAdd, "SupporterGate sync");
       result.rolesAdded += toAdd.length;
+      log(`ロール付与 ${member.user.tag} (${member.id}) rank=${effectiveRank}: +${toAdd.map((id) => roleName(member, id)).join(",")}`);
     }
     if (toRemove.length > 0) {
       await member.roles.remove(toRemove, "SupporterGate sync");
       result.rolesRemoved += toRemove.length;
+      log(`ロール剥奪 ${member.user.tag} (${member.id}) rank=${effectiveRank}: -${toRemove.map((id) => roleName(member, id)).join(",")}`);
     }
   } catch (err) {
     const msg = `ロール更新失敗 ${member.user.tag}: ${String(err)}`;
@@ -179,7 +185,11 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
     if (!rec) continue;
     seen.add(member.id);
     rec.discordTag = member.user.tag;
+    const before = { active: rec.activeRank, effective: rec.effectiveRank, grace: rec.graceUntil };
     updateEffectiveRank(ctx.config, rec, activeRank, now);
+    if (before.active !== rec.activeRank || before.effective !== rec.effectiveRank || before.grace !== rec.graceUntil) {
+      ctx.log(`状態変化 ${member.user.tag} (${member.id}): active ${before.active}->${rec.activeRank}, effective ${before.effective}->${rec.effectiveRank}, grace ${before.grace ?? "-"}->${rec.graceUntil ?? "-"}`);
+    }
     if (rec.effectiveRank > 0) result.active++;
     if (rec.graceUntil) result.inGrace++;
     await applyRoles(ctx.config, member, rec.effectiveRank, result, ctx.log);
@@ -188,7 +198,9 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
   // サーバーを抜けた（支援サイト Bot にキックされた等）メンバー: ロール操作は不可、猶予だけ進める
   for (const rec of ctx.store.all()) {
     if (seen.has(rec.discordId)) continue;
+    const beforeEff = rec.effectiveRank;
     updateEffectiveRank(ctx.config, rec, 0, now);
+    if (beforeEff !== rec.effectiveRank) ctx.log(`退出済みメンバー ${rec.discordTag ?? rec.discordId}: effective ${beforeEff}->${rec.effectiveRank}`);
     if (rec.effectiveRank > 0) result.active++;
     if (rec.graceUntil) result.inGrace++;
   }

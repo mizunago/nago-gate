@@ -7,7 +7,8 @@ VRChat ワールド（または支援者特典付きの公開ワールド）を�
 sien/
 ├─ bot/     Discord Bot（Node.js / TypeScript）
 ├─ unity/   Unity 側（UdonSharp + Editor セットアップツール）→ UnityPackage 化
-└─ docs/    運用ガイド
+├─ docs/    セットアップガイド
+└─ private/ 非公開メモ（.gitignore 済み）
 ```
 
 ## 全体の流れ
@@ -45,11 +46,11 @@ sien/
 
 ## セットアップ手順
 
-1. [docs/discord-structure.md](docs/discord-structure.md) — サーバーのカテゴリ・ロール・権限の設計
-2. [docs/discord-setup.md](docs/discord-setup.md) — 支援サイト連携・Bot の起動
-3. [docs/unity-setup.md](docs/unity-setup.md) — UnityPackage の作成とワールドへの組み込み
-4. [docs/hosting.md](docs/hosting.md) — Bot をどこで動かすか
-5. [docs/limitations.md](docs/limitations.md) — できないこと・リスク・運用上の注意（必読）
+1. [docs/discord-setup.md](docs/discord-setup.md) — 支援サイト連携・Bot の起動
+2. [docs/unity-setup.md](docs/unity-setup.md) — UnityPackage の作成とワールドへの組み込み
+3. [docs/hosting.md](docs/hosting.md) — Bot をどこで動かすか
+
+運用方針やサーバー設計のメモは `private/`（リポジトリ外）に置く。
 
 ## クイックスタート（Bot）
 
@@ -57,7 +58,7 @@ sien/
 cd bot
 cp -r instance.example instance     # instance/.env にトークン、instance/config.jsonc にロール ID などを記入
 npm install && npm run build
-npm start                           # または docker compose up -d --build
+npm start                           # Windows は botun.bat をダブルクリックでも可 / サーバーは docker compose up -d --build
 ```
 
 設定はすべて `bot/instance/` に集約しています。

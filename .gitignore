@@ -2,3 +2,5 @@ bot/node_modules/
 bot/dist/
 bot/instance/
 unity/Assets/**/*.meta
+# 運用方針・サーバー設計などの非公開メモ（ローカルのみ）
+private/

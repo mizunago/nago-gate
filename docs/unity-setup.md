@@ -50,7 +50,7 @@ SupporterGate System
 |---|---|---|
 | 公開ワールド（特典のみ） | `Open` | CreditsBoard と RankTags だけ使う。Gate / Zone は削除してよい |
 | アーリーアクセス | `SupportersOnly` | |
-| センシティブ寄りの限定ワールド | `SupporterApproval` | 支援者のフレンドが入ってきたら、支援者が ApprovalPanel で個別に許可 |
+| 限定ワールド | `SupporterApproval` | 支援者のフレンドが入ってきたら、支援者が ApprovalPanel で個別に許可 |
 | 支援者が「開ける」タイプ | `SupporterPresence` + Require Activation | 支援者がいる間だけ全員 OK |
 
 ## 他のギミックからランクを使う

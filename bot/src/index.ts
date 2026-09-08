@@ -3,15 +3,17 @@ import { buildCommands, handleInteraction } from "./commands.js";
 import { langOf, t } from "./i18n.js";
 import { handleButton, handleModal, handleRegisterChannelMessage } from "./panel.js";
 import { loadInstance } from "./config.js";
+import { initLog, log as L } from "./log.js";
 import { Store } from "./store.js";
 import { publishIfChanged, runSync, type SyncContext } from "./sync.js";
 
 function log(msg: string): void {
-  console.log(`[${new Date().toISOString()}] ${msg}`);
+  L.info(msg);
 }
 
 async function main(): Promise<void> {
   const inst = loadInstance();
+  initLog(inst.dir);
   const { config } = inst;
   const store = new Store(inst.dataPath);
   const ctx: SyncContext = { config, store, githubToken: inst.secrets.githubToken, log };
@@ -34,7 +36,7 @@ async function main(): Promise<void> {
         const guild = await client.guilds.fetch(config.guildId);
         await runSync(ctx, guild, reason);
       } catch (err) {
-        log(`sync 失敗: ${String(err)}`);
+        L.error(`sync 失敗: ${String(err)}`);
       } finally {
         syncRunning = false;
         if (syncQueued) {
@@ -51,7 +53,7 @@ async function main(): Promise<void> {
     if (publishTimer) clearTimeout(publishTimer);
     publishTimer = setTimeout(() => {
       publishTimer = null;
-      publishIfChanged(ctx, false).catch((err) => log(`公開失敗: ${String(err)}`));
+      publishIfChanged(ctx, false).catch((err) => L.error(`公開失敗: ${String(err)}`));
     }, 15_000);
   };
 
@@ -90,13 +92,19 @@ async function main(): Promise<void> {
 
   client.on(Events.InteractionCreate, async (interaction) => {
     const deps = { ...ctx, requestPublish };
+    if (interaction.isChatInputCommand()) {
+      const sub = interaction.options.getSubcommand(false);
+      L.info(`コマンド /${interaction.commandName}${sub ? " " + sub : ""} by ${interaction.user.tag} (${interaction.user.id}) locale=${interaction.locale}`);
+    } else if (interaction.isButton() || interaction.isModalSubmit()) {
+      L.info(`UI ${interaction.customId} by ${interaction.user.tag} (${interaction.user.id}) locale=${interaction.locale}`);
+    }
     try {
       if (interaction.isChatInputCommand()) await handleInteraction(deps, interaction);
       else if (interaction.isButton()) await handleButton(deps, interaction);
       else if (interaction.isModalSubmit()) await handleModal(deps, interaction);
       else return;
     } catch (err) {
-      log(`コマンド処理エラー: ${String(err)}`);
+      L.error(`コマンド処理エラー: ${String(err)}`);
       const msg = { content: t(langOf(interaction.locale), "err.internal"), ephemeral: true as const };
       if (!interaction.isRepliable()) return;
       if (interaction.deferred || interaction.replied) await interaction.editReply(msg).catch(() => undefined);
@@ -110,15 +118,19 @@ async function main(): Promise<void> {
       try {
         await handleRegisterChannelMessage({ ...ctx, requestPublish }, msg);
       } catch (err) {
-        log(`登録チャンネル処理エラー: ${String(err)}`);
+        L.error(`登録チャンネル処理エラー: ${String(err)}`);
       }
     });
   }
 
+  process.on("unhandledRejection", (err) => L.error(`unhandledRejection: ${String(err)}`));
+  process.on("SIGINT", () => { L.info("停止 (SIGINT)"); client.destroy(); process.exit(0); });
+  process.on("SIGTERM", () => { L.info("停止 (SIGTERM)"); client.destroy(); process.exit(0); });
+  L.info("起動中...");
   await client.login(inst.secrets.discordToken);
 }
 
 main().catch((err) => {
-  console.error(err);
+  L.error(`起動失敗: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
   process.exit(1);
 });

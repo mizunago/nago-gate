@@ -1,4 +1,4 @@
-// サーバー構成の自動作成（/vrc-admin setup-*）。docs/discord-structure.md の設計をそのまま作る。
+// サーバー構成の自動作成（/vrc-admin setup-*）。サーバー設計メモ（private/discord-structure.md）の構成をそのまま作る。
 // すべて「同名があれば再利用」なので何度実行しても増えない。
 import {
   ChannelType,
@@ -10,6 +10,7 @@ import {
   type Role,
 } from "discord.js";
 import type { AppConfig } from "./config.js";
+import { log } from "./log.js";
 
 const P = PermissionFlagsBits;
 
@@ -21,7 +22,10 @@ export const ROLE_NAMES = {
 
 async function ensureRole(guild: Guild, name: string, opts: { color?: number; hoist?: boolean }): Promise<{ role: Role; created: boolean }> {
   const existing = guild.roles.cache.find((r) => r.name === name);
-  if (existing) return { role: existing, created: false };
+  if (existing) {
+    log.info(`setup-roles: 既存ロール再利用 ${name} (${existing.id})`);
+    return { role: existing, created: false };
+  }
   const role = await guild.roles.create({
     name,
     color: opts.color ?? 0,
@@ -30,11 +34,13 @@ async function ensureRole(guild: Guild, name: string, opts: { color?: number; ho
     permissions: [],
     reason: "SupporterGate setup",
   });
+  log.info(`setup-roles: ロール作成 ${name} (${role.id})`);
   return { role, created: true };
 }
 
 /** 出力ロールと入力ロールを作り、config.jsonc に貼る tiers スニペットを返す */
 export async function setupRoles(guild: Guild): Promise<string> {
+  log.info(`setup-roles 開始 guild=${guild.name} (${guild.id})`);
   await guild.roles.fetch();
   const lines: string[] = [];
   const sup = await ensureRole(guild, ROLE_NAMES.supporter, { color: 0xf5c542, hoist: true });
@@ -53,7 +59,9 @@ export async function setupRoles(guild: Guild): Promise<string> {
   const order = [pla.role, sup.role, ...ROLE_NAMES.sources.map((n) => src[n])];
   try {
     await guild.roles.setPositions(order.map((r, i) => ({ role: r, position: Math.max(1, top - 1 - i) })));
-  } catch {
+    log.info(`setup-roles: 並び替え完了 (${order.map((r) => r.name).join(" > ")}) bot top=${top}`);
+  } catch (err) {
+    log.warn(`setup-roles: 並び替え失敗 ${String(err)}`);
     lines.push("（並び替えは権限不足で省略。Bot のロールを一番上に置いてから再実行してください）");
   }
 
@@ -82,9 +90,11 @@ async function ensureCategory(guild: Guild, name: string, overwrites: OverwriteR
   const existing = guild.channels.cache.find((c) => c.type === ChannelType.GuildCategory && c.name === name) as CategoryChannel | undefined;
   if (existing) {
     await existing.permissionOverwrites.set(overwrites, "SupporterGate setup");
+    log.info(`setup: 既存カテゴリ再利用・権限更新 ${name} (${existing.id}) overwrites=${overwrites.length}`);
     return { cat: existing, created: false };
   }
   const cat = await guild.channels.create({ name, type: ChannelType.GuildCategory, permissionOverwrites: overwrites, reason: "SupporterGate setup" });
+  log.info(`setup: カテゴリ作成 ${name} (${cat.id}) overwrites=${overwrites.length}`);
   return { cat, created: true };
 }
 
@@ -101,6 +111,7 @@ async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSp
   const existing = cat.children.cache.find((c) => c.name === spec.name && c.type === spec.type);
   if (existing) {
     if (spec.overwrites && "permissionOverwrites" in existing) await existing.permissionOverwrites.set(spec.overwrites, "SupporterGate setup");
+    log.info(`setup: 既存チャンネル再利用・権限更新 ${cat.name}/${spec.name} (${existing.id})`);
     return { ch: existing, created: false };
   }
   if (spec.type === ChannelType.GuildForum) {
@@ -114,6 +125,7 @@ async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSp
       availableTags: (spec.tags ?? []).map((t) => ({ name: t })),
       reason: "SupporterGate setup",
     });
+    log.info(`setup: フォーラム作成 ${cat.name}/${spec.name} (${ch.id}) tags=${(spec.tags ?? []).join(",")} nsfw=${spec.nsfw ?? false}`);
     return { ch, created: true };
   }
   const ch = await guild.channels.create({
@@ -125,6 +137,7 @@ async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSp
     permissionOverwrites: spec.overwrites,
     reason: "SupporterGate setup",
   });
+  log.info(`setup: テキストチャンネル作成 ${cat.name}/${spec.name} (${ch.id}) nsfw=${spec.nsfw ?? false}`);
   return { ch, created: true };
 }
 
@@ -132,6 +145,7 @@ const FEEDBACK_TAGS = ["Bug", "Request", "JP", "EN", "ZH"];
 
 /** INFO カテゴリ（全員向け） */
 export async function setupInfo(guild: Guild, config: AppConfig): Promise<string> {
+  log.info(`setup-info 開始 guild=${guild.name} (${guild.id})`);
   await guild.channels.fetch();
   const everyone = guild.roles.everyone;
   const me = guild.members.me;
@@ -180,6 +194,7 @@ export async function setupWorld(
   visibility: WorldVisibility,
   nsfw: boolean,
 ): Promise<string> {
+  log.info(`setup-world 開始 guild=${guild.name} jp=${jpName} en=${enName} visibility=${visibility} nsfw=${nsfw}`);
   await guild.channels.fetch();
   await guild.roles.fetch();
   const everyone = guild.roles.everyone;
@@ -190,6 +205,7 @@ export async function setupWorld(
   if (visibility === "supporter") viewer = findRole(guild, config, 1, ROLE_NAMES.supporter);
   if (visibility === "platinum") viewer = findRole(guild, config, 2, ROLE_NAMES.platinum);
   if (visibility !== "public" && !viewer) {
+    log.warn(`setup-world: 閲覧ロールが見つからない visibility=${visibility}`);
     return `ロールが見つかりません。先に /vrc-admin setup-roles を実行してください（visibility=${visibility}）`;
   }
 
@@ -228,6 +244,7 @@ export async function setupWorld(
     const r = await ensureChannel(guild, cat, spec);
     out.push(`${r.created ? "作成" : "既存"}: ${spec.name}`);
   }
+  log.info(`setup-world 完了 ${catName} viewer=${viewer ? viewer.name : "@everyone"}`);
   out.push("");
   out.push("ワールドと更新情報はサーバーオーナーだけが書けます。他の管理者にも書かせる場合はチャンネル権限で個別に許可してください。");
   return out.join("\n");

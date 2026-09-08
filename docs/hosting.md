@@ -18,6 +18,16 @@
 | 自宅 PC / Raspberry Pi | 電気代のみ | PC を落とすと Bot も止まる。Raspberry Pi なら実用可 |
 | Render 無料枠 | 無料 | **不向き**。無料枠は待機でスリープし、Gateway 接続が切れる |
 
+## Windows でローカルに動かす（環境を汚さない順）
+
+| 方法 | 追加でインストールするもの | 向き |
+|---|---|---|
+| `npm start` をそのまま実行 | なし（Node は導入済み、依存は `bot/node_modules` の中だけ） | 最初の設定調整。すぐ止めて消せる |
+| Docker Desktop | Docker Desktop と WSL2 | 常駐させたいが AWS を使わない場合 |
+| AWS に直接 | なし | 設定調整を SSH 越しにやる手間はあるが、最終形と同じ |
+
+依存パッケージはプロジェクトフォルダ内にしか入らないので、`npm start` は「環境を汚す」うちに入りません。フォルダごと消せば跡は残りません。
+
 ## VPS（Ubuntu）での手順
 
 ```bash
@@ -50,7 +60,7 @@ sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 ```
 
 ```bash
-git clone <このリポジトリ> ~/supporter-gate && cd ~/supporter-gate/bot
+git clone https://github.com/mizunago/nago-gate.git ~/nago-gate && cd ~/nago-gate/bot
 cp -r instance.example instance
 # instance/.env にトークン、instance/config.jsonc にロール ID・公開先を記入
 docker compose up -d --build
@@ -62,7 +72,7 @@ docker compose logs -f                      # 「ログイン: <Bot名>」「ス
 - `restart: unless-stopped` なので EC2 再起動後も自動で上がります（Docker 自体を `systemctl enable` していること）
 - ログは json-file で 10MB × 3 世代にローテーションします
 - セキュリティグループの受信許可は不要です（外向き HTTPS のみ）
-- バックアップは `~/supporter-gate/bot/instance/` をコピーするだけです（トークンも含むので保管場所に注意）
+- バックアップは `~/nago-gate/bot/instance/` をコピーするだけです（トークンも含むので保管場所に注意）
 
 ## バックアップ
 

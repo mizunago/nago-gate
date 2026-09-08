@@ -12,6 +12,7 @@ import {
   type MessageCreateOptions,
 } from "discord.js";
 import { langOf, t } from "./i18n.js";
+import { log } from "./log.js";
 import { describe, parseTextRegister, registerName } from "./register.js";
 import type { SyncContext } from "./sync.js";
 
@@ -91,6 +92,7 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
     rec.showCredit = id === IDS.creditOn;
     rec.updatedAt = new Date().toISOString();
     store.save();
+    log.info(`クレジット表示 ${interaction.user.tag} (${interaction.user.id}): ${rec.showCredit}`);
     deps.requestPublish();
     await interaction.reply({ content: t(lang, "credit.set", { state: t(lang, rec.showCredit ? "on" : "off") }), ephemeral: true });
     return;
@@ -131,6 +133,7 @@ export async function handleRegisterChannelMessage(deps: PanelDeps, msg: Message
   let content: string;
 
   const parsed = parseTextRegister(msg.content);
+  log.info(`登録チャンネル投稿 ${msg.author.tag} (${msg.author.id}): ${parsed ? "テキスト登録として処理" : "案内して削除"} content=${JSON.stringify(msg.content.slice(0, 80))}`);
   if (parsed) {
     // テキストからは言語が分からないので日英で返す
     const ja = registerName(config, store, {

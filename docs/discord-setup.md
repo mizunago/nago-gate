@@ -2,8 +2,7 @@
 
 ## 1. Discord サーバーを作る
 
-サーバーを新規作成し、名前を「なごなごのあやしいわーるど」にするだけです。ロールとチャンネルは Bot が作るので、この時点では何も足しません。
-設計の全体像は [discord-structure.md](discord-structure.md) を参照。
+サーバーを新規作成するだけです。ロールとチャンネルは Bot が作るので、この時点では何も足しません。
 
 ## 2. Bot アプリの作成
 
@@ -13,17 +12,16 @@
 4. OAuth2 → URL Generator: scope `bot` + `applications.commands`、権限 `Manage Roles` + `Manage Channels` + `Manage Messages` + `Send Messages` + `View Channels`
 5. 生成 URL でサーバーに招待し、サーバー設定 → ロールで **Bot のロールを一番上へ** 移動（Bot は自分より下のロールしか作成・付与できない）
 
-## 3. 公開先の準備（GitHub Pages）
+## 3. 公開先の準備（GitHub Pages、同じリポジトリの gh-pages ブランチ）
 
 VRChat が設定変更なしで読めるドメインは限られます（`*.github.io`, `gist.githubusercontent.com`, `pastebin.com`, `*.vrcdn.cloud`, `*.disbridge.com`）。
-`raw.githubusercontent.com` は対象外なので、リポジトリ直リンクではなく Pages を使います。
+`raw.githubusercontent.com` は対象外なので Pages を使います。リポジトリを増やさないため、Bot 自身の公開リポジトリ `nago-gate` の `gh-pages` ブランチに書きます。Bot はそのブランチにしか触らないので `main` は汚れません。
 
-1. GitHub で **公開**リポジトリ（例: `supporters`）を作る。無料プランの Pages は公開リポジトリのみ
-2. 空の `supporters.json`（内容 `{}`）を `main` に置く
-3. Settings → Pages → Source を「Deploy from a branch」、Branch を `main` / `/ (root)` にして保存
-4. Fine-grained Personal Access Token を作る: Repository access でこのリポジトリだけを選び、Permissions → Contents を Read and write。これを `instance/.env` の `GITHUB_TOKEN` に
-5. `config.jsonc` の `publish` に `owner` / `repo` / `branch` / `path` を書く
-6. Udon に設定する URL: `https://<owner>.github.io/<repo>/supporters.json`
+1. Fine-grained Personal Access Token を作る: Repository access で `nago-gate` だけを選び、Permissions → Contents を Read and write。`instance/.env` の `GITHUB_TOKEN` に
+2. `config.jsonc` の `publish` はサンプルのまま（owner `mizunago`, repo `nago-gate`, branch `gh-pages`）
+3. Bot を起動して `/vrc-admin publish` を 1 回実行。`gh-pages` ブランチが無ければ Bot が `supporters.json` だけを含むブランチを自動で作る
+4. GitHub の Settings → Pages → Source「Deploy from a branch」、Branch `gh-pages` / `/ (root)` で保存（1 回だけ）
+5. Udon に設定する URL: `https://mizunago.github.io/nago-gate/supporters.json`
 
 Pages は push から反映まで 1〜2 分、さらに CDN キャッシュで最大 10 分ほど遅れます。支援者の反映に数分かかるのはこのためです。
 
@@ -72,8 +70,8 @@ npm start
 2. Patreon / Ci-en の連携画面で、各プランに `src-*` ロールを割り当てる
 3. `/vrc-admin setup-info` — INFO カテゴリを作る。表示された登録チャンネル ID を `discord.registerChannelId` に入れて再起動
 4. `登録-register` で `/vrc-admin panel` — ボタンパネルを投稿してピン留め
-5. `/vrc-admin setup-world jp:あやしいさろん en:Immoral Salon visibility:全員` — 公開ワールドのカテゴリ
-6. `/vrc-admin setup-world jp:あやしいけんきゅうじょ en:Immoral Laboratory visibility:Supporter nsfw:true` — 限定ワールドのカテゴリ
+5. `/vrc-admin setup-world jp:<公開ワールド名> en:<English name> visibility:全員` — 公開ワールドのカテゴリ
+6. `/vrc-admin setup-world jp:<限定ワールド名> en:<English name> visibility:Supporter` — 限定ワールドのカテゴリ（必要なら `nsfw:true`）
 
 どのコマンドも同名があれば作り直さず権限だけ揃えるので、何度実行しても増えません。
 `はじめに-start-here` の本文とウェルカム画面だけは手で書きます。

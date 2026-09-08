@@ -49,10 +49,10 @@
   // 支援者リスト JSON の公開先。VRChat が設定なしで読めるのは GitHub Pages (*.github.io) / Gist
   "publish": {
     "type": "github",
-    "owner": "your-github-user",       // GitHub のユーザー名（または Organization）
-    "repo": "supporters",              // Pages を有効化した公開リポジトリ
-    "branch": "main",
-    "path": "supporters.json"          // Udon 側の URL は https://<owner>.github.io/<repo>/supporters.json
+    "owner": "mizunago",               // GitHub のユーザー名
+    "repo": "nago-gate",               // この Bot 自身の公開リポジトリでよい
+    "branch": "gh-pages",              // Bot はこのブランチだけに書く。無ければ自動で作る（main は汚さない）
+    "path": "supporters.json"          // Udon 側の URL は https://mizunago.github.io/nago-gate/supporters.json
   }
   // Gist を使う場合:
   // "publish": { "type": "gist", "gistId": "0123456789abcdef0123456789abcdef", "fileName": "supporters.json" }

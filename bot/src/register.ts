@@ -4,6 +4,7 @@ import { normalizeName } from "./hash.js";
 import { t, type Lang } from "./i18n.js";
 import type { MemberRecord, Store } from "./store.js";
 import { tierByRank } from "./config.js";
+import { log } from "./log.js";
 
 export interface RegisterInput {
   discordId: string;
@@ -59,13 +60,17 @@ export function validateName(config: AppConfig, raw: string, lang: Lang): { ok: 
 export function registerName(config: AppConfig, store: Store, input: RegisterInput): RegisterResult {
   const { lang } = input;
   const v = validateName(config, input.name, lang);
-  if (!v.ok) return { ok: false, changed: false, message: t(lang, "err.cannotRegister", { reason: v.reason }) };
+  if (!v.ok) {
+    log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): ${v.reason} name=${JSON.stringify(input.name)}`);
+    return { ok: false, changed: false, message: t(lang, "err.cannotRegister", { reason: v.reason }) };
+  }
 
   const rec = store.getOrCreate(input.discordId);
   rec.discordTag = input.discordTag;
   const normalized = normalizeName(v.name);
   const dup = store.findByNormalizedName(normalized, normalizeName);
   if (dup && dup.discordId !== input.discordId) {
+    log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): 重複 name=${v.name} 既存=${dup.discordTag ?? dup.discordId}`);
     return { ok: false, changed: false, message: t(lang, "err.duplicateName") };
   }
 
@@ -74,6 +79,7 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   if (changed && rec.vrcName && rec.nameChangedAt) {
     const next = new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000);
     if (next > now) {
+      log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): クールダウン中 ${rec.vrcName} -> ${v.name} next=${next.toISOString()}`);
       return {
         ok: false,
         changed: false,
@@ -87,6 +93,7 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   if (input.credit !== null) rec.showCredit = input.credit;
   rec.updatedAt = now.toISOString();
   store.save();
+  log.info(`登録 ${input.discordTag} (${input.discordId}): name=${v.name} changed=${changed} credit=${rec.showCredit} effectiveRank=${rec.effectiveRank}`);
 
   const message =
     `${t(lang, "registered")}\n${describe(config, rec, lang)}\n` +

@@ -8,6 +8,7 @@ import {
 import { tierByRank, type AppConfig } from "./config.js";
 import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
+import { log } from "./log.js";
 import { buildPanelMessage } from "./panel.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
@@ -53,8 +54,8 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
       s
         .setName("setup-world")
         .setDescription("ワールド用カテゴリ（ワールド・更新情報・フィードバック）を作る")
-        .addStringOption((o) => o.setName("jp").setDescription("日本語名（例: あやしいさろん）").setRequired(true))
-        .addStringOption((o) => o.setName("en").setDescription("英語名（例: Immoral Salon）").setRequired(true))
+        .addStringOption((o) => o.setName("jp").setDescription("日本語名（例: さんぷるわーるど）").setRequired(true))
+        .addStringOption((o) => o.setName("en").setDescription("英語名（例: Sample World）").setRequired(true))
         .addStringOption((o) =>
           o
             .setName("visibility")
@@ -182,6 +183,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         }
         await interaction.editReply(result.slice(0, 1900));
       } catch (err) {
+        log.error(`${sub} 失敗: ${String(err)}`);
         await interaction.editReply(`失敗しました: ${String(err)}\nBot に「ロールの管理」「チャンネルの管理」権限があるか、Bot のロールが一番上にあるか確認してください。`);
       }
       return;
@@ -193,6 +195,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         return;
       }
       await channel.send(buildPanelMessage());
+      log.info(`パネル投稿 channel=${interaction.channelId} by ${member.user.tag}`);
       const hint = config.registerChannelId === interaction.channelId
         ? "" : `\n（テキスト投稿の自動処理を有効にするには config.jsonc の discord.registerChannelId に \`${interaction.channelId}\` を設定）`;
       await interaction.reply({ content: "パネルを投稿しました。ピン留めしておくと見つけやすくなります。" + hint, ephemeral: true });
@@ -240,6 +243,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       rec.nameChangedAt = null;
       rec.updatedAt = new Date().toISOString();
       store.save();
+      log.info(`管理者 setname ${user.tag} (${user.id}) -> ${v.name} by ${member.user.tag}`);
       deps.requestPublish();
       await interaction.reply({ content: `<@${user.id}> の名前を **${v.name}** に設定しました`, ephemeral: true });
       return;
@@ -258,6 +262,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       rec.manualUntil = days ? new Date(now.getTime() + days * 86_400_000).toISOString() : null;
       updateEffectiveRank(config, rec, rec.activeRank, now);
       store.save();
+      log.info(`管理者 grant ${user.tag} (${user.id}) rank=${rank} days=${days ?? "∞"} by ${member.user.tag}`);
       deps.requestPublish();
       await interaction.reply({ content: `<@${user.id}> にランク ${rank} を手動付与しました（${days ? `${days} 日間` : "無期限"}）。ロール反映は次回同期時です。`, ephemeral: true });
       return;
@@ -273,6 +278,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       rec.manualUntil = null;
       updateEffectiveRank(config, rec, rec.activeRank, new Date());
       store.save();
+      log.info(`管理者 revoke ${user.tag} (${user.id}) by ${member.user.tag}`);
       deps.requestPublish();
       await interaction.reply({ content: `<@${user.id}> の手動付与を取り消しました`, ephemeral: true });
       return;
