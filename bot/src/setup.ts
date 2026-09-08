@@ -149,12 +149,13 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
   await guild.channels.fetch();
   const everyone = guild.roles.everyone;
   const me = guild.members.me;
+  const botOw: OverwriteResolvable[] = me ? [{ id: me.id, allow: [P.ViewChannel, P.SendMessages, P.ManageMessages] }] : [];
   const { cat, created } = await ensureCategory(guild, "📌 INFO", []);
   const out: string[] = [`${created ? "作成" : "既存"}: ${cat.name}`];
 
   const specs: ChannelSpec[] = [
-    { name: "📖はじめに-start-here", type: ChannelType.GuildText, overwrites: [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }] },
-    { name: "📢お知らせ-announcements", type: ChannelType.GuildText, overwrites: [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }] },
+    { name: "📖はじめに-start-here", type: ChannelType.GuildText, overwrites: [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }, ...botOw] },
+    { name: "📢お知らせ-announcements", type: ChannelType.GuildText, overwrites: [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }, ...botOw] },
     {
       name: "🧾登録-register",
       type: ChannelType.GuildText,
@@ -224,9 +225,12 @@ export async function setupWorld(
     canChat.push({ id: viewer!.id, allow: [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads] });
   }
   if (me) {
-    readOnly.push({ id: me.id, allow: [P.ViewChannel, P.SendMessages] });
-    canPost.push({ id: me.id, allow: [P.ViewChannel, P.SendMessages] });
-    canChat.push({ id: me.id, allow: [P.ViewChannel, P.SendMessages] });
+    // Bot は「自分が持っていない権限」を他者に付与できないため、
+    // 子チャンネルで付与する権限をすべて Bot 自身にも明示的に許可しておく
+    const botAllow = [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.ManageMessages, P.ManageThreads];
+    readOnly.push({ id: me.id, allow: botAllow });
+    canPost.push({ id: me.id, allow: botAllow });
+    canChat.push({ id: me.id, allow: botAllow });
   }
 
   const { cat, created } = await ensureCategory(guild, catName, readOnly);
