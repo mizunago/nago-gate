@@ -6,6 +6,7 @@ import {
   type CategoryChannel,
   type Guild,
   type GuildBasedChannel,
+  type GuildMember,
   type OverwriteResolvable,
   type Role,
 } from "discord.js";
@@ -13,6 +14,19 @@ import type { AppConfig } from "./config.js";
 import { log } from "./log.js";
 
 const P = PermissionFlagsBits;
+
+/** Bot が実際に持っている権限だけに絞る（持っていない権限は他者に付与できず 50013 になる） */
+function onlyHeld(me: GuildMember, bits: bigint[]): bigint[] {
+  const held = bits.filter((b) => me.permissions.has(b));
+  const missing = bits.filter((b) => !me.permissions.has(b));
+  if (missing.length) log.warn(`setup: Bot が持っていない権限を上書きから除外: ${missing.map((b) => permName(b)).join(",")}`);
+  return held;
+}
+
+function permName(bit: bigint): string {
+  for (const [k, v] of Object.entries(PermissionFlagsBits)) if (v === bit) return k;
+  return bit.toString();
+}
 
 export const ROLE_NAMES = {
   supporter: "Supporter",
@@ -53,16 +67,29 @@ export async function setupRoles(guild: Guild): Promise<string> {
   }
   lines.unshift(`${sup.created ? "作成" : "既存"}: ${ROLE_NAMES.supporter}`, `${pla.created ? "作成" : "既存"}: ${ROLE_NAMES.platinum}`);
 
-  // 並び順: Bot の直下に Platinum, Supporter, src-*
+  // 並び順: 管理対象外のロールを下に、その上に src-* → Supporter → Platinum。Bot のロール（managed）は動かさない
+  const ourIds = new Set([pla.role.id, sup.role.id, ...ROLE_NAMES.sources.map((n) => src[n].id)]);
+  const others = [...guild.roles.cache.values()]
+    .filter((r) => r.id !== guild.id && !r.managed && !ourIds.has(r.id))
+    .sort((a, b) => a.position - b.position);
+  const ascending = [...others, ...ROLE_NAMES.sources.slice().reverse().map((n) => src[n]), sup.role, pla.role];
   const me = guild.members.me;
-  const top = me ? me.roles.highest.position : guild.roles.cache.size;
-  const order = [pla.role, sup.role, ...ROLE_NAMES.sources.map((n) => src[n])];
+  // Discord は「自分の最上位ロール以上の位置」への移動を拒否するため、Bot 自身のロールを最後尾（最上位）に含めて一括指定する
+  const botRole = me && me.roles.highest.id !== guild.id ? me.roles.highest : null;
+  const sequence = botRole ? [...ascending, botRole] : ascending;
   try {
-    await guild.roles.setPositions(order.map((r, i) => ({ role: r, position: Math.max(1, top - 1 - i) })));
-    log.info(`setup-roles: 並び替え完了 (${order.map((r) => r.name).join(" > ")}) bot top=${top}`);
+    await guild.roles.setPositions(sequence.map((r, i) => ({ role: r, position: i + 1 })));
+    log.info(`setup-roles: 並び替え完了 (下から: ${sequence.map((r) => r.name).join(" < ")})`);
   } catch (err) {
     log.warn(`setup-roles: 並び替え失敗 ${String(err)}`);
-    lines.push("（並び替えは権限不足で省略。Bot のロールを一番上に置いてから再実行してください）");
+    lines.push("（並び替えは失敗。サーバー設定 → ロールで Bot を一番上にしてから再実行してください）");
+  }
+  // 既存ロールの見た目も揃える
+  for (const [r, color, hoist] of [[sup.role, 0xf5c542, true], [pla.role, 0x8fd3ff, true]] as [Role, number, boolean][]) {
+    if (r.color !== color || r.hoist !== hoist) {
+      await r.edit({ color, hoist, reason: "SupporterGate setup" });
+      log.info(`setup-roles: 見た目更新 ${r.name} color=#${color.toString(16)} hoist=${hoist}`);
+    }
   }
 
   const snippet = [
@@ -149,7 +176,7 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
   await guild.channels.fetch();
   const everyone = guild.roles.everyone;
   const me = guild.members.me;
-  const botOw: OverwriteResolvable[] = me ? [{ id: me.id, allow: [P.ViewChannel, P.SendMessages, P.ManageMessages] }] : [];
+  const botOw: OverwriteResolvable[] = me ? [{ id: me.id, allow: onlyHeld(me, [P.ViewChannel, P.SendMessages, P.ManageMessages]) }] : [];
   const { cat, created } = await ensureCategory(guild, "📌 INFO", []);
   const out: string[] = [`${created ? "作成" : "既存"}: ${cat.name}`];
 
@@ -162,7 +189,7 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
       topic: "VRChat 表示名の登録 / Register your VRChat display name",
       overwrites: [
         { id: everyone.id, allow: [P.SendMessages, P.UseApplicationCommands], deny: [P.CreatePublicThreads, P.CreatePrivateThreads, P.AttachFiles, P.EmbedLinks] },
-        ...(me ? [{ id: me.id, allow: [P.SendMessages, P.ManageMessages, P.ViewChannel] }] : []),
+        ...botOw,
       ],
     },
     { name: "💬雑談-jp", type: ChannelType.GuildText, topic: "日本語の雑談" },
@@ -215,19 +242,20 @@ export async function setupWorld(
   const canChat: OverwriteResolvable[] = [];
   if (visibility === "public") {
     readOnly.push({ id: everyone.id, deny: [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads] });
-    canPost.push({ id: everyone.id, allow: [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads] });
+    canPost.push({ id: everyone.id, allow: me ? onlyHeld(me, [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads]) : [P.SendMessages] });
   } else {
     readOnly.push({ id: everyone.id, deny: [P.ViewChannel] });
     readOnly.push({ id: viewer!.id, allow: [P.ViewChannel], deny: [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads] });
     canPost.push({ id: everyone.id, deny: [P.ViewChannel] });
-    canPost.push({ id: viewer!.id, allow: [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads] });
+    const viewerAllow = me ? onlyHeld(me, [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads]) : [P.ViewChannel, P.SendMessages];
+    canPost.push({ id: viewer!.id, allow: viewerAllow });
     canChat.push({ id: everyone.id, deny: [P.ViewChannel] });
-    canChat.push({ id: viewer!.id, allow: [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads] });
+    canChat.push({ id: viewer!.id, allow: viewerAllow });
   }
   if (me) {
     // Bot は「自分が持っていない権限」を他者に付与できないため、
     // 子チャンネルで付与する権限をすべて Bot 自身にも明示的に許可しておく
-    const botAllow = [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.ManageMessages, P.ManageThreads];
+    const botAllow = onlyHeld(me, [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.ManageMessages]);
     readOnly.push({ id: me.id, allow: botAllow });
     canPost.push({ id: me.id, allow: botAllow });
     canChat.push({ id: me.id, allow: botAllow });
