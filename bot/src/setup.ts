@@ -225,8 +225,7 @@ export async function setupCommunity(guild: Guild): Promise<string> {
     const r = await ensureChannel(guild, cat, spec);
     out.push(`${r.created ? "作成" : "既存"}: ${spec.name}${spec.nsfw ? "（年齢制限）" : ""}`);
   }
-  return out.join("
-");
+  return out.join("\n");
 }
 
 export type WorldVisibility = "public" | "supporter" | "platinum";
