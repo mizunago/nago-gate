@@ -69,6 +69,7 @@ npm start
 1. `/vrc-admin setup-roles` — `Supporter` / `Platinum` / `src-*` を作り、`config.jsonc` に貼る `tiers` を表示する。貼って Bot を再起動
 2. Patreon / Ci-en の連携画面で、各プランに `src-*` ロールを割り当てる
 3. `/vrc-admin setup-info` — INFO カテゴリを作る。表示された登録チャンネル ID を `discord.registerChannelId` に入れて再起動
+3b. `/vrc-admin setup-community` — 雑談 jp/en と写真チャンネル（sfw / nsfw）のカテゴリを作る
 4. `登録-register` で `/vrc-admin panel` — ボタンパネルを投稿してピン留め
 5. `/vrc-admin setup-world jp:<公開ワールド名> en:<English name> visibility:全員` — 公開ワールドのカテゴリ
 6. `/vrc-admin setup-world jp:<限定ワールド名> en:<English name> visibility:Supporter` — 限定ワールドのカテゴリ（必要なら `nsfw:true`）
@@ -95,7 +96,8 @@ npm start
 | コマンド | 説明 |
 |---|---|
 | `/vrc-admin setup-roles` | 出力ロールと入力ロールを作成し、config 用の ID を表示 |
-| `/vrc-admin setup-info` | INFO カテゴリ（はじめに・お知らせ・登録・雑談 jp/en）を作成 |
+| `/vrc-admin setup-info` | INFO カテゴリ（はじめに・お知らせ・登録）を作成 |
+| `/vrc-admin setup-community` | コミュニティカテゴリ（雑談 jp/en、sfw-photo、nsfw-photo）を作成 |
 | `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（ワールド・更新情報・フィードバック、限定なら lounge も）を作成 |
 | `/vrc-admin panel` | 実行したチャンネルに登録ボタン付きパネルを投稿（登録チャンネルで 1 回だけ実行してピン留め） |
 | `/vrc-admin sync` | 今すぐ同期＋公開 |

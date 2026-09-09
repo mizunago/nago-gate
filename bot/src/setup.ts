@@ -192,8 +192,6 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
         ...botOw,
       ],
     },
-    { name: "💬雑談-jp", type: ChannelType.GuildText, topic: "日本語の雑談" },
-    { name: "💬chat-en", type: ChannelType.GuildText, topic: "English chat" },
   ];
   let registerId: string | null = null;
   for (const spec of specs) {
@@ -209,6 +207,26 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
     }
   }
   return out.join("\n");
+}
+
+/** コミュニティカテゴリ（全員向け: 雑談と写真） */
+export async function setupCommunity(guild: Guild): Promise<string> {
+  log.info(`setup-community 開始 guild=${guild.name} (${guild.id})`);
+  await guild.channels.fetch();
+  const { cat, created } = await ensureCategory(guild, "💬 コミュニティ ⁄ Community", []);
+  const out: string[] = [`${created ? "作成" : "既存"}: ${cat.name}`];
+  const specs: ChannelSpec[] = [
+    { name: "💬雑談-jp", type: ChannelType.GuildText, topic: "日本語の雑談" },
+    { name: "💬chat-en", type: ChannelType.GuildText, topic: "English chat" },
+    { name: "📷sfw-photo", type: ChannelType.GuildText, topic: "全年齢の写真・スクショ / SFW photos & screenshots" },
+    { name: "🔞nsfw-photo", type: ChannelType.GuildText, topic: "年齢制限あり / Age-restricted photos", nsfw: true },
+  ];
+  for (const spec of specs) {
+    const r = await ensureChannel(guild, cat, spec);
+    out.push(`${r.created ? "作成" : "既存"}: ${spec.name}${spec.nsfw ? "（年齢制限）" : ""}`);
+  }
+  return out.join("
+");
 }
 
 export type WorldVisibility = "public" | "supporter" | "platinum";

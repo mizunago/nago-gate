@@ -11,7 +11,7 @@ import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
 import { buildPanelMessage } from "./panel.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
-import { setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
+import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
 import { publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
 
 export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
@@ -49,7 +49,8 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .setDescription("支援者ゲート管理（管理者用）")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand((s) => s.setName("setup-roles").setDescription("Supporter / Platinum / src-* ロールを作り、config 用の ID を表示する"))
-    .addSubcommand((s) => s.setName("setup-info").setDescription("INFO カテゴリ（はじめに・お知らせ・登録・雑談）を作る"))
+    .addSubcommand((s) => s.setName("setup-info").setDescription("INFO カテゴリ（はじめに・お知らせ・登録）を作る"))
+    .addSubcommand((s) => s.setName("setup-community").setDescription("コミュニティカテゴリ（雑談 jp/en・sfw-photo・nsfw-photo）を作る"))
     .addSubcommand((s) =>
       s
         .setName("setup-world")
@@ -165,12 +166,13 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       await interaction.reply({ content: "管理者権限が必要です", ephemeral: true });
       return;
     }
-    if (sub === "setup-roles" || sub === "setup-info" || sub === "setup-world") {
+    if (sub === "setup-roles" || sub === "setup-info" || sub === "setup-community" || sub === "setup-world") {
       await interaction.deferReply({ ephemeral: true });
       try {
         let result: string;
         if (sub === "setup-roles") result = await setupRoles(interaction.guild);
         else if (sub === "setup-info") result = await setupInfo(interaction.guild, config);
+        else if (sub === "setup-community") result = await setupCommunity(interaction.guild);
         else {
           result = await setupWorld(
             interaction.guild,
