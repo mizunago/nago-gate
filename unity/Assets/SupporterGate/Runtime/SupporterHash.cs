@@ -114,7 +114,7 @@ public class SupporterHash : UdonSharpBehaviour
         ulong bitLen = (ulong)msgLen * 8UL;
         for (int i = 0; i < 8; i++)
         {
-            padded[totalLen - 1 - i] = (byte)(bitLen >> (8 * i));
+            padded[totalLen - 1 - i] = (byte)((bitLen >> (8 * i)) & 0xFFUL);   // Udon の (byte) は Convert.ToByte＝255 を超えると例外。必ずマスクする
         }
 
         uint[] h = _h;
@@ -155,10 +155,10 @@ public class SupporterHash : UdonSharpBehaviour
         byte[] digest = new byte[32];
         for (int i = 0; i < 8; i++)
         {
-            digest[i * 4] = (byte)(h[i] >> 24);
-            digest[i * 4 + 1] = (byte)(h[i] >> 16);
-            digest[i * 4 + 2] = (byte)(h[i] >> 8);
-            digest[i * 4 + 3] = (byte)h[i];
+            digest[i * 4] = (byte)((h[i] >> 24) & 0xFFu);
+            digest[i * 4 + 1] = (byte)((h[i] >> 16) & 0xFFu);
+            digest[i * 4 + 2] = (byte)((h[i] >> 8) & 0xFFu);
+            digest[i * 4 + 3] = (byte)(h[i] & 0xFFu);
         }
         return digest;
     }
