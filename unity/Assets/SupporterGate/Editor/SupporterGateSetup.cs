@@ -20,7 +20,6 @@ public static class SupporterGateSetup
 {
     private const string PackageRoot = "Assets/SupporterGate";
     private const int ApprovalRows = 12;
-    private const int RankTagCount = 24;
 
     [MenuItem("Tools/SupporterGate/Create Scene Setup", false, 1)]
     public static void CreateSceneSetup()
@@ -127,24 +126,6 @@ public static class SupporterGateSetup
         SetRef(credits, "registry", registry);
         SetRef(credits, "text", creditsText);
 
-        // ---- Rank tags ----
-        GameObject tagsGo = Child(root, "RankTags");
-        SupporterRankTag tags = tagsGo.AddUdonSharpComponent<SupporterRankTag>();
-        GameObject[] tagPool = new GameObject[RankTagCount];
-        for (int i = 0; i < RankTagCount; i++)
-        {
-            GameObject t = Child(tagsGo, $"Tag{i:00}");
-            TextMeshPro tmp = t.AddComponent<TextMeshPro>();
-            tmp.text = "Supporter";
-            tmp.fontSize = 2.5f;
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.rectTransform.sizeDelta = new Vector2(4f, 0.6f);
-            t.SetActive(false);
-            tagPool[i] = t;
-        }
-        SetRef(tags, "registry", registry);
-        SetArray(tags, "tagObjects", tagPool);
-
         Undo.CollapseUndoOperations(group);
         Selection.activeGameObject = root;
         EditorSceneManager.MarkSceneDirty(root.scene);
@@ -175,8 +156,7 @@ public static class SupporterGateSetup
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterApprovalPanel)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterApprovalRow)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterContentZone)) != null
-            && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterCreditsBoard)) != null
-            && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterRankTag)) != null;
+            && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterCreditsBoard)) != null;
     }
 
     // ===================== helpers =====================

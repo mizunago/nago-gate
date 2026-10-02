@@ -24,8 +24,7 @@ SupporterGate System
 ├─ ContentZone     本体エリアを覆う Trigger（入り込んだ非許可者をロビーへ戻す）
 ├─ LobbyPanel      状態表示・入場ボタン
 ├─ ApprovalPanel   支援者専用の入場許可パネル
-├─ CreditsBoard    支援者クレジット
-└─ RankTags        頭上のティア表示
+└─ CreditsBoard    支援者クレジット
 ```
 
 2. `Registry` の **Data Url** に Bot の公開 URL を入れる
@@ -48,7 +47,7 @@ SupporterGate System
 
 | ワールド | Mode | 補足 |
 |---|---|---|
-| 公開ワールド（特典のみ） | `Open` | CreditsBoard と RankTags だけ使う。Gate / Zone は削除してよい |
+| 公開ワールド（特典のみ） | `Open` | CreditsBoard だけ使う。Gate / Zone は削除してよい |
 | アーリーアクセス | `SupportersOnly` | |
 | 限定ワールド | `SupporterApproval` | 支援者のフレンドが入ってきたら、支援者が ApprovalPanel で個別に許可 |
 | 支援者が「開ける」タイプ | `SupporterPresence` + Require Activation | 支援者がいる間だけ全員 OK |
