@@ -37,6 +37,8 @@ public class SupporterGate : UdonSharpBehaviour
     [SerializeField] private float noSupporterGraceSeconds = 120f;
     [Tooltip("リストが取得できない間、非支援者を通すか（通常は false = 通さない）")]
     [SerializeField] private bool failOpenWhenRegistryUnavailable = false;
+    [Tooltip("ワールドの持ち主など、支援者のリストに載せずに支援者と同じに扱う VRChat の表示名（完全一致）。クレジットには出ない（特別枠）")]
+    [SerializeField] private string[] ownerDisplayNames = new string[0];
 
     [Header("Scene")]
     [SerializeField] private Transform lobbySpawn;
@@ -101,13 +103,13 @@ public class SupporterGate : UdonSharpBehaviour
     public bool _IsLocalSupporter()
     {
         if (registry == null) return false;
-        return registry._GetLocalRank() >= requiredRank;
+        return LocalRank() >= requiredRank;
     }
 
     public bool _IsPlayerSupporter(VRCPlayerApi player)
     {
         if (registry == null || player == null || !player.IsValid()) return false;
-        return registry._GetRank(player) >= requiredRank;
+        return RankOf(player) >= requiredRank;
     }
 
     public bool _IsApproved(int playerId)
@@ -247,7 +249,7 @@ public class SupporterGate : UdonSharpBehaviour
         {
             VRCPlayerApi p = _players[i];
             if (p == null || !p.IsValid()) continue;
-            if (registry._GetRank(p) >= requiredRank) supporters++;
+            if (RankOf(p) >= requiredRank) supporters++;
         }
         _supporterCount = supporters;
 
@@ -259,7 +261,7 @@ public class SupporterGate : UdonSharpBehaviour
         // オーナーだけが行う掃除: 退室者の許可を消す / 支援者不在が続いたら有効化を解除
         if (Networking.IsOwner(gameObject)) OwnerMaintenance(presence);
 
-        int localRank = registry._GetLocalRank();
+        int localRank = LocalRank();
         bool isSupporter = localRank >= requiredRank;
         bool allowed;
         if (mode == SupporterGateMode.Open)
@@ -311,6 +313,31 @@ public class SupporterGate : UdonSharpBehaviour
         if (changed && allowed) SetMessage("");
     }
 
+    // ================= 持ち主の特別枠 =================
+
+    private bool IsOwnerName(VRCPlayerApi p)
+    {
+        if (p == null || !p.IsValid() || ownerDisplayNames == null) return false;
+        string n = p.displayName;
+        for (int i = 0; i < ownerDisplayNames.Length; i++) if (ownerDisplayNames[i] == n) return true;
+        return false;
+    }
+
+    /// <summary>リストのランク。持ち主の特別枠はリストに無くても支援者（requiredRank）として扱う（リストの取得前でも）</summary>
+    private int RankOf(VRCPlayerApi p)
+    {
+        int r = registry._GetRank(p);
+        if (r < requiredRank && IsOwnerName(p)) return requiredRank;
+        return r;
+    }
+
+    private int LocalRank()
+    {
+        int r = registry._GetLocalRank();
+        if (r < requiredRank && IsOwnerName(Networking.LocalPlayer)) return requiredRank;
+        return r;
+    }
+
     private void OwnerMaintenance(bool presence)
     {
         bool dirty = false;
@@ -336,7 +363,7 @@ public class SupporterGate : UdonSharpBehaviour
     private string DenyReason()
     {
         if (registry == null) return "設定エラー";
-        int localRank = registry._GetLocalRank();
+        int localRank = LocalRank();
         if (localRank == SupporterRegistry.RankUnknown)
         {
             return registry._HasError() ? "支援者リストを取得できませんでした" : "支援者リストを読み込み中です";
