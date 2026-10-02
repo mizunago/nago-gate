@@ -81,3 +81,7 @@ public void _OnRegistryUpdated()
 - `Content Roots` に同期オブジェクト（VRC_ObjectSync、同期 Udon）を入れると、非表示中に同期が壊れます。見た目だけのオブジェクトにしてください
 - `SupporterRegistry` はシーンに 1 つ。複数のゲートやボードから共有できます
 - JSON の再取得は既定 600 秒。短くしすぎると String Loading のレート制限（5 秒に 1 回）と CDN キャッシュの都合で意味がありません
+
+## 持ち主の特別枠（ownerDisplayNames）
+
+Gate の `Owner Display Names` に VRChat の表示名（完全一致）を入れると、その人は支援者のリストに無くても支援者（Required Rank）と同じに入場・許可ができる。クレジットには出ない。ワールドの持ち主・運営用。
