@@ -1,0 +1,49 @@
+{
+  "name": "Nagonago Packages",
+  "id": "com.nagonago.vpm",
+  "author": "nagonago",
+  "url": "https://mizunago.github.io/nago-gate/vpm.json",
+  "packages": {
+    "com.nagonago.notice": {
+      "versions": {
+        "0.1.0": {
+          "name": "com.nagonago.notice",
+          "displayName": "Nago Notice",
+          "version": "0.1.0",
+          "unity": "2022.3",
+          "description": "Shared toast notifications for VRChat worlds: multilingual, always-on-top, reading time from text length, automatic wrapping.",
+          "author": {
+            "name": "nagonago",
+            "url": "https://github.com/mizunago"
+          },
+          "vpmDependencies": {
+            "com.vrchat.worlds": ">=3.10.0"
+          },
+          "url": "https://mizunago.github.io/nago-gate/vpm/com.nagonago.notice-0.1.0.zip",
+          "zipSHA256": "3795b1f7aefeb375ff0498224f5dc48905b2924778c0f4443363cfe788b79786"
+        }
+      }
+    },
+    "com.nagonago.supporter-gate": {
+      "versions": {
+        "0.2.0": {
+          "name": "com.nagonago.supporter-gate",
+          "displayName": "Nago Supporter Gate",
+          "version": "0.2.0",
+          "unity": "2022.3",
+          "description": "Supporter-only gate for VRChat worlds: checks display names against a published supporter list, with per-guest approval by supporters.",
+          "author": {
+            "name": "nagonago",
+            "url": "https://github.com/mizunago"
+          },
+          "vpmDependencies": {
+            "com.vrchat.worlds": ">=3.10.0",
+            "com.nagonago.notice": ">=0.1.0"
+          },
+          "url": "https://mizunago.github.io/nago-gate/vpm/com.nagonago.supporter-gate-0.2.0.zip",
+          "zipSHA256": "5d2ac769346e5fe609298f2212ac923c75f0375fe424d6a0bc680768fdf4a19d"
+        }
+      }
+    }
+  }
+}
