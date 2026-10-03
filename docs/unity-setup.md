@@ -114,13 +114,23 @@ public void _OnRegistryUpdated()
 
 ## 古い置き方からの入れ替え
 
-`Assets/SupporterGate` をコピーして使っていたプロジェクト向け。スクリプトとプログラムアセットの GUID は同じなので、シーンの参照は切れません。
+`Assets/SupporterGate` をコピーして使っていたプロジェクト向け。スクリプトとプログラムアセットの GUID は同じなので、**古いフォルダを先に消してから**パッケージを入れれば、シーンの参照は切れません。
 
 1. Unity を閉じる
 2. `Assets/SupporterGate` フォルダと `Assets/SupporterGate.meta` を消す（中身はパッケージに入っている）
 3. VCC で Nago Supporter Gate を足す
 4. Unity を開き、UdonSharp のコンパイルが終わるのを待つ
 5. `Tools > SupporterGate > Wire Notices (existing scene)` を実行する
+
+順番を逆にしない（古いフォルダが残ったままパッケージを入れない）。同じ GUID のファイルが 2 か所にあると、Unity はパッケージ側の `.meta` を新しい GUID に書き換えます。型の重複（CS0433）のエラーが出て、古いフォルダを消したあとにシーンの参照が切れます。
+
+そうなったときの戻し方:
+
+1. Unity を閉じる
+2. `Packages/com.nagonago.supporter-gate` と `Packages/com.nagonago.notice` を消す
+3. `Assets/SupporterGate` も消す
+4. VCC でパッケージを入れ直す（zip から展開されるので、元の GUID に戻る）
+5. `Packages/com.nagonago.supporter-gate/Runtime/SupporterGate.cs.meta` の guid が `4cfc2f515993e9a41b214921b0f1ef28` であることを確かめてから Unity を開く
 
 `SupporterGateProgramAssetGenerator`（新しい U# スクリプトにプログラムアセットを自動で作る補助）はパッケージに入っていません。使っていた場合は、自分のプロジェクトの Editor フォルダに置いてください。
 
