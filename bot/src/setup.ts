@@ -286,7 +286,10 @@ export async function setupWorld(
     { name: "🔧更新情報-updates", type: ChannelType.GuildText, topic: "更新ログ / Update log", nsfw, overwrites: readOnly },
     { name: "🐛バグ報告と要望-feedback", type: ChannelType.GuildForum, topic: "バグ報告と要望 / Bug reports & requests. タグで種別と言語を選んでください", nsfw, overwrites: canPost, tags: FEEDBACK_TAGS },
   ];
-  if (visibility !== "public") {
+  // 雑談は、公開ワールドでも限定ワールドでも同じ名前で作る（公開は全員、限定は閲覧ロールだけが書ける）
+  if (visibility === "public") {
+    specs.push({ name: "💬さろん-lounge", type: ChannelType.GuildText, topic: `${jpName} の雑談 / ${enName} lounge`, nsfw, overwrites: canPost });
+  } else {
     specs.push({ name: "💬さろん-lounge", type: ChannelType.GuildText, topic: "支援者雑談 / Supporter lounge", nsfw, overwrites: canChat });
   }
   for (const spec of specs) {

@@ -98,7 +98,7 @@ npm start
 | `/vrc-admin setup-roles` | 出力ロールと入力ロールを作成し、config 用の ID を表示 |
 | `/vrc-admin setup-info` | INFO カテゴリ（はじめに・お知らせ・登録）を作成 |
 | `/vrc-admin setup-community` | コミュニティカテゴリ（雑談 jp/en、sfw-photo、nsfw-photo）を作成 |
-| `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（ワールド・更新情報・フィードバック、限定なら lounge も）を作成 |
+| `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（ワールド・更新情報・フィードバック・雑談の lounge）を作成 |
 | `/vrc-admin panel` | 実行したチャンネルに登録ボタン付きパネルを投稿（登録チャンネルで 1 回だけ実行してピン留め） |
 | `/vrc-admin sync` | 今すぐ同期＋公開 |
 | `/vrc-admin publish` | JSON を強制再公開 |

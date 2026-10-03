@@ -54,7 +54,7 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .addSubcommand((s) =>
       s
         .setName("setup-world")
-        .setDescription("ワールド用カテゴリ（ワールド・更新情報・フィードバック）を作る")
+        .setDescription("ワールド用カテゴリ（ワールド・更新情報・フィードバック・雑談）を作る")
         .addStringOption((o) => o.setName("jp").setDescription("日本語名（例: さんぷるわーるど）").setRequired(true))
         .addStringOption((o) => o.setName("en").setDescription("英語名（例: Sample World）").setRequired(true))
         .addStringOption((o) =>
