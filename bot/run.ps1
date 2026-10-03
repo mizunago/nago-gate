@@ -1,9 +1,8 @@
 ﻿# SupporterGate Bot をローカルで起動する（run.bat から呼ばれる。直接実行も可）
 #  - 必要なのは Node.js 20 以上だけ。PC 全体には何も追加しない
-#  - 依存パッケージは bot
-ode_modules の中にだけ入る
-#  - 設定は bot\instance\（.env / config.jsonc）
-#  - ログは bot\instance\logsot-YYYY-MM-DD.log
+#  - 依存パッケージは bot/node_modules の中にだけ入る
+#  - 設定は bot/instance（.env と config.jsonc）
+#  - ログは bot/instance/logs の bot-YYYY-MM-DD.log
 #  - 止めるときは Ctrl+C か、このウィンドウを閉じる
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -34,10 +33,20 @@ if (-not (Test-Path -LiteralPath "instance")) {
   Write-Host "[SETUP] instance フォルダが無いので instance.example からコピーします" -ForegroundColor Yellow
   Copy-Item -LiteralPath "instance.example" -Destination "instance" -Recurse
   Write-Host ""
-  Write-Host "  instance\.env にトークン、instance\config.jsonc にサーバー ID を記入してから"
+  Write-Host "  instance/.env にトークン、instance/config.jsonc にサーバー ID を記入してから"
   Write-Host "  もう一度 run.bat を実行してください。"
-  Start-Process notepad (Join-Path $PSScriptRoot "instance\.env")
+  Start-Process notepad (Join-Path $PSScriptRoot "instance/.env")
   Pause-Exit 0
+}
+
+$moved = Join-Path $PSScriptRoot "instance/MOVED.txt"
+if (Test-Path -LiteralPath $moved) {
+  Write-Host "[STOP] この Bot は別のサーバーで常時稼働中です（instance/MOVED.txt があります）。" -ForegroundColor Yellow
+  Write-Host "       ここで起動すると、同じトークンで二重に動き、登録データも古いままになります。"
+  Write-Host "       ローカルで動かし直すときは、サーバー側を止めてデータを戻し、MOVED.txt を消してください。"
+  Write-Host ""
+  Get-Content -LiteralPath $moved -Encoding UTF8 | ForEach-Object { Write-Host "       $_" }
+  Pause-Exit 1
 }
 
 if (-not (Test-Path -LiteralPath "node_modules")) {
@@ -52,10 +61,10 @@ if ($LASTEXITCODE -ne 0) { Write-Host "[ERROR] ビルドに失敗しました" -
 
 Write-Host ""
 Write-Host "[START] Bot を起動します。止めるには Ctrl+C" -ForegroundColor Green
-Write-Host "        ログ: instance\logs\"
+Write-Host "        ログ: instance/logs"
 Write-Host ""
 $env:INSTANCE_DIR = Join-Path $PSScriptRoot "instance"
-& node dist\index.js
+& node dist/index.js
 $code = $LASTEXITCODE
 Write-Host ""
 Write-Host "[STOP] Bot が終了しました（終了コード $code）" -ForegroundColor Yellow
