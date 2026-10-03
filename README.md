@@ -5,10 +5,13 @@ VRChat ワールド（または支援者特典付きの公開ワールド）を�
 
 ```
 sien/
-├─ bot/     Discord Bot（Node.js / TypeScript）
-├─ unity/   Unity 側（UdonSharp + Editor セットアップツール）→ UnityPackage 化
-├─ docs/    セットアップガイド
-└─ private/ 非公開メモ（.gitignore 済み）
+├─ bot/       Discord Bot（Node.js / TypeScript）
+├─ Packages/  Unity 側の VPM パッケージ（UdonSharp）
+│   ├─ com.nagonago.supporter-gate   支援者ゲート
+│   └─ com.nagonago.notice           共通の通知（ゲート以外のワールドでも使える）
+├─ tools/     VPM の一覧と zip を作るスクリプト
+├─ docs/      セットアップガイド
+└─ private/   非公開メモ（.gitignore 済み）
 ```
 
 ## 全体の流れ
@@ -40,14 +43,15 @@ sien/
 | Discord | 必須 |
 | ティア | 複数対応。`config.tiers` に追加すれば上位ティアを増やせる。ゲートは `requiredRank` 以上を支援者扱い |
 | 非支援者の扱い | 在室中の支援者が個別に許可（そのインスタンス滞在中のみ有効。入り直すと無効） |
-| 支援者退室後 | `noSupporterGraceSeconds`（既定 120 秒）後に非支援者をロビーへ戻す |
+| 支援者退室後 | `noSupporterGraceSeconds`（既定 120 秒）後に非支援者をロビーへ戻す。残り時間を予告し、戻した理由を通知する |
+| 持ち主 | Gate の `ownerDisplayNames` に入れた表示名は、リストに載せずに支援者扱い（クレジットには出ない） |
 | クレジット | 支援者は `/vrc credit show:false` で非表示にできる |
 | Bot の言語 | ユーザーのクライアント言語に自動追従（ja / en / zh-CN / zh-TW / ko）。管理コマンドは日本語 |
 
 ## セットアップ手順
 
 1. [docs/discord-setup.md](docs/discord-setup.md) — 支援サイト連携・Bot の起動
-2. [docs/unity-setup.md](docs/unity-setup.md) — UnityPackage の作成とワールドへの組み込み
+2. [docs/unity-setup.md](docs/unity-setup.md) — VPM パッケージの入れ方とワールドへの組み込み
 3. [docs/hosting.md](docs/hosting.md) — Bot をどこで動かすか
 
 運用方針やサーバー設計のメモは `private/`（リポジトリ外）に置く。
@@ -58,7 +62,8 @@ sien/
 cd bot
 cp -r instance.example instance     # instance/.env にトークン、instance/config.jsonc にロール ID などを記入
 npm install && npm run build
-npm start                           # Windows は botun.bat をダブルクリックでも可 / サーバーは docker compose up -d --build
+npm start                           # Windows は bot
+un.bat をダブルクリックでも可 / サーバーは docker compose up -d --build
 ```
 
 設定はすべて `bot/instance/` に集約しています。
@@ -71,9 +76,23 @@ npm start                           # Windows は botun.bat をダブルクリ�
 
 ## クイックスタート（Unity）
 
-1. `unity/Assets/SupporterGate` を任意のワールドプロジェクトにコピー（または配布した `SupporterGate.unitypackage` をインポート）
-2. UdonSharp のコンパイルが終わるのを待つ
+1. VCC の Settings > Packages > Add Repository に `https://mizunago.github.io/nago-gate/vpm.json` を入れる
+2. プロジェクトに **Nago Supporter Gate** を足す（共通の通知 **Nago Notice** も一緒に入る）
 3. メニュー `Tools > SupporterGate > Create Scene Setup`
 4. `Registry` の **Data Url** に Bot が公開した JSON の URL を入れる
 5. `Gate` の **Mode** を選び、`ContentRoot` の下にワールド本体を入れる
-6. `Tools > SupporterGate > Export UnityPackage` で他ワールド用のパッケージを書き出す
+
+通知だけを使うワールドは、**Nago Notice** だけを足して `Tools > Nago Notice > Add Notice Hub To Scene`（[使い方](Packages/com.nagonago.notice/README.md)）。
+
+## パッケージを公開する（保守する人向け）
+
+1. `Packages/<名前>/package.json` の `version` を上げる
+2. gh-pages ブランチの作業ツリーを用意して、一覧と zip を作る
+
+```bash
+git worktree add ../nago-gate-pages gh-pages
+python tools/build_vpm.py ../nago-gate-pages --existing ../nago-gate-pages/vpm.json
+cd ../nago-gate-pages && git add vpm.json vpm && git commit -m "vpm: <名前> <版>" && git push
+```
+
+gh-pages には Bot が `supporters.json` を書いている。`vpm.json` と `vpm/` だけを足し、ほかのファイルは触らない。

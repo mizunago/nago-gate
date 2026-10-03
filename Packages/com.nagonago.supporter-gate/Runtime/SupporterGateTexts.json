@@ -1,0 +1,352 @@
+{
+  "gate.deny.loading": {
+    "ja": "支援者リストを読み込み中です",
+    "en": "Loading the supporter list.",
+    "ko": "후원자 목록을 불러오는 중입니다",
+    "zh-CN": "正在读取支持者名单",
+    "zh-TW": "正在讀取支持者名單"
+  },
+  "gate.deny.listError": {
+    "ja": "支援者リストを取得できませんでした",
+    "en": "Could not load the supporter list.",
+    "ko": "후원자 목록을 불러오지 못했습니다",
+    "zh-CN": "无法读取支持者名单",
+    "zh-TW": "無法讀取支持者名單"
+  },
+  "gate.deny.supportersOnly": {
+    "ja": "支援者限定エリアです",
+    "en": "This area is for supporters only.",
+    "ko": "후원자 전용 구역입니다",
+    "zh-CN": "此区域仅限支持者",
+    "zh-TW": "此區域僅限支持者"
+  },
+  "gate.deny.noSupporter": {
+    "ja": "支援者が在室していないため、\n入場できません",
+    "en": "You can't enter because no supporter is in this instance.",
+    "ko": "이 인스턴스에 후원자가 없어 입장할 수 없습니다",
+    "zh-CN": "当前房间内没有支持者，无法进入",
+    "zh-TW": "目前房間內沒有支持者，無法進入"
+  },
+  "gate.deny.notActivated": {
+    "ja": "支援者がエリアを有効化するまでお待ちください",
+    "en": "Please wait until a supporter opens the area.",
+    "ko": "후원자가 구역을 열 때까지 기다려 주세요",
+    "zh-CN": "请等待支持者开放此区域",
+    "zh-TW": "請等待支持者開放此區域"
+  },
+  "gate.deny.notApproved": {
+    "ja": "在室中の支援者の許可が必要です",
+    "en": "You need approval from a supporter in this instance.",
+    "ko": "이 인스턴스에 있는 후원자의 허가가 필요합니다",
+    "zh-CN": "需要房间内的支持者许可",
+    "zh-TW": "需要房間內的支持者許可"
+  },
+  "gate.deny.other": {
+    "ja": "入場できません",
+    "en": "You can't enter.",
+    "ko": "입장할 수 없습니다",
+    "zh-CN": "无法进入",
+    "zh-TW": "無法進入"
+  },
+  "gate.return.noSupporter": {
+    "ja": "支援者が退出してから時間が経ったため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the supporter left and the grace time ran out.",
+    "ko": "후원자가 퇴장한 뒤 시간이 지나 로비로 돌아왔습니다",
+    "zh-CN": "支持者已离开且等待时间已过，已返回大厅",
+    "zh-TW": "支持者已離開且等待時間已過，已返回大廳"
+  },
+  "gate.return.revoked": {
+    "ja": "支援者が入場の許可を取り消したため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the supporter revoked your access.",
+    "ko": "후원자가 입장 허가를 취소하여 로비로 돌아왔습니다",
+    "zh-CN": "支持者取消了你的进入许可，已返回大厅",
+    "zh-TW": "支持者取消了你的進入許可，已返回大廳"
+  },
+  "gate.return.notApproved": {
+    "ja": "入場の許可が無くなったため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because your access is no longer approved.",
+    "ko": "입장 허가가 없어져 로비로 돌아왔습니다",
+    "zh-CN": "进入许可已失效，已返回大厅",
+    "zh-TW": "進入許可已失效，已返回大廳"
+  },
+  "gate.return.deactivated": {
+    "ja": "支援者がエリアを閉じたため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the supporter closed the area.",
+    "ko": "후원자가 구역을 닫아 로비로 돌아왔습니다",
+    "zh-CN": "支持者关闭了此区域，已返回大厅",
+    "zh-TW": "支持者關閉了此區域，已返回大廳"
+  },
+  "gate.return.supportersOnly": {
+    "ja": "支援者限定エリアのため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because this area is for supporters only.",
+    "ko": "후원자 전용 구역이라 로비로 돌아왔습니다",
+    "zh-CN": "此区域仅限支持者，已返回大厅",
+    "zh-TW": "此區域僅限支持者，已返回大廳"
+  },
+  "gate.return.listUnavailable": {
+    "ja": "支援者リストを確認できないため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the supporter list could not be checked.",
+    "ko": "후원자 목록을 확인할 수 없어 로비로 돌아왔습니다",
+    "zh-CN": "无法确认支持者名单，已返回大厅",
+    "zh-TW": "無法確認支持者名單，已返回大廳"
+  },
+  "gate.return.other": {
+    "ja": "入場できなくなったため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because you can no longer enter.",
+    "ko": "입장할 수 없게 되어 로비로 돌아왔습니다",
+    "zh-CN": "已无法进入，已返回大厅",
+    "zh-TW": "已無法進入，已返回大廳"
+  },
+  "gate.countdown": {
+    "ja": "支援者が退出しました。\nあと {0} でロビーに戻ります",
+    "en": "The supporter has left.\nReturning to the lobby in {0}",
+    "ko": "후원자가 퇴장했습니다.\n{0} 후 로비로 돌아갑니다",
+    "zh-CN": "支持者已离开。\n{0} 后将返回大厅",
+    "zh-TW": "支持者已離開。\n{0} 後將返回大廳"
+  },
+  "gate.supporterBack": {
+    "ja": "支援者が戻りました。このまま利用できます",
+    "en": "The supporter is back. You can stay.",
+    "ko": "후원자가 돌아왔습니다. 계속 이용할 수 있습니다",
+    "zh-CN": "支持者已回来，可以继续使用",
+    "zh-TW": "支持者已回來，可以繼續使用"
+  },
+  "gate.approved": {
+    "ja": "入場が許可されました",
+    "en": "A supporter approved your access.",
+    "ko": "입장이 허가되었습니다",
+    "zh-CN": "已获得进入许可",
+    "zh-TW": "已獲得進入許可"
+  },
+  "gate.revoked": {
+    "ja": "入場の許可が取り消されました",
+    "en": "Your access was revoked.",
+    "ko": "입장 허가가 취소되었습니다",
+    "zh-CN": "进入许可已被取消",
+    "zh-TW": "進入許可已被取消"
+  },
+  "gate.guestJoined": {
+    "ja": "{0} さんが来ました。\n承認パネルで入場を許可できます",
+    "en": "{0} joined.\nYou can approve them on the approval panel.",
+    "ko": "{0} 님이 입장했습니다. 승인 패널에서 입장을 허가할 수 있습니다",
+    "zh-CN": "{0} 来了。可以在许可面板上允许其进入",
+    "zh-TW": "{0} 來了。可以在許可面板上允許其進入"
+  },
+  "gate.msg.approvalFull": {
+    "ja": "許可枠が上限に達しています",
+    "en": "The approval list is full.",
+    "ko": "허가 인원이 상한에 도달했습니다",
+    "zh-CN": "许可名额已满",
+    "zh-TW": "許可名額已滿"
+  },
+  "gate.status.mode": {
+    "ja": "モード",
+    "en": "Mode",
+    "ko": "모드",
+    "zh-CN": "模式",
+    "zh-TW": "模式"
+  },
+  "gate.status.supporters": {
+    "ja": "在室支援者",
+    "en": "Supporters here",
+    "ko": "현재 후원자",
+    "zh-CN": "在场支持者",
+    "zh-TW": "在場支持者"
+  },
+  "gate.status.you": {
+    "ja": "あなた",
+    "en": "You",
+    "ko": "나",
+    "zh-CN": "你",
+    "zh-TW": "你"
+  },
+  "gate.status.entry": {
+    "ja": "入場",
+    "en": "Entry",
+    "ko": "입장",
+    "zh-CN": "进入",
+    "zh-TW": "進入"
+  },
+  "gate.mode.open": {
+    "ja": "公開",
+    "en": "Open",
+    "ko": "공개",
+    "zh-CN": "公开",
+    "zh-TW": "公開"
+  },
+  "gate.mode.supportersOnly": {
+    "ja": "支援者限定",
+    "en": "Supporters only",
+    "ko": "후원자 전용",
+    "zh-CN": "仅限支持者",
+    "zh-TW": "僅限支持者"
+  },
+  "gate.mode.approval": {
+    "ja": "支援者＋許可制",
+    "en": "Supporters + approved guests",
+    "ko": "후원자 + 허가제",
+    "zh-CN": "支持者＋许可制",
+    "zh-TW": "支持者＋許可制"
+  },
+  "gate.mode.presence": {
+    "ja": "支援者在室中は開放",
+    "en": "Open while a supporter is here",
+    "ko": "후원자가 있는 동안 개방",
+    "zh-CN": "支持者在场时开放",
+    "zh-TW": "支持者在場時開放"
+  },
+  "gate.you.checking": {
+    "ja": "確認中",
+    "en": "Checking",
+    "ko": "확인 중",
+    "zh-CN": "确认中",
+    "zh-TW": "確認中"
+  },
+  "gate.you.supporter": {
+    "ja": "支援者",
+    "en": "Supporter",
+    "ko": "후원자",
+    "zh-CN": "支持者",
+    "zh-TW": "支持者"
+  },
+  "gate.you.approved": {
+    "ja": "許可済み",
+    "en": "Approved",
+    "ko": "허가됨",
+    "zh-CN": "已许可",
+    "zh-TW": "已許可"
+  },
+  "gate.you.guest": {
+    "ja": "一般",
+    "en": "Guest",
+    "ko": "일반",
+    "zh-CN": "访客",
+    "zh-TW": "訪客"
+  },
+  "gate.act.on": {
+    "ja": "有効化済み",
+    "en": "opened",
+    "ko": "개방됨",
+    "zh-CN": "已开放",
+    "zh-TW": "已開放"
+  },
+  "gate.act.off": {
+    "ja": "未有効化",
+    "en": "not opened",
+    "ko": "미개방",
+    "zh-CN": "未开放",
+    "zh-TW": "未開放"
+  },
+  "gate.entry.yes": {
+    "ja": "可",
+    "en": "Allowed",
+    "ko": "가능",
+    "zh-CN": "可以",
+    "zh-TW": "可以"
+  },
+  "gate.entry.no": {
+    "ja": "不可",
+    "en": "Not allowed",
+    "ko": "불가",
+    "zh-CN": "不可",
+    "zh-TW": "不可"
+  },
+  "panel.denied": {
+    "ja": "このパネルは支援者専用です",
+    "en": "This panel is for supporters only.",
+    "ko": "이 패널은 후원자 전용입니다",
+    "zh-CN": "此面板仅限支持者使用",
+    "zh-TW": "此面板僅限支持者使用"
+  },
+  "panel.activate": {
+    "ja": "エリアを有効化",
+    "en": "Open the area",
+    "ko": "구역 열기",
+    "zh-CN": "开放区域",
+    "zh-TW": "開放區域"
+  },
+  "panel.deactivate": {
+    "ja": "エリアを無効化",
+    "en": "Close the area",
+    "ko": "구역 닫기",
+    "zh-CN": "关闭区域",
+    "zh-TW": "關閉區域"
+  },
+  "panel.state.approved": {
+    "ja": "許可済み",
+    "en": "Approved",
+    "ko": "허가됨",
+    "zh-CN": "已许可",
+    "zh-TW": "已許可"
+  },
+  "panel.state.notApproved": {
+    "ja": "未許可",
+    "en": "Not approved",
+    "ko": "미허가",
+    "zh-CN": "未许可",
+    "zh-TW": "未許可"
+  },
+  "panel.button.approve": {
+    "ja": "許可する",
+    "en": "Approve",
+    "ko": "허가",
+    "zh-CN": "许可",
+    "zh-TW": "許可"
+  },
+  "panel.button.revoke": {
+    "ja": "取り消す",
+    "en": "Revoke",
+    "ko": "취소",
+    "zh-CN": "取消",
+    "zh-TW": "取消"
+  },
+  "panel.header.approval": {
+    "ja": "入場許可（非支援者 {0} 人）",
+    "en": "Approve guests ({0} non-supporters)",
+    "ko": "입장 허가 (비후원자 {0}명)",
+    "zh-CN": "进入许可（非支持者 {0} 人）",
+    "zh-TW": "進入許可（非支持者 {0} 人）"
+  },
+  "panel.header.presence": {
+    "ja": "支援者在室中は開放（非支援者 {0} 人）",
+    "en": "Open while a supporter is here ({0} non-supporters)",
+    "ko": "후원자가 있는 동안 개방 (비후원자 {0}명)",
+    "zh-CN": "支持者在场时开放（非支持者 {0} 人）",
+    "zh-TW": "支持者在場時開放（非支持者 {0} 人）"
+  },
+  "panel.header.supportersOnly": {
+    "ja": "支援者限定モード",
+    "en": "Supporters only",
+    "ko": "후원자 전용 모드",
+    "zh-CN": "仅限支持者模式",
+    "zh-TW": "僅限支持者模式"
+  },
+  "panel.header.open": {
+    "ja": "公開モード",
+    "en": "Open mode",
+    "ko": "공개 모드",
+    "zh-CN": "公开模式",
+    "zh-TW": "公開模式"
+  },
+  "credits.loading": {
+    "ja": "読み込み中...",
+    "en": "Loading...",
+    "ko": "불러오는 중...",
+    "zh-CN": "读取中...",
+    "zh-TW": "讀取中..."
+  },
+  "credits.error": {
+    "ja": "リストを取得できませんでした",
+    "en": "Could not load the list.",
+    "ko": "목록을 불러오지 못했습니다",
+    "zh-CN": "无法读取名单",
+    "zh-TW": "無法讀取名單"
+  },
+  "credits.empty": {
+    "ja": "まだ登録がありません",
+    "en": "No entries yet.",
+    "ko": "아직 등록이 없습니다",
+    "zh-CN": "暂无登记",
+    "zh-TW": "暫無登記"
+  }
+}

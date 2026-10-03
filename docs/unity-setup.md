@@ -2,22 +2,32 @@
 
 対象: VRChat Worlds SDK 3.10.x / Unity 2022.3 / UdonSharp（SDK 同梱）/ TextMeshPro
 
-## パッケージの作り方（最初の 1 回）
+## パッケージの入れ方（VPM）
 
-1. 任意のワールドプロジェクトに `unity/Assets/SupporterGate` をコピー
-2. Unity がコンパイルし、`Editor/SupporterGateProgramAssetGenerator` が各スクリプトの `.asset`（UdonSharpProgramAsset）を自動生成する
-3. `Tools > SupporterGate > Export UnityPackage` で `SupporterGate.unitypackage` を書き出す
+配布は VPM パッケージです。unitypackage は廃止しました。
 
-以降は各ワールドプロジェクトでこの unitypackage をインポートするだけです。
+1. VCC（VRChat Creator Companion）の Settings > Packages > Add Repository に次の URL を入れる
+   `https://mizunago.github.io/nago-gate/vpm.json`
+2. プロジェクトの Manage Project で **Nago Supporter Gate** を足す。依存する **Nago Notice**（共通の通知）も一緒に入る
+3. 更新するときは、VCC の同じ画面で新しい版を選ぶ
+
+| パッケージ | 中身 |
+|---|---|
+| `com.nagonago.supporter-gate` | 支援者ゲート（Registry / Gate / 承認パネル / クレジット） |
+| `com.nagonago.notice` | 共通の通知。ゲート以外のギミックからも使える（[README](../Packages/com.nagonago.notice/README.md)） |
+
+以前に `Assets/SupporterGate` をコピーして使っていたプロジェクトは、[古い置き方からの入れ替え](#古い置き方からの入れ替え) を見てください。
 
 ## ワールドへの組み込み
 
-1. `Tools > SupporterGate > Create Scene Setup` を実行すると `SupporterGate System` が生成される
+1. `Tools > SupporterGate > Create Scene Setup` を実行すると、次が生成される
 
 ```
+NoticeHub             共通の通知（シーンに 1 つ。ContentRoot の外に置く）
 SupporterGate System
 ├─ Registry        SupporterHash + SupporterRegistry   ← Data Url を設定
 ├─ Gate            SupporterGate                       ← Mode などを設定
+├─ Texts           文言の表（多言語の JSON）
 ├─ LobbySpawn      ロビーの戻り先
 ├─ ContentSpawn    入場ボタンで飛ぶ先
 ├─ ContentRoot     ここにワールド本体を入れる（非許可時はローカルで非表示）
@@ -37,7 +47,10 @@ SupporterGate System
 | Require Supporter Activation | ON にすると、支援者が「エリアを有効化」を押すまで非支援者は入れない |
 | No Supporter Grace Seconds | 支援者が全員いなくなってから非支援者を戻すまでの秒数 |
 | Fail Open When Registry Unavailable | リスト取得失敗時に非支援者を通すか。限定ワールドでは OFF |
-| Content Roots | 非許可時に非表示にするオブジェクト。**同期オブジェクトや ContentZone を含めない** |
+| Owner Display Names | 持ち主の特別枠（下の節） |
+| Content Roots | 非許可時に非表示にするオブジェクト。**同期オブジェクト・ContentZone・NoticeHub を含めない** |
+| Notice / Texts | 共通の通知と文言の表。セットアップが配線する |
+| Notify … | 通知の種類ごとの ON/OFF（下の節） |
 
 4. `ContentRoot` の下にワールド本体を配置し、`ContentZone` の BoxCollider を本体エリアに合わせる
 5. ロビー側の VRC_SceneDescriptor スポーンは `LobbySpawn` の位置に置く
@@ -51,6 +64,27 @@ SupporterGate System
 | アーリーアクセス | `SupportersOnly` | |
 | 限定ワールド | `SupporterApproval` | 支援者のフレンドが入ってきたら、支援者が ApprovalPanel で個別に許可 |
 | 支援者が「開ける」タイプ | `SupporterPresence` + Require Activation | 支援者がいる間だけ全員 OK |
+
+## 通知
+
+Gate の `Notice` に NoticeHub が入っていると、本人の画面に次の通知が出ます。種類ごとに Gate の Inspector で切れます。
+
+| 通知 | 出る相手 | 設定 |
+|---|---|---|
+| ロビーへ戻した理由（許可の取り消し、支援者の退出から時間切れ など）と、入れなかった理由 | 戻された人 | Notify Return Reason |
+| 支援者が全員退出したあとの予告「あと m:ss でロビーに戻ります」。支援者が戻ると消える | 中にいる非支援者 | Notify Countdown |
+| 入場が許可された／取り消された | 許可された人 | Notify Approval Change |
+| 支援者でない人が入室した（承認パネルで許可できます） | 支援者 | Notify Supporter Of Guests |
+
+文言は `Texts`（`SupporterGateTexts.json`）にあり、VRChat の言語設定に合わせて日本語・英語・韓国語・中国語（簡体・繁体）で出ます。状態表示と承認パネルの文も同じ表から出ます。
+
+既にゲートを置いてあるシーンには、`Tools > SupporterGate > Wire Notices (existing scene)` で通知と文言の表を足せます。何度実行しても増えません。
+
+## 持ち主の特別枠（ownerDisplayNames）
+
+Gate の `Owner Display Names` に VRChat の表示名（完全一致）を入れると、その人は支援者のリストに無くても支援者（Required Rank）と同じに入場・許可ができる。クレジットには出ない。ワールドの持ち主・運営用。
+
+持ち主をクレジットに出したくない場合は、Bot 側の支援者リストにも載せないこと（テスト用のロールを付けたままにしない）。
 
 ## 他のギミックからランクを使う
 
@@ -68,20 +102,30 @@ public void _OnRegistryUpdated()
 
 - `_GetRank(VRCPlayerApi)` で他プレイヤーのランクも取れます
 - `SupporterGate._IsLocalAllowed()` で入場可否を参照できます
+- 通知を自分のギミックから出す方法は Nago Notice の README を参照
 
 ## 動作確認
 
 1. Bot で `/vrc register` した名前と、Unity 側 `Registry` の Debug Mode を ON にして Play（ClientSim）
 2. Console に `<表示名> -> <hash> rank=N` が出る。`/vrc-admin hash` の値と一致すれば照合 OK
    （ClientSim の表示名は ClientSim 設定で変えられます）
-3. Build & Test で 2 クライアント起動し、承認パネルの同期を確認
+3. 通知の言語は、NoticeHub の `Debug Language Override`（ja / en / ko / zh-CN / zh-TW）で確かめられます。公開時は空に戻す
+4. 2 アカウントで承認パネルの同期を確認（Build & Test の 2 クライアントは同じ表示名になるので、持ち主の特別枠を使う場合は別アカウントが必要）
+
+## 古い置き方からの入れ替え
+
+`Assets/SupporterGate` をコピーして使っていたプロジェクト向け。スクリプトとプログラムアセットの GUID は同じなので、シーンの参照は切れません。
+
+1. Unity を閉じる
+2. `Assets/SupporterGate` フォルダと `Assets/SupporterGate.meta` を消す（中身はパッケージに入っている）
+3. VCC で Nago Supporter Gate を足す
+4. Unity を開き、UdonSharp のコンパイルが終わるのを待つ
+5. `Tools > SupporterGate > Wire Notices (existing scene)` を実行する
+
+`SupporterGateProgramAssetGenerator`（新しい U# スクリプトにプログラムアセットを自動で作る補助）はパッケージに入っていません。使っていた場合は、自分のプロジェクトの Editor フォルダに置いてください。
 
 ## 注意
 
 - `Content Roots` に同期オブジェクト（VRC_ObjectSync、同期 Udon）を入れると、非表示中に同期が壊れます。見た目だけのオブジェクトにしてください
 - `SupporterRegistry` はシーンに 1 つ。複数のゲートやボードから共有できます
 - JSON の再取得は既定 600 秒。短くしすぎると String Loading のレート制限（5 秒に 1 回）と CDN キャッシュの都合で意味がありません
-
-## 持ち主の特別枠（ownerDisplayNames）
-
-Gate の `Owner Display Names` に VRChat の表示名（完全一致）を入れると、その人は支援者のリストに無くても支援者（Required Rank）と同じに入場・許可ができる。クレジットには出ない。ワールドの持ち主・運営用。

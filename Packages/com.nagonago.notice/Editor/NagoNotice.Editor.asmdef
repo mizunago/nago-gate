@@ -1,0 +1,26 @@
+{
+    "name": "NagoNotice.Editor",
+    "rootNamespace": "NagoNotice.EditorTools",
+    "references": [
+        "NagoNotice",
+        "VRC.SDKBase",
+        "VRC.SDKBase.Editor",
+        "VRC.Udon",
+        "VRC.Udon.Editor",
+        "UdonSharp.Runtime",
+        "UdonSharp.Editor",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,14 @@
+{
+  "name": "com.nagonago.notice",
+  "displayName": "Nago Notice",
+  "version": "0.1.0",
+  "unity": "2022.3",
+  "description": "Shared toast notifications for VRChat worlds: multilingual, always-on-top, reading time from text length, automatic wrapping.",
+  "author": {
+    "name": "nagonago",
+    "url": "https://github.com/mizunago"
+  },
+  "vpmDependencies": {
+    "com.vrchat.worlds": ">=3.10.0"
+  }
+}

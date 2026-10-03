@@ -1,0 +1,15 @@
+{
+  "name": "com.nagonago.supporter-gate",
+  "displayName": "Nago Supporter Gate",
+  "version": "0.2.0",
+  "unity": "2022.3",
+  "description": "Supporter-only gate for VRChat worlds: checks display names against a published supporter list, with per-guest approval by supporters.",
+  "author": {
+    "name": "nagonago",
+    "url": "https://github.com/mizunago"
+  },
+  "vpmDependencies": {
+    "com.vrchat.worlds": ">=3.10.0",
+    "com.nagonago.notice": ">=0.1.0"
+  }
+}
