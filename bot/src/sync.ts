@@ -10,6 +10,8 @@ export interface SyncContext {
   store: Store;
   githubToken: string | null;
   log: (msg: string) => void;
+  /** Discord のログチャンネルに流さないログ。無ければ log を使う */
+  logQuiet?: (msg: string) => void;
 }
 
 export interface SyncResult {
@@ -18,6 +20,8 @@ export interface SyncResult {
   inGrace: number;
   rolesAdded: number;
   rolesRemoved: number;
+  /** メンバーの条件を満たしている人数 */
+  members: number;
   published: boolean;
   publishUrl: string | null;
   errors: string[];
@@ -88,6 +92,19 @@ export function updateEffectiveRank(config: AppConfig, rec: MemberRecord, active
   rec.updatedAt = now.toISOString();
 }
 
+/** メンバーの在籍日数の条件を満たす日時。サーバーにいない、または機能が無効なら null */
+export function memberEligibleFrom(config: AppConfig, rec: MemberRecord): Date | null {
+  if (!config.member || !rec.joinedAt) return null;
+  return addDays(new Date(rec.joinedAt), config.member.minDays);
+}
+
+/** メンバーの条件（同意・名前の登録・在籍日数）を満たしているか。支援の有無は見ない */
+export function isMemberEligible(config: AppConfig, rec: MemberRecord, now: Date): boolean {
+  if (!config.member || !rec.memberConsentAt || !rec.vrcName) return false;
+  const from = memberEligibleFrom(config, rec);
+  return from !== null && from <= now;
+}
+
 /** 有効ランクに応じて付与すべき共通ロール（ランク以下のティア全部） */
 export function desiredRoleIds(config: AppConfig, effectiveRank: number): Set<string> {
   const set = new Set<string>();
@@ -103,11 +120,16 @@ async function applyRoles(
   config: AppConfig,
   member: GuildMember,
   effectiveRank: number,
+  memberActive: boolean,
   result: SyncResult,
   log: (m: string) => void,
 ): Promise<void> {
   const desired = desiredRoleIds(config, effectiveRank);
   const managed = new Set(config.tiers.map((t) => t.roleId));
+  if (config.member) {
+    managed.add(config.member.roleId);
+    if (memberActive) desired.add(config.member.roleId);
+  }
   const current = new Set(member.roles.cache.keys());
   const toAdd = [...desired].filter((id) => !current.has(id));
   const toRemove = [...managed].filter((id) => current.has(id) && !desired.has(id));
@@ -148,31 +170,70 @@ export function buildSupportersJson(config: AppConfig, store: Store): Supporters
   };
 }
 
+/** メンバーのリスト。Udon 側は supporters と同じ形で読める（全員 rank 1、クレジットなし） */
+export function buildMembersJson(store: Store): SupportersJson {
+  const access: Record<string, number> = {};
+  for (const rec of store.all()) {
+    if (!rec.memberActive || !rec.vrcName) continue;
+    access[hashName(rec.vrcName)] = 1;
+  }
+  return {
+    v: 1,
+    generatedAt: nowIso(),
+    tiers: [{ id: "member", rank: 1, label: "Member", color: "#FFFFFF" }],
+    access,
+    credits: [],
+  };
+}
+
 function digestOf(json: SupportersJson): string {
   const { generatedAt: _ignored, ...rest } = json;
   return createHash("sha256").update(JSON.stringify(rest)).digest("hex");
 }
 
-/** JSON を（変化があれば）公開する */
-export async function publishIfChanged(ctx: SyncContext, force: boolean): Promise<{ published: boolean; url: string | null }> {
+/** JSON を（変化があれば）公開する。url は支援者のリスト、memberUrl はメンバーのリスト */
+export async function publishIfChanged(
+  ctx: SyncContext,
+  force: boolean,
+): Promise<{ published: boolean; url: string | null; memberUrl: string | null }> {
+  let url: string | null = null;
+  let memberUrl: string | null = null;
+
   const json = buildSupportersJson(ctx.config, ctx.store);
   const digest = digestOf(json);
-  if (!force && digest === ctx.store.lastPublishedDigest) return { published: false, url: null };
-  const url = await publishJson(ctx.config.publish, JSON.stringify(json, null, 1), ctx.githubToken);
-  ctx.store.markPublished(digest);
-  ctx.store.save();
-  ctx.log(`公開しました: ${url} (access=${Object.keys(json.access).length}, credits=${json.credits.length})`);
-  return { published: true, url };
+  if (force || digest !== ctx.store.lastPublishedDigest) {
+    url = await publishJson(ctx.config.publish, JSON.stringify(json, null, 1), ctx.githubToken);
+    ctx.store.markPublished(digest);
+    ctx.store.save();
+    ctx.log(`公開しました: ${url} (access=${Object.keys(json.access).length}, credits=${json.credits.length})`);
+  }
+
+  if (ctx.config.member) {
+    const mjson = buildMembersJson(ctx.store);
+    const mdigest = digestOf(mjson);
+    if (force || mdigest !== ctx.store.lastPublishedMemberDigest) {
+      memberUrl = await publishJson(ctx.config.member.publish, JSON.stringify(mjson, null, 1), ctx.githubToken);
+      ctx.store.markMemberPublished(mdigest);
+      ctx.store.save();
+      ctx.log(`メンバーのリストを公開しました: ${memberUrl} (access=${Object.keys(mjson.access).length})`);
+    }
+  }
+
+  return { published: url !== null || memberUrl !== null, url, memberUrl };
 }
 
 /** 全メンバー走査 → ランク更新 → 共通ロール適用 → JSON 公開 */
 export async function runSync(ctx: SyncContext, guild: Guild, reason: string): Promise<SyncResult> {
   const result: SyncResult = {
-    scanned: 0, active: 0, inGrace: 0, rolesAdded: 0, rolesRemoved: 0,
+    scanned: 0, active: 0, inGrace: 0, rolesAdded: 0, rolesRemoved: 0, members: 0,
     published: false, publishUrl: null, errors: [],
   };
   const now = new Date();
-  ctx.log(`sync 開始 (${reason})`);
+  // 定期の同期は、何も変わらなければ Discord のログチャンネルに流さない（ファイルには残す）
+  const routine = reason === "interval";
+  const quiet = ctx.logQuiet ?? ctx.log;
+  let stateChanged = false;
+  (routine ? quiet : ctx.log)(`sync 開始 (${reason})`);
 
   const members = await guild.members.fetch();
   const seen = new Set<string>();
@@ -188,11 +249,23 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
     const before = { active: rec.activeRank, effective: rec.effectiveRank, grace: rec.graceUntil };
     updateEffectiveRank(ctx.config, rec, activeRank, now);
     if (before.active !== rec.activeRank || before.effective !== rec.effectiveRank || before.grace !== rec.graceUntil) {
+      stateChanged = true;
       ctx.log(`状態変化 ${member.user.tag} (${member.id}): active ${before.active}->${rec.activeRank}, effective ${before.effective}->${rec.effectiveRank}, grace ${before.grace ?? "-"}->${rec.graceUntil ?? "-"}`);
     }
     if (rec.effectiveRank > 0) result.active++;
     if (rec.graceUntil) result.inGrace++;
-    await applyRoles(ctx.config, member, rec.effectiveRank, result, ctx.log);
+
+    // メンバーは支援と別の軸。在籍日数は、今サーバーにいる期間で数える
+    rec.joinedAt = member.joinedAt ? member.joinedAt.toISOString() : null;
+    const wasMember = rec.memberActive;
+    rec.memberActive = isMemberEligible(ctx.config, rec, now);
+    if (wasMember !== rec.memberActive) {
+      stateChanged = true;
+      ctx.log(`メンバー ${member.user.tag} (${member.id}): ${wasMember ? "有効" : "無効"} -> ${rec.memberActive ? "有効" : "無効"}`);
+    }
+    if (rec.memberActive) result.members++;
+
+    await applyRoles(ctx.config, member, rec.effectiveRank, rec.memberActive, result, ctx.log);
   }
 
   // サーバーを抜けた（支援サイト Bot にキックされた等）メンバー: ロール操作は不可、猶予だけ進める
@@ -200,9 +273,19 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
     if (seen.has(rec.discordId)) continue;
     const beforeEff = rec.effectiveRank;
     updateEffectiveRank(ctx.config, rec, 0, now);
-    if (beforeEff !== rec.effectiveRank) ctx.log(`退出済みメンバー ${rec.discordTag ?? rec.discordId}: effective ${beforeEff}->${rec.effectiveRank}`);
+    if (beforeEff !== rec.effectiveRank) {
+      stateChanged = true;
+      ctx.log(`退出済みメンバー ${rec.discordTag ?? rec.discordId}: effective ${beforeEff}->${rec.effectiveRank}`);
+    }
     if (rec.effectiveRank > 0) result.active++;
     if (rec.graceUntil) result.inGrace++;
+    // サーバーを抜けたらメンバーではなくなる。入り直したときは、在籍日数を数え直す
+    if (rec.memberActive) {
+      stateChanged = true;
+      ctx.log(`メンバー ${rec.discordTag ?? rec.discordId}: 有効 -> 無効（サーバーを退出）`);
+    }
+    rec.memberActive = false;
+    rec.joinedAt = null;
   }
 
   ctx.store.save();
@@ -217,8 +300,9 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
     ctx.log(msg);
   }
 
-  ctx.log(
-    `sync 完了: scanned=${result.scanned} active=${result.active} grace=${result.inGrace} ` +
+  const changed = stateChanged || result.rolesAdded > 0 || result.rolesRemoved > 0 || result.published || result.errors.length > 0;
+  (routine && !changed ? quiet : ctx.log)(
+    `sync 完了: scanned=${result.scanned} active=${result.active} grace=${result.inGrace} members=${result.members} ` +
       `+${result.rolesAdded}/-${result.rolesRemoved} roles, published=${result.published}`,
   );
   return result;

@@ -65,6 +65,16 @@ SupporterGate System
 | 限定ワールド | `SupporterApproval` | 支援者のフレンドが入ってきたら、支援者が ApprovalPanel で個別に許可 |
 | 支援者が「開ける」タイプ | `SupporterPresence` + Require Activation | 支援者がいる間だけ全員 OK |
 
+## メンバーだけが入れるワールド
+
+Bot のメンバー登録（[discord-setup.md](discord-setup.md) の 6b）を使うと、支援とは別に「登録を済ませた人だけ」が入れるワールドを作れます。
+
+1. `Registry` の **Data Url** に、メンバーのリストの URL（既定は `.../members.json`）を入れる
+2. `Gate` の Mode を `SupportersOnly`、Required Rank を 1 にする
+3. クレジットは出ない（メンバーのリストには名前を載せない）ので、`CreditsBoard` は消してよい
+
+リストの形は支援者のものと同じで、載っている人は全員ランク 1 です。ゲートの表示は「支援者」という言葉のままなので、気になる場合は `Texts` の JSON を複製して言葉を直し、差し替えてください。
+
 ## 通知
 
 Gate の `Notice` に NoticeHub が入っていると、本人の画面に次の通知が出ます。種類ごとに Gate の Inspector で切れます。

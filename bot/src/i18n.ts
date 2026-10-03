@@ -224,6 +224,74 @@ const M = {
     "zh-TW": "此頻道僅用於註冊。請點擊上方面板的 **註冊** 按鈕，或輸入 `/` 後從彈出清單中選擇 `/vrc register`（直接貼上文字無效）。",
     ko: "이 채널은 등록 전용입니다. 위 패널의 **등록** 버튼을 누르거나, 입력창에 `/`를 입력해 목록에서 `/vrc register`를 선택하세요 (텍스트 붙여넣기는 동작하지 않습니다).",
   },
+
+  // ---- メンバー登録（支援とは別の軸） ----
+  "member.label": { ja: "メンバー", en: "Membership", "zh-CN": "成员", "zh-TW": "成員", ko: "멤버" },
+  "member.state.active": { ja: "有効", en: "active", "zh-CN": "有效", "zh-TW": "有效", ko: "유효" },
+  "member.state.pending": {
+    ja: "登録済み（{date} から有効）",
+    en: "applied (active from {date})",
+    "zh-CN": "已登记（{date} 起生效）",
+    "zh-TW": "已登記（{date} 起生效）",
+    ko: "등록 완료 ({date}부터 유효)",
+  },
+  "member.state.none": { ja: "未登録", en: "not applied", "zh-CN": "未登记", "zh-TW": "未登記", ko: "미등록" },
+  "member.unavailable": {
+    ja: "この機能は今は使えません。",
+    en: "This feature is not available.",
+    "zh-CN": "此功能目前不可用。",
+    "zh-TW": "此功能目前無法使用。",
+    ko: "이 기능은 현재 사용할 수 없습니다.",
+  },
+  "member.needName": {
+    ja: "先に **登録** ボタンで VRChat の表示名を登録してください。",
+    en: "Please register your VRChat display name first with the **Register** button.",
+    "zh-CN": "请先点击 **注册** 按钮注册你的 VRChat 显示名称。",
+    "zh-TW": "請先點擊 **註冊** 按鈕註冊你的 VRChat 顯示名稱。",
+    ko: "먼저 **등록** 버튼으로 VRChat 표시 이름을 등록해 주세요.",
+  },
+  "member.explain": {
+    ja: "**メンバー登録**\nサーバーに参加してから {days} 日以上たった方は、支援の有無に関係なく、メンバー限定のワールドの案内を見られます。\n・メンバー限定のワールドには、大人向けの表現や、刺激の強い演出があります\n・18 歳以上で、そうした内容に抵抗がない方だけ登録してください\n・ワールドの名前やリンクを、このサーバーの外に出さないでください\n下のボタンを押すと、上の内容に同意して登録します。",
+    en: "**Membership**\nOnce you have been on this server for {days} days, you can see the member-only worlds, whether or not you are a supporter.\n- Member-only worlds contain adult themes and intense effects\n- Please apply only if you are 18 or older and comfortable with such content\n- Please do not share the world names or links outside this server\nPressing the button below means you agree to the above.",
+    "zh-CN": "**成员登记**\n加入本服务器满 {days} 天后，无论是否支持，都可以查看成员限定世界的说明。\n・成员限定世界包含面向成人的表现和较强烈的演出\n・请仅在年满 18 岁且不介意此类内容时登记\n・请勿将世界名称或链接带到本服务器之外\n点击下方按钮即表示同意以上内容并完成登记。",
+    "zh-TW": "**成員登記**\n加入本伺服器滿 {days} 天後，無論是否支持，都可以查看成員限定世界的說明。\n・成員限定世界包含面向成人的表現和較強烈的演出\n・請僅在年滿 18 歲且不介意此類內容時登記\n・請勿將世界名稱或連結帶到本伺服器之外\n點擊下方按鈕即表示同意以上內容並完成登記。",
+    ko: "**멤버 등록**\n이 서버에 참가한 지 {days}일이 지나면, 후원 여부와 관계없이 멤버 전용 월드 안내를 볼 수 있습니다.\n・멤버 전용 월드에는 성인용 표현과 자극이 강한 연출이 있습니다\n・18세 이상이며 그런 내용에 거부감이 없는 분만 등록해 주세요\n・월드 이름이나 링크를 이 서버 밖으로 내보내지 마세요\n아래 버튼을 누르면 위 내용에 동의하고 등록합니다.",
+  },
+  "member.agree": {
+    ja: "18 歳以上です。同意して登録する",
+    en: "I am 18+ and I agree",
+    "zh-CN": "我已满 18 岁并同意",
+    "zh-TW": "我已滿 18 歲並同意",
+    ko: "18세 이상이며 동의합니다",
+  },
+  "member.granted": {
+    ja: "メンバーになりました。数分後から、メンバー限定のワールドに入れます。",
+    en: "You are now a member. You can enter the member-only worlds in a few minutes.",
+    "zh-CN": "你已成为成员。几分钟后即可进入成员限定世界。",
+    "zh-TW": "你已成為成員。幾分鐘後即可進入成員限定世界。",
+    ko: "멤버가 되었습니다. 몇 분 후부터 멤버 전용 월드에 들어갈 수 있습니다.",
+  },
+  "member.pending": {
+    ja: "登録を受け付けました。{date} になると、自動でメンバーになります。",
+    en: "Your application is recorded. You will become a member automatically on {date}.",
+    "zh-CN": "已收到你的登记。到 {date} 将自动成为成员。",
+    "zh-TW": "已收到你的登記。到 {date} 將自動成為成員。",
+    ko: "등록을 접수했습니다. {date}이 되면 자동으로 멤버가 됩니다.",
+  },
+  "member.leave": {
+    ja: "メンバー登録を取り消す",
+    en: "Cancel membership",
+    "zh-CN": "取消成员登记",
+    "zh-TW": "取消成員登記",
+    ko: "멤버 등록 취소",
+  },
+  "member.left": {
+    ja: "メンバー登録を取り消しました。",
+    en: "Your membership has been cancelled.",
+    "zh-CN": "已取消成员登记。",
+    "zh-TW": "已取消成員登記。",
+    ko: "멤버 등록을 취소했습니다.",
+  },
 } satisfies Record<string, Table>;
 
 export type MsgKey = keyof typeof M;

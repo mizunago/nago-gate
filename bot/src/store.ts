@@ -25,6 +25,12 @@ export interface MemberRecord {
   lastActiveAt: string | null;
   /** 最後に活動を確認した Discord ユーザー名（管理用） */
   discordTag: string | null;
+  /** メンバー登録（18 歳以上の確認と注意への同意）をした日時。未登録は null */
+  memberConsentAt: string | null;
+  /** メンバーの条件（同意・名前の登録・在籍日数）を満たしているか。同期のたびに更新 */
+  memberActive: boolean;
+  /** サーバーに参加した日時（在籍日数の計算用）。サーバーにいないときは null */
+  joinedAt: string | null;
   updatedAt: string;
 }
 
@@ -33,6 +39,8 @@ export interface StoreData {
   members: Record<string, MemberRecord>;
   lastPublishedDigest: string | null;
   lastPublishedAt: string | null;
+  /** メンバーのリスト（member.path）を最後に公開したときのダイジェスト */
+  lastPublishedMemberDigest?: string | null;
 }
 
 export class Store {
@@ -48,6 +56,12 @@ export class Store {
     }
     const parsed = JSON.parse(readFileSync(filePath, "utf8")) as StoreData;
     if (parsed.version !== 1) throw new Error(`未対応のデータバージョン: ${String(parsed.version)}`);
+    // メンバー登録より前に作られた記録には、あとから足した項目が無い
+    for (const rec of Object.values(parsed.members)) {
+      rec.memberConsentAt ??= null;
+      rec.memberActive ??= false;
+      rec.joinedAt ??= null;
+    }
     return parsed;
   }
 
@@ -79,6 +93,9 @@ export class Store {
       manualUntil: null,
       lastActiveAt: null,
       discordTag: null,
+      memberConsentAt: null,
+      memberActive: false,
+      joinedAt: null,
       updatedAt: now,
     };
     this.data.members[discordId] = rec;
@@ -104,5 +121,13 @@ export class Store {
   markPublished(digest: string): void {
     this.data.lastPublishedDigest = digest;
     this.data.lastPublishedAt = new Date().toISOString();
+  }
+
+  get lastPublishedMemberDigest(): string | null {
+    return this.data.lastPublishedMemberDigest ?? null;
+  }
+
+  markMemberPublished(digest: string): void {
+    this.data.lastPublishedMemberDigest = digest;
   }
 }

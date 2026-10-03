@@ -9,7 +9,7 @@ import { tierByRank, type AppConfig } from "./config.js";
 import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
-import { buildPanelMessage } from "./panel.js";
+import { buildPanelMessage, IDS } from "./panel.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
 import { publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
@@ -48,7 +48,7 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .setName("vrc-admin")
     .setDescription("支援者ゲート管理（管理者用）")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .addSubcommand((s) => s.setName("setup-roles").setDescription("Supporter / Platinum / src-* ロールを作り、config 用の ID を表示する"))
+    .addSubcommand((s) => s.setName("setup-roles").setDescription("Supporter / Platinum / Member / src-* ロールを作り、config 用の ID を表示する"))
     .addSubcommand((s) => s.setName("setup-info").setDescription("INFO カテゴリ（はじめに・お知らせ・登録）を作る"))
     .addSubcommand((s) => s.setName("setup-community").setDescription("コミュニティカテゴリ（雑談 jp/en・sfw-photo・nsfw-photo）を作る"))
     .addSubcommand((s) =>
@@ -66,11 +66,12 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
               { name: "全員（公開ワールド）", value: "public" },
               { name: "Supporter 以上", value: "supporter" },
               { name: "Platinum のみ", value: "platinum" },
+              { name: "Member（登録メンバー。支援とは別）", value: "member" },
             ),
         )
         .addBooleanOption((o) => o.setName("nsfw").setDescription("年齢制限チャンネルにする（既定: しない）")),
     )
-    .addSubcommand((s) => s.setName("panel").setDescription("このチャンネルに登録ボタン付きパネルを投稿する"))
+    .addSubcommand((s) => s.setName("panel").setDescription("このチャンネルに登録ボタン付きパネルを投稿する（既にあれば書き換える）"))
     .addSubcommand((s) => s.setName("sync").setDescription("今すぐ全メンバーを同期して公開する"))
     .addSubcommand((s) => s.setName("publish").setDescription("支援者リスト JSON を強制的に再公開する"))
     .addSubcommand((s) =>
@@ -196,18 +197,28 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         await interaction.reply({ content: "このチャンネルには投稿できません", ephemeral: true });
         return;
       }
-      await channel.send(buildPanelMessage());
-      log.info(`パネル投稿 channel=${interaction.channelId} by ${member.user.tag}`);
+      const panel = buildPanelMessage(config);
+      // このチャンネルに Bot のパネルが既にあれば、新しく投稿せずに書き換える（ピン留めがそのまま生きる）
+      const recent = "messages" in channel ? await channel.messages.fetch({ limit: 50 }).catch(() => null) : null;
+      const old = recent?.find(
+        (m) => m.author.id === interaction.client.user.id && m.components.some((row) => JSON.stringify(row.toJSON()).includes(IDS.register)),
+      );
+      if (old) await old.edit({ content: panel.content, components: panel.components });
+      else await channel.send(panel);
+      log.info(`パネル${old ? "書き換え" : "投稿"} channel=${interaction.channelId} by ${member.user.tag}`);
       const hint = config.registerChannelId === interaction.channelId
         ? "" : `\n（テキスト投稿の自動処理を有効にするには config.jsonc の discord.registerChannelId に \`${interaction.channelId}\` を設定）`;
-      await interaction.reply({ content: "パネルを投稿しました。ピン留めしておくと見つけやすくなります。" + hint, ephemeral: true });
+      await interaction.reply({
+        content: (old ? "既にあるパネルを書き換えました。" : "パネルを投稿しました。ピン留めしておくと見つけやすくなります。") + hint,
+        ephemeral: true,
+      });
       return;
     }
     if (sub === "sync") {
       await interaction.deferReply({ ephemeral: true });
       const r = await runSync(deps, interaction.guild, `manual by ${member.user.tag}`);
       await interaction.editReply(
-        `同期完了: 走査 ${r.scanned} / 有効 ${r.active} / 猶予中 ${r.inGrace} / ロール +${r.rolesAdded} -${r.rolesRemoved} / 公開 ${r.published ? "あり" : "変更なし"}` +
+        `同期完了: 走査 ${r.scanned} / 有効 ${r.active} / 猶予中 ${r.inGrace} / メンバー ${r.members} / ロール +${r.rolesAdded} -${r.rolesRemoved} / 公開 ${r.published ? "あり" : "変更なし"}` +
           (r.publishUrl ? `\n${r.publishUrl}` : "") +
           (r.errors.length ? `\nエラー:\n${r.errors.slice(0, 5).join("\n")}` : ""),
       );
@@ -217,7 +228,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       await interaction.deferReply({ ephemeral: true });
       try {
         const r = await publishIfChanged(deps, true);
-        await interaction.editReply(`公開しました: ${r.url ?? "(URL 不明)"}`);
+        await interaction.editReply(`公開しました: ${r.url ?? "(URL 不明)"}` + (r.memberUrl ? `\nメンバーのリスト: ${r.memberUrl}` : ""));
       } catch (err) {
         await interaction.editReply(`公開に失敗: ${String(err)}`);
       }

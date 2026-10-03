@@ -31,6 +31,7 @@ function permName(bit: bigint): string {
 export const ROLE_NAMES = {
   supporter: "Supporter",
   platinum: "Platinum",
+  member: "Member",
   sources: ["src-patreon-supporter", "src-patreon-platinum", "src-cien-supporter", "src-cien-platinum"],
 } as const;
 
@@ -59,20 +60,26 @@ export async function setupRoles(guild: Guild): Promise<string> {
   const lines: string[] = [];
   const sup = await ensureRole(guild, ROLE_NAMES.supporter, { color: 0xf5c542, hoist: true });
   const pla = await ensureRole(guild, ROLE_NAMES.platinum, { color: 0x8fd3ff, hoist: true });
+  // メンバーは支援とは別の軸（在籍日数と登録で付く）。一覧では分けて見せない
+  const mem = await ensureRole(guild, ROLE_NAMES.member, {});
   const src: Record<string, Role> = {};
   for (const n of ROLE_NAMES.sources) {
     const r = await ensureRole(guild, n, {});
     src[n] = r.role;
     lines.push(`${r.created ? "作成" : "既存"}: ${n}`);
   }
-  lines.unshift(`${sup.created ? "作成" : "既存"}: ${ROLE_NAMES.supporter}`, `${pla.created ? "作成" : "既存"}: ${ROLE_NAMES.platinum}`);
+  lines.unshift(
+    `${sup.created ? "作成" : "既存"}: ${ROLE_NAMES.supporter}`,
+    `${pla.created ? "作成" : "既存"}: ${ROLE_NAMES.platinum}`,
+    `${mem.created ? "作成" : "既存"}: ${ROLE_NAMES.member}`,
+  );
 
-  // 並び順: 管理対象外のロールを下に、その上に src-* → Supporter → Platinum。Bot のロール（managed）は動かさない
-  const ourIds = new Set([pla.role.id, sup.role.id, ...ROLE_NAMES.sources.map((n) => src[n].id)]);
+  // 並び順: 管理対象外のロールを下に、その上に src-* → Member → Supporter → Platinum。Bot のロール（managed）は動かさない
+  const ourIds = new Set([pla.role.id, sup.role.id, mem.role.id, ...ROLE_NAMES.sources.map((n) => src[n].id)]);
   const others = [...guild.roles.cache.values()]
     .filter((r) => r.id !== guild.id && !r.managed && !ourIds.has(r.id))
     .sort((a, b) => a.position - b.position);
-  const ascending = [...others, ...ROLE_NAMES.sources.slice().reverse().map((n) => src[n]), sup.role, pla.role];
+  const ascending = [...others, ...ROLE_NAMES.sources.slice().reverse().map((n) => src[n]), mem.role, sup.role, pla.role];
   const me = guild.members.me;
   // Discord は「自分の最上位ロール以上の位置」への移動を拒否するため、Bot 自身のロールを最後尾（最上位）に含めて一括指定する
   const botRole = me && me.roles.highest.id !== guild.id ? me.roles.highest : null;
@@ -101,7 +108,9 @@ export async function setupRoles(guild: Guild): Promise<string> {
     `  { "id": "platinum", "rank": 2, "label": "Platinum", "color": "#8FD3FF",`,
     `    "roleId": "${pla.role.id}",`,
     `    "sourceRoleIds": ["${src["src-patreon-platinum"].id}", "${src["src-cien-platinum"].id}"] }`,
-    "]",
+    "],",
+    "// メンバー登録を使う場合だけ（支援とは別に、在籍日数と登録で付くロール）",
+    `"member": { "roleId": "${mem.role.id}", "minDays": 7, "path": "members.json" }`,
     "```",
   ].join("\n");
   return `${lines.join("\n")}\n\nconfig.jsonc に貼る内容:\n${snippet}\n次に Patreon / Ci-en の連携画面で src-* ロールをプランに割り当ててください。`;
@@ -234,7 +243,7 @@ export async function setupCommunity(guild: Guild): Promise<string> {
   return out.join("\n");
 }
 
-export type WorldVisibility = "public" | "supporter" | "platinum";
+export type WorldVisibility = "public" | "supporter" | "platinum" | "member";
 
 /** ワールドごとのカテゴリ */
 export async function setupWorld(
@@ -255,6 +264,9 @@ export async function setupWorld(
   let viewer: Role | null = null;
   if (visibility === "supporter") viewer = findRole(guild, config, 1, ROLE_NAMES.supporter);
   if (visibility === "platinum") viewer = findRole(guild, config, 2, ROLE_NAMES.platinum);
+  if (visibility === "member") {
+    viewer = (config.member ? guild.roles.cache.get(config.member.roleId) : undefined) ?? guild.roles.cache.find((r) => r.name === ROLE_NAMES.member) ?? null;
+  }
   if (visibility !== "public" && !viewer) {
     log.warn(`setup-world: 閲覧ロールが見つからない visibility=${visibility}`);
     return `ロールが見つかりません。先に /vrc-admin setup-roles を実行してください（visibility=${visibility}）`;
@@ -287,7 +299,8 @@ export async function setupWorld(
   const out: string[] = [`${created ? "作成" : "既存"}: ${catName}（${visibility}${nsfw ? ", 年齢制限" : ""}）`];
 
   // 雑談は、公開ワールドでも限定ワールドでも同じ名前で作る（公開は全員、限定は閲覧ロールだけが書ける）
-  const loungeTopic = visibility === "public" ? `${jpName} の雑談 / ${enName} lounge` : "支援者雑談 / Supporter lounge";
+  const loungeTopic =
+    visibility === "public" ? `${jpName} の雑談 / ${enName} lounge` : visibility === "member" ? "メンバー雑談 / Members lounge" : "支援者雑談 / Supporter lounge";
   const specs: ChannelSpec[] = [
     { name: "🔗ワールド-world", type: ChannelType.GuildText, topic: `${jpName} / ${enName}: ワールドリンクと概要`, nsfw, overwrites: readOnly },
     { name: "🔧更新情報-updates", type: ChannelType.GuildText, topic: "更新ログ / Update log", nsfw, overwrites: readOnly },

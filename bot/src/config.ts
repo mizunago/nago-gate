@@ -22,6 +22,18 @@ export type PublishConfig =
   | { type: "gist"; gistId: string; fileName: string }
   | { type: "github"; owner: string; repo: string; branch?: string; path: string };
 
+/**
+ * メンバー登録（支援とは別の軸）。在籍日数・名前の登録・18 歳以上の確認を満たした人に
+ * ロールを付け、supporters とは別のリストとして公開する
+ */
+export interface MemberConfig {
+  roleId: string;
+  /** サーバーに参加してから必要な日数 */
+  minDays: number;
+  /** メンバーのリストの公開先（publish と同じ場所の別ファイル） */
+  publish: PublishConfig;
+}
+
 /** アプリ内部で使う平坦な設定（ファイルの構造とは分離） */
 export interface AppConfig {
   guildId: string;
@@ -36,6 +48,8 @@ export interface AppConfig {
   maxNameLength: number;
   tiers: TierConfig[];
   publish: PublishConfig;
+  /** 未設定（null）ならメンバー登録の機能は出ない */
+  member: MemberConfig | null;
 }
 
 export interface Secrets {
@@ -58,6 +72,7 @@ interface ConfigFile {
   rules?: { graceDays?: number; nameChangeCooldownDays?: number; maxNameLength?: number };
   sync?: { intervalMinutes?: number };
   publish?: PublishConfig;
+  member?: { roleId?: string; minDays?: number; path?: string };
 }
 
 export function resolveInstanceDir(): string {
@@ -149,6 +164,22 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     throw new Error(`publish.type が不正です: ${String((publish as { type: string }).type)}`);
   }
 
+  let member: MemberConfig | null = null;
+  if (raw.member?.roleId) {
+    const minDays = raw.member.minDays ?? 7;
+    if (typeof minDays !== "number" || minDays < 0) throw new Error("member.minDays は 0 以上の数にしてください");
+    const memberPath = raw.member.path ?? "members.json";
+    // supporters と同じ公開先の、別のファイルに書く
+    let memberPublish: PublishConfig;
+    if (publish.type === "file") memberPublish = { type: "file", path: path.resolve(path.dirname(publish.path), memberPath) };
+    else if (publish.type === "gist") memberPublish = { ...publish, fileName: memberPath };
+    else memberPublish = { ...publish, path: memberPath };
+    const supportersFile = publish.type === "gist" ? publish.fileName : publish.path;
+    const membersFile = memberPublish.type === "gist" ? memberPublish.fileName : memberPublish.path;
+    if (supportersFile === membersFile) throw new Error("member.path は publish のファイルと別の名前にしてください");
+    member = { roleId: raw.member.roleId, minDays, publish: memberPublish };
+  }
+
   return {
     guildId,
     adminRoleIds: raw.discord?.adminRoleIds ?? [],
@@ -160,6 +191,7 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     syncIntervalMinutes: raw.sync?.intervalMinutes ?? 10,
     tiers: tiers.sort((a, b) => a.rank - b.rank),
     publish,
+    member,
   };
 }
 

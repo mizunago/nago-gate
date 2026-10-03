@@ -11,16 +11,20 @@ import {
   TextInputStyle,
   type MessageCreateOptions,
 } from "discord.js";
-import { langOf, t } from "./i18n.js";
+import type { AppConfig } from "./config.js";
+import { langOf, t, type Lang } from "./i18n.js";
 import { log } from "./log.js";
-import { describe, parseTextRegister, registerName } from "./register.js";
-import type { SyncContext } from "./sync.js";
+import { describe, fmtDate, memberState, parseTextRegister, registerName } from "./register.js";
+import { isMemberEligible, memberEligibleFrom, type SyncContext } from "./sync.js";
 
 export const IDS = {
   register: "sg:register",
   status: "sg:status",
   creditOn: "sg:credit:on",
   creditOff: "sg:credit:off",
+  member: "sg:member",
+  memberAgree: "sg:member:agree",
+  memberLeave: "sg:member:leave",
   modal: "sg:register-modal",
   modalName: "name",
 } as const;
@@ -30,8 +34,8 @@ export interface PanelDeps extends SyncContext {
 }
 
 /** /vrc-admin panel で投稿する固定メッセージ（共有メッセージなので多言語併記） */
-export function buildPanelMessage(): MessageCreateOptions {
-  const content = [
+export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
+  const lines = [
     "## VRChat 支援者登録 / Supporter Registration / 支持者注册",
     "",
     "🇯🇵 **登録** ボタンを押して、VRChat の表示名（プロフィールに出ている名前）を入力してください。",
@@ -40,18 +44,106 @@ export function buildPanelMessage(): MessageCreateOptions {
     "　　Register again if you change your display name (once every 30 days).",
     "🇨🇳 点击 **注册**，输入你的 VRChat 显示名称（个人资料上显示的名字）。更改名称后请重新注册（每 30 天一次）。",
     "🇰🇷 **등록** 버튼을 누르고 VRChat 표시 이름(프로필에 표시되는 이름)을 입력하세요. 이름을 바꾸면 다시 등록하세요(30일에 1회).",
+  ];
+  if (config.member) {
+    const d = config.member.minDays;
+    lines.push(
+      "",
+      `🇯🇵 **メンバー** ボタン: サーバーに参加して ${d} 日以上の方は、支援の有無に関係なく、メンバー限定の案内を見られます（18 歳以上の方のみ）。`,
+      `🇬🇧 **Membership** button: after ${d} days on this server, you can see the member-only area, whether or not you are a supporter (18+ only).`,
+      `🇨🇳 **成员** 按钮：加入本服务器满 ${d} 天后，无论是否支持，都可以查看成员限定区域（仅限 18 岁以上）。`,
+      `🇰🇷 **멤버** 버튼: 서버 참가 후 ${d}일이 지나면 후원 여부와 관계없이 멤버 전용 안내를 볼 수 있습니다 (18세 이상).`,
+    );
+  }
+  lines.push(
     "",
     "-# スラッシュコマンド `/vrc register` も使えますが、コピペでは動きません。入力欄で `/` を打って候補から選んでください。",
     "-# `/vrc register` also works, but only when picked from the popup after typing `/` (pasting the text does nothing).",
-  ].join("\n");
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(IDS.register).setLabel("登録 / Register").setStyle(ButtonStyle.Primary).setEmoji("🧾"),
-    new ButtonBuilder().setCustomId(IDS.status).setLabel("状態 / Status").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(IDS.creditOn).setLabel("クレジット ON / Credits ON").setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(IDS.creditOff).setLabel("クレジット OFF / Credits OFF").setStyle(ButtonStyle.Secondary),
   );
-  return { content, components: [row] };
+
+  const rows = [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(IDS.register).setLabel("登録 / Register").setStyle(ButtonStyle.Primary).setEmoji("🧾"),
+      new ButtonBuilder().setCustomId(IDS.status).setLabel("状態 / Status").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(IDS.creditOn).setLabel("クレジット ON / Credits ON").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(IDS.creditOff).setLabel("クレジット OFF / Credits OFF").setStyle(ButtonStyle.Secondary),
+    ),
+  ];
+  if (config.member) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(IDS.member).setLabel("メンバー / Membership").setStyle(ButtonStyle.Secondary).setEmoji("🔑"),
+      ),
+    );
+  }
+  return { content: lines.join("\n"), components: rows };
+}
+
+/** メンバー登録のボタン（説明を出す・同意する・取り消す） */
+async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteraction<"cached">, lang: Lang): Promise<void> {
+  const { config, store } = deps;
+  const mc = config.member;
+  if (!mc) {
+    await interaction.reply({ content: t(lang, "member.unavailable"), ephemeral: true });
+    return;
+  }
+  const rec = store.get(interaction.user.id);
+  if (!rec || !rec.vrcName) {
+    // ゲートは表示名で判定するので、名前の登録が先
+    await interaction.reply({ content: t(lang, "member.needName"), ephemeral: true });
+    return;
+  }
+  const who = `${interaction.user.tag} (${interaction.user.id})`;
+  rec.discordTag = interaction.user.tag;
+  if (interaction.member.joinedAt) rec.joinedAt = interaction.member.joinedAt.toISOString();
+  const id = interaction.customId;
+
+  if (id === IDS.member) {
+    if (!rec.memberConsentAt) {
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, "member.agree")).setStyle(ButtonStyle.Success),
+      );
+      await interaction.reply({ content: t(lang, "member.explain", { days: mc.minDays }), components: [row], ephemeral: true });
+    } else {
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, "member.leave")).setStyle(ButtonStyle.Secondary),
+      );
+      await interaction.reply({ content: `${t(lang, "member.label")}: ${memberState(config, rec, lang)}`, components: [row], ephemeral: true });
+    }
+    return;
+  }
+
+  const now = new Date();
+  if (id === IDS.memberAgree) {
+    if (!rec.memberConsentAt) rec.memberConsentAt = now.toISOString();
+    rec.memberActive = isMemberEligible(config, rec, now);
+    rec.updatedAt = now.toISOString();
+    store.save();
+    log.info(`メンバー登録 ${who}: 同意を記録、有効=${rec.memberActive} 参加日=${rec.joinedAt ?? "-"}`);
+    let content: string;
+    if (rec.memberActive) {
+      // ロールはここで付ける。失敗しても次の同期が付け直す
+      await interaction.member.roles.add(mc.roleId, "SupporterGate member").catch((err) => log.warn(`メンバーのロール付与に失敗 ${who}: ${String(err)}`));
+      deps.requestPublish();
+      content = t(lang, "member.granted");
+    } else {
+      const from = memberEligibleFrom(config, rec);
+      content = t(lang, "member.pending", { date: from ? fmtDate(from.toISOString()) : "-" });
+    }
+    await interaction.update({ content, components: [] });
+    return;
+  }
+
+  // 取り消し
+  const wasActive = rec.memberActive;
+  rec.memberConsentAt = null;
+  rec.memberActive = false;
+  rec.updatedAt = now.toISOString();
+  store.save();
+  log.info(`メンバー登録の取り消し ${who}`);
+  await interaction.member.roles.remove(mc.roleId, "SupporterGate member").catch((err) => log.warn(`メンバーのロール剥奪に失敗 ${who}: ${String(err)}`));
+  if (wasActive) deps.requestPublish();
+  await interaction.update({ content: t(lang, "member.left"), components: [] });
 }
 
 export async function handleButton(deps: PanelDeps, interaction: ButtonInteraction): Promise<void> {
@@ -80,6 +172,11 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
 
   if (id === IDS.status) {
     await interaction.reply({ content: describe(config, store.get(interaction.user.id), lang), ephemeral: true });
+    return;
+  }
+
+  if (id === IDS.member || id === IDS.memberAgree || id === IDS.memberLeave) {
+    await handleMemberButton(deps, interaction, lang);
     return;
   }
 

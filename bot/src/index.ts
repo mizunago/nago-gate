@@ -17,7 +17,7 @@ async function main(): Promise<void> {
   initLog(inst.dir);
   const { config } = inst;
   const store = new Store(inst.dataPath);
-  const ctx: SyncContext = { config, store, githubToken: inst.secrets.githubToken, log };
+  const ctx: SyncContext = { config, store, githubToken: inst.secrets.githubToken, log, logQuiet: (m) => L.quiet(m) };
   log(`設定フォルダ: ${inst.dir}`);
 
   const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers];

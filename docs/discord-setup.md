@@ -101,8 +101,8 @@ npm start
 | `/vrc-admin setup-roles` | 出力ロールと入力ロールを作成し、config 用の ID を表示 |
 | `/vrc-admin setup-info` | INFO カテゴリ（はじめに・お知らせ・登録）を作成 |
 | `/vrc-admin setup-community` | コミュニティカテゴリ（雑談 jp/en、sfw-photo、nsfw-photo）を作成 |
-| `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（ワールド・更新情報・フィードバック・雑談の lounge）を作成 |
-| `/vrc-admin panel` | 実行したチャンネルに登録ボタン付きパネルを投稿（登録チャンネルで 1 回だけ実行してピン留め） |
+| `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（ワールド・更新情報・フィードバック・雑談の lounge）を作成。visibility は 全員 / Supporter / Platinum / Member |
+| `/vrc-admin panel` | 実行したチャンネルに登録ボタン付きパネルを投稿（登録チャンネルで実行してピン留め）。既にパネルがあれば、新しく投稿せずに書き換える |
 | `/vrc-admin sync` | 今すぐ同期＋公開 |
 | `/vrc-admin publish` | JSON を強制再公開 |
 | `/vrc-admin lookup user:@x` | 登録状態の確認 |
@@ -110,6 +110,30 @@ npm start
 | `/vrc-admin grant user:@x rank:<n> [days:<n>]` | 手動でランク付与（支援サイトを使わない特例など） |
 | `/vrc-admin revoke user:@x` | 手動付与の取り消し |
 | `/vrc-admin hash name:<表示名>` | ハッシュ値の確認（Udon 側デバッグ用） |
+
+## 6b. メンバー登録（任意）
+
+支援とは別の軸で、「サーバーに一定の日数いて、登録を済ませた人」にロールを付ける機能です。支援の有無は見ません。このロールだけに見せるカテゴリと、この人たちだけが入れるワールドを作れます。
+
+条件は 3 つです。
+
+- サーバーに `minDays` 日以上いる（入り直すと数え直し）
+- VRChat の表示名を登録済み
+- パネルの **メンバー** ボタンで、18 歳以上の確認と注意への同意を済ませた
+
+設定の手順:
+
+1. `/vrc-admin setup-roles` を実行する。`Member` ロールが作られ、`config.jsonc` に貼る `member` の行が表示される
+2. `config.jsonc` に `member` を足して、Bot を再起動する（`instance.example/config.jsonc` に例）
+3. 登録チャンネルで `/vrc-admin panel` を実行する。既にあるパネルが書き換わり、**メンバー** ボタンが付く
+4. メンバーだけに見せるカテゴリは `/vrc-admin setup-world ... visibility:Member` で作る
+
+動き:
+
+- ボタンを押した時点で日数が足りていれば、その場でロールが付く。足りなければ、日数がたったあとの定期の同期で自動的に付く
+- 同じボタンから、登録の取り消しもできる
+- サーバーを抜けるとメンバーではなくなる
+- メンバーのリストは、支援者のリストと同じ形で `member.path`（既定 `members.json`）に公開される。ワールド側の使い方は [unity-setup.md](unity-setup.md) を参照
 
 ## 7. 登録チャンネルの運用
 

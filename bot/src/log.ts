@@ -26,7 +26,7 @@ function fileFor(now: Date): string {
   return path.join(logDir ?? ".", `bot-${d}.log`);
 }
 
-function write(level: Level, msg: string): void {
+function write(level: Level, msg: string, toSink = true): void {
   const now = new Date();
   const line = `${now.toISOString()} [${level}] ${msg}`;
   if (level === "ERROR") console.error(line);
@@ -38,7 +38,7 @@ function write(level: Level, msg: string): void {
       // ログ書き込み失敗で本体を止めない
     }
   }
-  if (sink) {
+  if (sink && toSink) {
     try {
       sink(line, level);
     } catch {
@@ -49,6 +49,8 @@ function write(level: Level, msg: string): void {
 
 export const log = {
   info: (msg: string): void => write("INFO", msg),
+  /** コンソールとファイルにだけ書く（Discord のログチャンネルには流さない）。変化のない定期処理用 */
+  quiet: (msg: string): void => write("INFO", msg, false),
   warn: (msg: string): void => write("WARN", msg),
   error: (msg: string): void => write("ERROR", msg),
 };

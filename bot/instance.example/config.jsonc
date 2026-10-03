@@ -45,8 +45,19 @@
   },
 
   "sync": {
-    "intervalMinutes": 10           // 全メンバーを走査してロール更新・JSON 公開する間隔
+    // 全メンバーを走査してロール更新・JSON 公開する間隔。ロールの変化や登録は、これを待たずにすぐ反映される。
+    // 変化のない定期の同期は、ログチャンネルには流れない（ファイルのログには残る）
+    "intervalMinutes": 60
   },
+
+  // メンバー登録（任意）。支援とは別の軸で、次の 3 つを満たした人にロールを付け、別のリストとして公開する。
+  //   サーバーに minDays 日以上いる / VRChat の表示名を登録済み / パネルのボタンで 18 歳以上の確認と同意を済ませた
+  // 使わないなら、この項目ごと書かない。roleId は /vrc-admin setup-roles が表示する
+  // "member": {
+  //   "roleId": "000000000000000000",   // Member
+  //   "minDays": 7,
+  //   "path": "members.json"            // publish と同じ場所の別ファイル。Udon 側の URL は .../members.json
+  // },
 
   // 支援者リスト JSON の公開先。VRChat が設定なしで読めるのは GitHub Pages (*.github.io) / Gist
   "publish": {

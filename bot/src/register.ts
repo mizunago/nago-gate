@@ -5,6 +5,7 @@ import { t, type Lang } from "./i18n.js";
 import type { MemberRecord, Store } from "./store.js";
 import { tierByRank } from "./config.js";
 import { log } from "./log.js";
+import { memberEligibleFrom } from "./sync.js";
 
 export interface RegisterInput {
   discordId: string;
@@ -25,6 +26,14 @@ export function fmtDate(iso: string | null): string {
   return `<t:${Math.floor(new Date(iso).getTime() / 1000)}:D>`;
 }
 
+/** メンバー登録の状態を 1 行で表す */
+export function memberState(config: AppConfig, rec: MemberRecord, lang: Lang): string {
+  if (!rec.memberConsentAt) return t(lang, "member.state.none");
+  if (rec.memberActive) return t(lang, "member.state.active");
+  const from = memberEligibleFrom(config, rec);
+  return t(lang, "member.state.pending", { date: from ? fmtDate(from.toISOString()) : "-" });
+}
+
 export function describe(config: AppConfig, rec: MemberRecord | null, lang: Lang): string {
   if (!rec) return t(lang, "status.none");
   const tier = tierByRank(config, rec.effectiveRank);
@@ -34,6 +43,7 @@ export function describe(config: AppConfig, rec: MemberRecord | null, lang: Lang
     `${t(lang, "status.link")}: ${rec.activeRank > 0 ? t(lang, "status.active") : t(lang, "status.inactive")}`,
     `${t(lang, "status.credit")}: ${t(lang, rec.showCredit ? "on" : "off")}`,
   ];
+  if (config.member) lines.push(`${t(lang, "member.label")}: ${memberState(config, rec, lang)}`);
   if (rec.graceUntil) lines.push(`${t(lang, "status.grace")}: ${fmtDate(rec.graceUntil)}`);
   if (rec.manualRank > 0) {
     const v = rec.manualUntil
