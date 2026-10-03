@@ -131,16 +131,20 @@ interface ChannelSpec {
   topic?: string;
   nsfw?: boolean;
   overwrites?: OverwriteResolvable[];
+  /** true ならチャンネル独自の権限を持たせず、カテゴリの権限に従わせる（同期）。overwrites より優先 */
+  sync?: boolean;
   tags?: string[];
 }
 
 async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSpec): Promise<{ ch: GuildBasedChannel; created: boolean }> {
   const existing = cat.children.cache.find((c) => c.name === spec.name && c.type === spec.type);
   if (existing) {
-    if (spec.overwrites && "permissionOverwrites" in existing) await existing.permissionOverwrites.set(spec.overwrites, "SupporterGate setup");
-    log.info(`setup: 既存チャンネル再利用・権限更新 ${cat.name}/${spec.name} (${existing.id})`);
+    if (spec.sync) await existing.lockPermissions();
+    else if (spec.overwrites && "permissionOverwrites" in existing) await existing.permissionOverwrites.set(spec.overwrites, "SupporterGate setup");
+    log.info(`setup: 既存チャンネル再利用・権限更新 ${cat.name}/${spec.name} (${existing.id})${spec.sync ? " カテゴリと同期" : ""}`);
     return { ch: existing, created: false };
   }
+  const overwrites = spec.sync ? undefined : spec.overwrites;
   if (spec.type === ChannelType.GuildForum) {
     const ch = await guild.channels.create({
       name: spec.name,
@@ -148,11 +152,12 @@ async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSp
       parent: cat,
       topic: spec.topic,
       nsfw: spec.nsfw ?? false,
-      permissionOverwrites: spec.overwrites,
+      permissionOverwrites: overwrites,
       availableTags: (spec.tags ?? []).map((t) => ({ name: t })),
       reason: "SupporterGate setup",
     });
-    log.info(`setup: フォーラム作成 ${cat.name}/${spec.name} (${ch.id}) tags=${(spec.tags ?? []).join(",")} nsfw=${spec.nsfw ?? false}`);
+    if (spec.sync) await ch.lockPermissions();
+    log.info(`setup: フォーラム作成 ${cat.name}/${spec.name} (${ch.id}) tags=${(spec.tags ?? []).join(",")} nsfw=${spec.nsfw ?? false}${spec.sync ? " カテゴリと同期" : ""}`);
     return { ch, created: true };
   }
   const ch = await guild.channels.create({
@@ -161,10 +166,11 @@ async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSp
     parent: cat,
     topic: spec.topic,
     nsfw: spec.nsfw ?? false,
-    permissionOverwrites: spec.overwrites,
+    permissionOverwrites: overwrites,
     reason: "SupporterGate setup",
   });
-  log.info(`setup: テキストチャンネル作成 ${cat.name}/${spec.name} (${ch.id}) nsfw=${spec.nsfw ?? false}`);
+  if (spec.sync) await ch.lockPermissions();
+  log.info(`setup: テキストチャンネル作成 ${cat.name}/${spec.name} (${ch.id}) nsfw=${spec.nsfw ?? false}${spec.sync ? " カテゴリと同期" : ""}`);
   return { ch, created: true };
 }
 
@@ -254,50 +260,47 @@ export async function setupWorld(
     return `ロールが見つかりません。先に /vrc-admin setup-roles を実行してください（visibility=${visibility}）`;
   }
 
+  // 「誰が見えて書けるか」はカテゴリで決め、フォーラムと雑談はカテゴリに従わせる（同期）。
+  // 持ち主だけが書くチャンネル（ワールド・更新情報）にだけ、送信の拒否を足す。
+  // Discord は同期していないチャンネルにカテゴリの権限を重ねないので、この 2 つには見える人の設定も書く
+  const noSend = [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads];
+  const base: OverwriteResolvable[] = [];
   const readOnly: OverwriteResolvable[] = [];
-  const canPost: OverwriteResolvable[] = [];
-  const canChat: OverwriteResolvable[] = [];
   if (visibility === "public") {
-    readOnly.push({ id: everyone.id, deny: [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads] });
-    canPost.push({ id: everyone.id, allow: me ? onlyHeld(me, [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads]) : [P.SendMessages] });
+    // 公開ワールドは @everyone の基本権限（見る・送信）のまま使う
+    readOnly.push({ id: everyone.id, deny: noSend });
   } else {
+    base.push({ id: everyone.id, deny: [P.ViewChannel] });
+    base.push({ id: viewer!.id, allow: me ? onlyHeld(me, [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads]) : [P.ViewChannel, P.SendMessages] });
     readOnly.push({ id: everyone.id, deny: [P.ViewChannel] });
-    readOnly.push({ id: viewer!.id, allow: [P.ViewChannel], deny: [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads] });
-    canPost.push({ id: everyone.id, deny: [P.ViewChannel] });
-    const viewerAllow = me ? onlyHeld(me, [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads]) : [P.ViewChannel, P.SendMessages];
-    canPost.push({ id: viewer!.id, allow: viewerAllow });
-    canChat.push({ id: everyone.id, deny: [P.ViewChannel] });
-    canChat.push({ id: viewer!.id, allow: viewerAllow });
+    readOnly.push({ id: viewer!.id, allow: [P.ViewChannel], deny: noSend });
   }
   if (me) {
     // Bot は「自分が持っていない権限」を他者に付与できないため、
     // 子チャンネルで付与する権限をすべて Bot 自身にも明示的に許可しておく
     const botAllow = onlyHeld(me, [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.ManageMessages]);
+    base.push({ id: me.id, allow: botAllow });
     readOnly.push({ id: me.id, allow: botAllow });
-    canPost.push({ id: me.id, allow: botAllow });
-    canChat.push({ id: me.id, allow: botAllow });
   }
 
-  const { cat, created } = await ensureCategory(guild, catName, readOnly);
+  const { cat, created } = await ensureCategory(guild, catName, base);
   const out: string[] = [`${created ? "作成" : "既存"}: ${catName}（${visibility}${nsfw ? ", 年齢制限" : ""}）`];
 
+  // 雑談は、公開ワールドでも限定ワールドでも同じ名前で作る（公開は全員、限定は閲覧ロールだけが書ける）
+  const loungeTopic = visibility === "public" ? `${jpName} の雑談 / ${enName} lounge` : "支援者雑談 / Supporter lounge";
   const specs: ChannelSpec[] = [
     { name: "🔗ワールド-world", type: ChannelType.GuildText, topic: `${jpName} / ${enName}: ワールドリンクと概要`, nsfw, overwrites: readOnly },
     { name: "🔧更新情報-updates", type: ChannelType.GuildText, topic: "更新ログ / Update log", nsfw, overwrites: readOnly },
-    { name: "🐛バグ報告と要望-feedback", type: ChannelType.GuildForum, topic: "バグ報告と要望 / Bug reports & requests. タグで種別と言語を選んでください", nsfw, overwrites: canPost, tags: FEEDBACK_TAGS },
+    { name: "🐛バグ報告と要望-feedback", type: ChannelType.GuildForum, topic: "バグ報告と要望 / Bug reports & requests. タグで種別と言語を選んでください", nsfw, sync: true, tags: FEEDBACK_TAGS },
+    { name: "💬さろん-lounge", type: ChannelType.GuildText, topic: loungeTopic, nsfw, sync: true },
   ];
-  // 雑談は、公開ワールドでも限定ワールドでも同じ名前で作る（公開は全員、限定は閲覧ロールだけが書ける）
-  if (visibility === "public") {
-    specs.push({ name: "💬さろん-lounge", type: ChannelType.GuildText, topic: `${jpName} の雑談 / ${enName} lounge`, nsfw, overwrites: canPost });
-  } else {
-    specs.push({ name: "💬さろん-lounge", type: ChannelType.GuildText, topic: "支援者雑談 / Supporter lounge", nsfw, overwrites: canChat });
-  }
   for (const spec of specs) {
     const r = await ensureChannel(guild, cat, spec);
     out.push(`${r.created ? "作成" : "既存"}: ${spec.name}`);
   }
   log.info(`setup-world 完了 ${catName} viewer=${viewer ? viewer.name : "@everyone"}`);
   out.push("");
+  out.push("フォーラムと雑談はカテゴリの権限に従います（同期）。見える人を変えるときはカテゴリを変えてください。");
   out.push("ワールドと更新情報はサーバーオーナーだけが書けます。他の管理者にも書かせる場合はチャンネル権限で個別に許可してください。");
   return out.join("\n");
 }
