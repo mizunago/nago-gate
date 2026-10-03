@@ -7,7 +7,9 @@
 //   "v": 1, "generatedAt": "...",
 //   "tiers": [ {"id":"supporter","rank":1,"label":"Supporter","color":"#F5C542"}, ... ],
 //   "access": { "<sha256(normalized displayName)>": rank, ... },
-//   "credits": [ {"n":"DisplayName","r":rank}, ... ]
+//   "credits": [ {"n":"DisplayName","r":rank}, ... ],
+//   "members": { "<sha256(normalized displayName)>": 1, ... },   // 任意。支援とは別の「メンバー」。名前は載らない
+//   "links": { "discord": "https://discord.gg/xxxx" }            // 任意。案内用のリンク
 // }
 
 using UdonSharp;
@@ -40,8 +42,11 @@ public class SupporterRegistry : UdonSharpBehaviour
     // ---- 取得データ ----
     private DataDictionary _access;
     private DataList _credits;
+    private DataDictionary _members;
+    private DataDictionary _links;
     private int _tierCount;
     private int[] _tierRanks = new int[0];
+    private string[] _tierIds = new string[0];
     private string[] _tierLabels = new string[0];
     private string[] _tierColorHex = new string[0];
     private Color[] _tierColors = new Color[0];
@@ -56,6 +61,7 @@ public class SupporterRegistry : UdonSharpBehaviour
     private int[] _slotIds = new int[MaxSlots];
     private string[] _slotHashes = new string[MaxSlots];
     private int[] _slotRanks = new int[MaxSlots];
+    private bool[] _slotMember = new bool[MaxSlots];
     private int _pendingHashes;
     private bool _hashLoopRunning;
 
@@ -109,6 +115,31 @@ public class SupporterRegistry : UdonSharpBehaviour
         return _GetRank(local);
     }
 
+    /// <summary>リストに「メンバー」の欄があるか（Bot でメンバー登録を使っているか）</summary>
+    public bool _HasMemberList() { return _members != null; }
+
+    /// <summary>プレイヤーがメンバー（支援とは別の軸）か。リスト未取得・ハッシュ未計算の間は false</summary>
+    public bool _IsMember(VRCPlayerApi player)
+    {
+        if (player == null || !player.IsValid()) return false;
+        int slot = FindSlot(player.playerId);
+        if (slot < 0)
+        {
+            slot = AssignSlot(player);
+            if (slot < 0) return false;
+        }
+        if (_slotHashes[slot] == null) ComputeSlotHash(slot, player);
+        if (!_loaded) return false;
+        return _slotMember[slot];
+    }
+
+    public bool _IsLocalMember()
+    {
+        VRCPlayerApi local = Networking.LocalPlayer;
+        if (local == null) return false;
+        return _IsMember(local);
+    }
+
     /// <summary>任意の名前のランク（キャッシュなし。UI の確認用途向け）</summary>
     public int _GetRankOfName(string displayName)
     {
@@ -124,6 +155,13 @@ public class SupporterRegistry : UdonSharpBehaviour
     {
         int i = TierIndex(rank);
         return i >= 0 ? _tierLabels[i] : "";
+    }
+
+    /// <summary>ティアの id（"supporter" / "platinum" など）。文言の表から呼び名を引くときに使う</summary>
+    public string _GetTierId(int rank)
+    {
+        int i = TierIndex(rank);
+        return i >= 0 ? _tierIds[i] : "";
     }
 
     public Color _GetTierColor(int rank)
@@ -159,6 +197,15 @@ public class SupporterRegistry : UdonSharpBehaviour
         DataToken r;
         if (!entry.DataDictionary.TryGetValue("r", TokenType.Double, out r)) return 0;
         return (int)r.Double;
+    }
+
+    /// <summary>リストに入っている案内用のリンク（"discord" など）。無ければ空文字</summary>
+    public string _GetLink(string key)
+    {
+        if (_links == null || key == null) return "";
+        DataToken v;
+        if (!_links.TryGetValue(key, TokenType.String, out v)) return "";
+        return v.String;
     }
 
     /// <summary>手動で再取得</summary>
@@ -233,9 +280,18 @@ public class SupporterRegistry : UdonSharpBehaviour
         DataList credits = null;
         if (dict.TryGetValue("credits", TokenType.DataList, out creditsToken)) credits = creditsToken.DataList;
 
+        DataToken membersToken;
+        DataDictionary members = null;
+        if (dict.TryGetValue("members", TokenType.DataDictionary, out membersToken)) members = membersToken.DataDictionary;
+
+        DataToken linksToken;
+        DataDictionary links = null;
+        if (dict.TryGetValue("links", TokenType.DataDictionary, out linksToken)) links = linksToken.DataDictionary;
+
         DataToken tiersToken;
         int tierCount = 0;
         int[] ranks = new int[0];
+        string[] ids = new string[0];
         string[] labels = new string[0];
         string[] hexes = new string[0];
         Color[] colors = new Color[0];
@@ -244,16 +300,22 @@ public class SupporterRegistry : UdonSharpBehaviour
             DataList tiers = tiersToken.DataList;
             tierCount = tiers.Count;
             ranks = new int[tierCount];
+            ids = new string[tierCount];
             labels = new string[tierCount];
             hexes = new string[tierCount];
             colors = new Color[tierCount];
             for (int i = 0; i < tierCount; i++)
             {
                 DataToken t = tiers[i];
+                ids[i] = "";
+                labels[i] = "";
+                hexes[i] = "#FFFFFF";
+                colors[i] = Color.white;
                 if (t.TokenType != TokenType.DataDictionary) continue;
                 DataDictionary td = t.DataDictionary;
                 DataToken v;
                 ranks[i] = td.TryGetValue("rank", TokenType.Double, out v) ? (int)v.Double : 0;
+                ids[i] = td.TryGetValue("id", TokenType.String, out v) ? v.String : "";
                 labels[i] = td.TryGetValue("label", TokenType.String, out v) ? v.String : "";
                 hexes[i] = td.TryGetValue("color", TokenType.String, out v) ? v.String : "#FFFFFF";
                 colors[i] = ParseHexColor(hexes[i]);
@@ -261,21 +323,24 @@ public class SupporterRegistry : UdonSharpBehaviour
             // rank 昇順に並べ替え（挿入ソート）
             for (int i = 1; i < tierCount; i++)
             {
-                int r = ranks[i]; string l = labels[i]; string h = hexes[i]; Color c = colors[i];
+                int r = ranks[i]; string d = ids[i]; string l = labels[i]; string h = hexes[i]; Color c = colors[i];
                 int j = i - 1;
                 while (j >= 0 && ranks[j] > r)
                 {
-                    ranks[j + 1] = ranks[j]; labels[j + 1] = labels[j]; hexes[j + 1] = hexes[j]; colors[j + 1] = colors[j];
+                    ranks[j + 1] = ranks[j]; ids[j + 1] = ids[j]; labels[j + 1] = labels[j]; hexes[j + 1] = hexes[j]; colors[j + 1] = colors[j];
                     j--;
                 }
-                ranks[j + 1] = r; labels[j + 1] = l; hexes[j + 1] = h; colors[j + 1] = c;
+                ranks[j + 1] = r; ids[j + 1] = d; labels[j + 1] = l; hexes[j + 1] = h; colors[j + 1] = c;
             }
         }
 
         _access = accessToken.DataDictionary;
         _credits = credits;
+        _members = members;
+        _links = links;
         _tierCount = tierCount;
         _tierRanks = ranks;
+        _tierIds = ids;
         _tierLabels = labels;
         _tierColorHex = hexes;
         _tierColors = colors;
@@ -321,6 +386,12 @@ public class SupporterRegistry : UdonSharpBehaviour
         return 0;
     }
 
+    private bool LookupMember(string hash)
+    {
+        if (_members == null || hash == null) return false;
+        return _members.ContainsKey(hash);
+    }
+
     // ================= プレイヤースロット =================
 
     public override void OnPlayerJoined(VRCPlayerApi player)
@@ -344,6 +415,7 @@ public class SupporterRegistry : UdonSharpBehaviour
             _slotIds[slot] = 0;
             _slotHashes[slot] = null;
             _slotRanks[slot] = 0;
+            _slotMember[slot] = false;
         }
     }
 
@@ -396,6 +468,7 @@ public class SupporterRegistry : UdonSharpBehaviour
                 _slotIds[i] = player.playerId;
                 _slotHashes[i] = null;
                 _slotRanks[i] = 0;
+                _slotMember[i] = false;
                 return i;
             }
         }
@@ -408,7 +481,8 @@ public class SupporterRegistry : UdonSharpBehaviour
         string hash = hasher._Sha256Hex(hasher._NormalizeName(player.displayName));
         _slotHashes[slot] = hash;
         _slotRanks[slot] = _loaded ? LookupRank(hash) : 0;
-        if (debugMode) Debug.Log($"[SupporterRegistry] {player.displayName} -> {hash} rank={_slotRanks[slot]}");
+        _slotMember[slot] = _loaded && LookupMember(hash);
+        if (debugMode) Debug.Log($"[SupporterRegistry] {player.displayName} -> {hash} rank={_slotRanks[slot]} member={_slotMember[slot]}");
     }
 
     private void RecomputeAllSlots()
@@ -417,6 +491,7 @@ public class SupporterRegistry : UdonSharpBehaviour
         {
             if (_slotIds[i] == 0 || _slotHashes[i] == null) continue;
             _slotRanks[i] = LookupRank(_slotHashes[i]);
+            _slotMember[i] = LookupMember(_slotHashes[i]);
         }
     }
 

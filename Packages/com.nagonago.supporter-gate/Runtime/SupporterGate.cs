@@ -50,6 +50,8 @@ public class SupporterGate : UdonSharpBehaviour
     [SerializeField] private SupporterGateMode mode = SupporterGateMode.SupporterApproval;
     [Tooltip("このランク以上を「支援者」として扱う（将来のプラチナ等の上位ティア用）")]
     [SerializeField] private int requiredRank = 1;
+    [Tooltip("ON にすると、支援のランクではなく「メンバー」（リストの members）で判定する。支援者でも、メンバーでなければ入れない")]
+    [SerializeField] private bool useMemberList = false;
     [Tooltip("支援者が「有効化」するまで非支援者を入れない（Approval / Presence モード）")]
     [SerializeField] private bool requireSupporterActivation = false;
     [Tooltip("支援者が全員退室してから非支援者をロビーへ戻すまでの秒数（支援者のリジョイン猶予）")]
@@ -462,7 +464,14 @@ public class SupporterGate : UdonSharpBehaviour
     {
         if (texts != null)
         {
-            string s = texts._Get(key, Lang());
+            string lang = Lang();
+            // メンバーで判定するゲートでは、「支援者」を「メンバー」に言い換えた文（キー + ".member"）があればそれを使う
+            if (useMemberList)
+            {
+                string m = texts._Get(key + ".member", lang);
+                if (m != null) return m;
+            }
+            string s = texts._Get(key, lang);
             if (s != null) return s;
         }
         return fallback;
@@ -484,18 +493,31 @@ public class SupporterGate : UdonSharpBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 判定に使うランク。useMemberList が ON のときは、メンバーなら requiredRank、そうでなければ 0（支援のランクは見ない）。
+    /// リストの取得前（未判定）はそのまま返す
+    /// </summary>
+    private int ListRank(VRCPlayerApi p)
+    {
+        int r = registry._GetRank(p);
+        if (!useMemberList || r == SupporterRegistry.RankUnknown) return r;
+        return registry._IsMember(p) ? requiredRank : 0;
+    }
+
     /// <summary>リストのランク。持ち主の特別枠はリストに無くても支援者（requiredRank）として扱う（リストの取得前でも）</summary>
     private int RankOf(VRCPlayerApi p)
     {
-        int r = registry._GetRank(p);
+        int r = ListRank(p);
         if (r < requiredRank && IsOwnerName(p)) return requiredRank;
         return r;
     }
 
     private int LocalRank()
     {
-        int r = registry._GetLocalRank();
-        if (r < requiredRank && IsOwnerName(Networking.LocalPlayer)) return requiredRank;
+        VRCPlayerApi local = Networking.LocalPlayer;
+        if (local == null) return SupporterRegistry.RankUnknown;
+        int r = ListRank(local);
+        if (r < requiredRank && IsOwnerName(local)) return requiredRank;
         return r;
     }
 
@@ -579,7 +601,7 @@ public class SupporterGate : UdonSharpBehaviour
         if (localRank == SupporterRegistry.RankUnknown) you = T("gate.you.checking", "確認中");
         else if (localRank >= requiredRank)
         {
-            you = registry._GetTierLabel(localRank);
+            you = useMemberList ? T("gate.you.member", "メンバー") : registry._GetTierLabel(localRank);
             if (you == null || you.Length == 0) you = T("gate.you.supporter", "支援者");
         }
         else you = _IsApproved(Networking.LocalPlayer.playerId) ? T("gate.you.approved", "許可済み") : T("gate.you.guest", "一般");

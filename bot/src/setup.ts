@@ -110,7 +110,7 @@ export async function setupRoles(guild: Guild): Promise<string> {
     `    "sourceRoleIds": ["${src["src-patreon-platinum"].id}", "${src["src-cien-platinum"].id}"] }`,
     "],",
     "// メンバー登録を使う場合だけ（支援とは別に、在籍日数と登録で付くロール）",
-    `"member": { "roleId": "${mem.role.id}", "minDays": 7, "path": "members.json" }`,
+    `"member": { "roleId": "${mem.role.id}", "minDays": 7 }`,
     "```",
   ].join("\n");
   return `${lines.join("\n")}\n\nconfig.jsonc に貼る内容:\n${snippet}\n次に Patreon / Ci-en の連携画面で src-* ロールをプランに割り当ててください。`;

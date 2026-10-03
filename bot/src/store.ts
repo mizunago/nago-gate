@@ -39,8 +39,6 @@ export interface StoreData {
   members: Record<string, MemberRecord>;
   lastPublishedDigest: string | null;
   lastPublishedAt: string | null;
-  /** メンバーのリスト（member.path）を最後に公開したときのダイジェスト */
-  lastPublishedMemberDigest?: string | null;
 }
 
 export class Store {
@@ -121,13 +119,5 @@ export class Store {
   markPublished(digest: string): void {
     this.data.lastPublishedDigest = digest;
     this.data.lastPublishedAt = new Date().toISOString();
-  }
-
-  get lastPublishedMemberDigest(): string | null {
-    return this.data.lastPublishedMemberDigest ?? null;
-  }
-
-  markMemberPublished(digest: string): void {
-    this.data.lastPublishedMemberDigest = digest;
   }
 }

@@ -183,10 +183,13 @@ public static class SupporterGateSetup
             Transform denied = panel.transform.Find("DeniedRoot/DeniedText");
             if (denied != null) SetRef(panel, "deniedText", denied.GetComponent<TextMeshProUGUI>());
         }
+        SupporterGate boardGate = systemRoot.GetComponentInChildren<SupporterGate>(true);
         foreach (SupporterCreditsBoard credits in systemRoot.GetComponentsInChildren<SupporterCreditsBoard>(true))
         {
             SetRef(credits, "notice", hub);
             SetRef(credits, "texts", table);
+            // 同じ一式のゲートを渡す（本人がこのワールドに入れないときの表示用）
+            if (boardGate != null) SetRef(credits, "gate", boardGate);
         }
         if (!Application.isPlaying) EditorSceneManager.MarkSceneDirty(systemRoot.scene);
     }

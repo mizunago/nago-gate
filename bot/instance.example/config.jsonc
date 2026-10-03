@@ -50,14 +50,17 @@
     "intervalMinutes": 60
   },
 
-  // メンバー登録（任意）。支援とは別の軸で、次の 3 つを満たした人にロールを付け、別のリストとして公開する。
+  // メンバー登録（任意）。支援とは別の軸で、次の 3 つを満たした人にロールを付け、リストの members に載せる。
   //   サーバーに minDays 日以上いる / VRChat の表示名を登録済み / パネルのボタンで 18 歳以上の確認と同意を済ませた
   // 使わないなら、この項目ごと書かない。roleId は /vrc-admin setup-roles が表示する
   // "member": {
   //   "roleId": "000000000000000000",   // Member
-  //   "minDays": 7,
-  //   "path": "members.json"            // publish と同じ場所の別ファイル。Udon 側の URL は .../members.json
+  //   "minDays": 7
   // },
+
+  // リストに入れて、ワールドの中に出す案内用のリンク（任意）。
+  // "discord" を書くと、クレジットのボードの題の下に招待 URL が出る。ここを変えれば、全ワールドの表示が変わる
+  // "links": { "discord": "https://discord.gg/xxxxxxxx" },
 
   // 支援者リスト JSON の公開先。VRChat が設定なしで読めるのは GitHub Pages (*.github.io) / Gist
   "publish": {

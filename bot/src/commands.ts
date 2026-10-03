@@ -228,7 +228,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       await interaction.deferReply({ ephemeral: true });
       try {
         const r = await publishIfChanged(deps, true);
-        await interaction.editReply(`公開しました: ${r.url ?? "(URL 不明)"}` + (r.memberUrl ? `\nメンバーのリスト: ${r.memberUrl}` : ""));
+        await interaction.editReply(`公開しました: ${r.url ?? "(URL 不明)"}`);
       } catch (err) {
         await interaction.editReply(`公開に失敗: ${String(err)}`);
       }

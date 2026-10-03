@@ -44,6 +44,7 @@ SupporterGate System
 |---|---|
 | Mode | `Open` 公開 / `SupportersOnly` 支援者のみ / `SupporterApproval` 支援者＋許可した人 / `SupporterPresence` 支援者在室中は誰でも |
 | Required Rank | この値以上を支援者扱い（プラチナ限定なら 2 など） |
+| Use Member List | ON にすると、支援のランクではなくメンバーで判定する（下の「メンバーだけが入れるワールド」） |
 | Require Supporter Activation | ON にすると、支援者が「エリアを有効化」を押すまで非支援者は入れない |
 | No Supporter Grace Seconds | 支援者が全員いなくなってから非支援者を戻すまでの秒数 |
 | Fail Open When Registry Unavailable | リスト取得失敗時に非支援者を通すか。限定ワールドでは OFF |
@@ -67,13 +68,23 @@ SupporterGate System
 
 ## メンバーだけが入れるワールド
 
-Bot のメンバー登録（[discord-setup.md](discord-setup.md) の 6b）を使うと、支援とは別に「登録を済ませた人だけ」が入れるワールドを作れます。
+Bot のメンバー登録（[discord-setup.md](discord-setup.md) の 6b）を使うと、支援とは別に「登録を済ませた人だけ」が入れるワールドを作れます。メンバーは、支援者と同じリストの `members` に載ります（名前は載らず、ハッシュだけ）。
 
-1. `Registry` の **Data Url** に、メンバーのリストの URL（既定は `.../members.json`）を入れる
-2. `Gate` の Mode を `SupportersOnly`、Required Rank を 1 にする
-3. クレジットは出ない（メンバーのリストには名前を載せない）ので、`CreditsBoard` は消してよい
+1. `Registry` の **Data Url** は、ほかのワールドと同じ支援者リストの URL のままにする
+2. `Gate` の **Use Member List** を ON、Mode を `SupportersOnly` にする
 
-リストの形は支援者のものと同じで、載っている人は全員ランク 1 です。ゲートの表示は「支援者」という言葉のままなので、気になる場合は `Texts` の JSON を複製して言葉を直し、差し替えてください。
+これで、メンバーだけが入れます。支援者でも、メンバーでなければ入れません。持ち主の特別枠は、このモードでも通ります。ゲートの表示は「支援者」が「メンバー」に置き換わります（文言の表の、キーの末尾に `.member` が付いた文）。
+
+## クレジットのボードに出るもの
+
+| 表示 | 出る条件 |
+|---|---|
+| 支援者の名前の一覧（ティアごと） | クレジット表示に同意した支援者。メンバーの名前は出ない |
+| 「あなたは ○○ です」 | 見ている本人が支援者かメンバーのとき（例: サポーター、プラチナサポーター、メンバー） |
+| 「あなたはこのワールドにアクセスする権限を持っていません」 | ボードの `Gate` にゲートが入っていて、本人が入れないとき |
+| Discord の招待 URL | Bot の設定の `links.discord` に URL があるとき。変えれば全ワールドの表示が変わる |
+
+ティアの呼び名は、文言の表の `credits.tier.<ティアの id>` から引きます。無ければリストの label を使います。
 
 ## 通知
 
@@ -111,6 +122,7 @@ public void _OnRegistryUpdated()
 ```
 
 - `_GetRank(VRCPlayerApi)` で他プレイヤーのランクも取れます
+- `_IsMember(VRCPlayerApi)` / `_IsLocalMember()` でメンバーかどうか、`_GetLink("discord")` で招待 URL が取れます
 - `SupporterGate._IsLocalAllowed()` で入場可否を参照できます
 - 通知を自分のギミックから出す方法は Nago Notice の README を参照
 

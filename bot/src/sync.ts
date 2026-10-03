@@ -36,6 +36,14 @@ export interface SupportersJson {
   access: Record<string, number>;
   /** クレジット表示用（表示同意した人のみ） */
   credits: { n: string; r: number }[];
+  /** メンバー（支援とは別の軸）。正規化名の SHA-256 → 1。名前は載せない。メンバー登録を使うときだけ出す */
+  members?: Record<string, number>;
+  /** 案内用のリンク（設定に 1 つでもあるときだけ出す） */
+  links?: Record<string, string>;
+}
+
+function linksOf(config: AppConfig): { links?: Record<string, string> } {
+  return Object.keys(config.links).length > 0 ? { links: config.links } : {};
 }
 
 function nowIso(): string {
@@ -161,28 +169,23 @@ export function buildSupportersJson(config: AppConfig, store: Store): Supporters
     if (rec.showCredit) credits.push({ n: rec.vrcName, r: rec.effectiveRank });
   }
   credits.sort((a, b) => b.r - a.r || a.n.localeCompare(b.n, "ja"));
+
+  let members: Record<string, number> | null = null;
+  if (config.member) {
+    members = {};
+    for (const rec of store.all()) {
+      if (rec.memberActive && rec.vrcName) members[hashName(rec.vrcName)] = 1;
+    }
+  }
+
   return {
     v: 1,
     generatedAt: nowIso(),
     tiers: config.tiers.map((t: TierConfig) => ({ id: t.id, rank: t.rank, label: t.label, color: t.color })),
     access,
     credits,
-  };
-}
-
-/** メンバーのリスト。Udon 側は supporters と同じ形で読める（全員 rank 1、クレジットなし） */
-export function buildMembersJson(store: Store): SupportersJson {
-  const access: Record<string, number> = {};
-  for (const rec of store.all()) {
-    if (!rec.memberActive || !rec.vrcName) continue;
-    access[hashName(rec.vrcName)] = 1;
-  }
-  return {
-    v: 1,
-    generatedAt: nowIso(),
-    tiers: [{ id: "member", rank: 1, label: "Member", color: "#FFFFFF" }],
-    access,
-    credits: [],
+    ...(members ? { members } : {}),
+    ...linksOf(config),
   };
 }
 
@@ -191,35 +194,17 @@ function digestOf(json: SupportersJson): string {
   return createHash("sha256").update(JSON.stringify(rest)).digest("hex");
 }
 
-/** JSON を（変化があれば）公開する。url は支援者のリスト、memberUrl はメンバーのリスト */
-export async function publishIfChanged(
-  ctx: SyncContext,
-  force: boolean,
-): Promise<{ published: boolean; url: string | null; memberUrl: string | null }> {
-  let url: string | null = null;
-  let memberUrl: string | null = null;
-
+/** JSON を（変化があれば）公開する */
+export async function publishIfChanged(ctx: SyncContext, force: boolean): Promise<{ published: boolean; url: string | null }> {
   const json = buildSupportersJson(ctx.config, ctx.store);
   const digest = digestOf(json);
-  if (force || digest !== ctx.store.lastPublishedDigest) {
-    url = await publishJson(ctx.config.publish, JSON.stringify(json, null, 1), ctx.githubToken);
-    ctx.store.markPublished(digest);
-    ctx.store.save();
-    ctx.log(`公開しました: ${url} (access=${Object.keys(json.access).length}, credits=${json.credits.length})`);
-  }
-
-  if (ctx.config.member) {
-    const mjson = buildMembersJson(ctx.store);
-    const mdigest = digestOf(mjson);
-    if (force || mdigest !== ctx.store.lastPublishedMemberDigest) {
-      memberUrl = await publishJson(ctx.config.member.publish, JSON.stringify(mjson, null, 1), ctx.githubToken);
-      ctx.store.markMemberPublished(mdigest);
-      ctx.store.save();
-      ctx.log(`メンバーのリストを公開しました: ${memberUrl} (access=${Object.keys(mjson.access).length})`);
-    }
-  }
-
-  return { published: url !== null || memberUrl !== null, url, memberUrl };
+  if (!force && digest === ctx.store.lastPublishedDigest) return { published: false, url: null };
+  const url = await publishJson(ctx.config.publish, JSON.stringify(json, null, 1), ctx.githubToken);
+  ctx.store.markPublished(digest);
+  ctx.store.save();
+  const memberCount = json.members ? `, members=${Object.keys(json.members).length}` : "";
+  ctx.log(`公開しました: ${url} (access=${Object.keys(json.access).length}, credits=${json.credits.length}${memberCount})`);
+  return { published: true, url };
 }
 
 /** 全メンバー走査 → ランク更新 → 共通ロール適用 → JSON 公開 */
