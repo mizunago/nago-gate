@@ -83,6 +83,12 @@ SCENES = [
     ("19-names-130", "支援者が 130 人（プラチナ 20 人）。5 ページに分かれる",
      {"SG_SMOKE_MODE": "open", "SG_SMOKE_NAME": "Nobody", "SG_SMOKE_REMOTE": "none", "SG_SMOKE_NOENTER": "1", "SG_SMOKE_LIST": "supporters-130.json"},
      [("p-CreditsBoard", "1 ページ目（プラチナ 20 人と、サポーターの最初の 10 人）"), ("a-CreditsBoard", "2 ページ目"), ("c-CreditsBoard", "3 ページ目")]),
+    ("20-approval-long-en", "長い文字の確認。英語の表示で、全角 15 文字の名前の人を許可する場面",
+     {"SG_SMOKE_MODE": "approval", "SG_SMOKE_NAME": "Dave", "SG_SMOKE_REMOTE": "あいうえおかきくけこさしすせそ", "SG_SMOKE_LANG": "en", "SG_SMOKE_NOENTER": "1"},
+     [("a-ApprovalPanel", "承認パネル。名前と「Not approved」が 1 行に収まる"), ("a-LobbyPanel", "ロビーのパネル")]),
+    ("21-presence-long-en", "長い文字の確認。英語の表示で、支援者がいる間だけ開くワールドの承認パネル",
+     {"SG_SMOKE_NAME": "Dave", "SG_SMOKE_REMOTE": "あいうえおかきくけこさしすせそ", "SG_SMOKE_LANG": "en", "SG_SMOKE_NOENTER": "1"},
+     [("a-ApprovalPanel", "承認パネル。長い見出しが 1 行に収まる")]),
 ]
 
 

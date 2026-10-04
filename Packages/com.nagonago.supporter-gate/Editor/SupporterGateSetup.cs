@@ -435,6 +435,8 @@ public static class SupporterGateSetup
                 if (label == null) continue;
                 if (button.name == "EnterButton") SetRef(gate, "enterButtonText", label);
                 else if (button.name == "ReturnButton") SetRef(gate, "returnButtonText", label);
+                else continue;
+                FitLine(label, 18f);
             }
         }
         foreach (SupporterApprovalPanel panel in systemRoot.GetComponentsInChildren<SupporterApprovalPanel>(true))
@@ -443,6 +445,7 @@ public static class SupporterGateSetup
             SetRef(panel, "texts", table);
             Transform denied = panel.transform.Find("DeniedRoot/DeniedText");
             if (denied != null) SetRef(panel, "deniedText", denied.GetComponent<TextMeshProUGUI>());
+            FitApprovalTexts(panel);
         }
         SupporterGate boardGate = systemRoot.GetComponentInChildren<SupporterGate>(true);
         foreach (SupporterCreditsBoard credits in systemRoot.GetComponentsInChildren<SupporterCreditsBoard>(true))
@@ -482,11 +485,46 @@ public static class SupporterGateSetup
     private static void FitText(TextMeshProUGUI tmp, float minSize)
     {
         Undo.RecordObject(tmp, "Fit text");
-        tmp.fontSizeMax = tmp.fontSize;
-        tmp.fontSizeMin = Mathf.Min(minSize, tmp.fontSize);
+        // 2 回目からは上限を触らない（自動縮小が効いている間、fontSize は縮んだあとの値を返すことがある）
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;
+        tmp.fontSizeMin = Mathf.Min(minSize, tmp.fontSizeMax);
         tmp.enableAutoSizing = true;
         tmp.overflowMode = TextOverflowModes.Truncate;
         EditorUtility.SetDirty(tmp);
+    }
+
+    /// <summary>
+    /// 1 行で出す文字（見出し・名前・状態・ボタン）。折り返さず、枠の幅に収まるまで小さくする。
+    /// それでも入らない分は「…」にする。長い言語や長い名前で 2 行になり、枠からはみ出すのを防ぐ
+    /// </summary>
+    private static void FitLine(TextMeshProUGUI tmp, float minSize)
+    {
+        if (tmp == null) return;
+        Undo.RecordObject(tmp, "Fit line");
+        if (!tmp.enableAutoSizing) tmp.fontSizeMax = tmp.fontSize;
+        tmp.fontSizeMin = Mathf.Min(minSize, tmp.fontSizeMax);
+        tmp.enableAutoSizing = true;
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        EditorUtility.SetDirty(tmp);
+    }
+
+    /// <summary>承認パネルの、1 行で出す文字を枠に収める（前の版で作ったシーンにも効かせる）</summary>
+    private static void FitApprovalTexts(SupporterApprovalPanel panel)
+    {
+        SerializedObject so = new SerializedObject(panel);
+        FitLine(so.FindProperty("headerText").objectReferenceValue as TextMeshProUGUI, 22f);
+        FitLine(so.FindProperty("activationButtonText").objectReferenceValue as TextMeshProUGUI, 18f);
+        SerializedProperty rows = so.FindProperty("rows");
+        for (int i = 0; rows != null && i < rows.arraySize; i++)
+        {
+            SupporterApprovalRow row = rows.GetArrayElementAtIndex(i).objectReferenceValue as SupporterApprovalRow;
+            if (row == null) continue;
+            SerializedObject rso = new SerializedObject(row);
+            FitLine(rso.FindProperty("nameText").objectReferenceValue as TextMeshProUGUI, 18f);
+            FitLine(rso.FindProperty("stateText").objectReferenceValue as TextMeshProUGUI, 14f);
+            FitLine(rso.FindProperty("buttonText").objectReferenceValue as TextMeshProUGUI, 16f);
+        }
     }
 
     private static bool ProgramAssetsReady()
