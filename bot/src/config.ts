@@ -76,7 +76,7 @@ export interface Secrets {
   listKeys: string[];
   /** 鍵つきのときも、鍵なしの部分を残すか（LIST_KEEP_PLAIN）。鍵をまだ入れていないワールドがある間の、移行用 */
   listKeepPlain: boolean;
-  /** VRChat の Bot 用アカウントの認証クッキー（VRC_AUTH_COOKIE）。未設定なら、Group への招待は持ち主が手で行う */
+  /** VRChat の Bot 用アカウントのクッキー（VRC_AUTH_COOKIE と、あれば VRC_TWOFACTOR_COOKIE を合わせた、送る形の文字列）。未設定なら、Group への招待は持ち主が手で行う */
   vrcAuthCookie: string | null;
 }
 
@@ -147,7 +147,11 @@ function loadSecrets(envPath: string): Secrets {
   if (!discordToken) throw new Error(`DISCORD_TOKEN が未設定です（${envPath} または環境変数）`);
   const listKeys = parseListKeys(fromFile.LIST_KEY || process.env.LIST_KEY);
   const listKeepPlain = /^(1|true|yes|on)$/i.test(fromFile.LIST_KEEP_PLAIN || process.env.LIST_KEEP_PLAIN || "");
-  const vrcAuthCookie = (fromFile.VRC_AUTH_COOKIE || process.env.VRC_AUTH_COOKIE || "").trim() || null;
+  // VRChat のクッキー。auth に加えて twoFactorAuth（確認コードを済ませた印）もあれば、一緒に送る。
+  // ログインしたのと別の場所（サーバー）から使うときは、twoFactorAuth が無いと断られる
+  const vrcAuth = (fromFile.VRC_AUTH_COOKIE || process.env.VRC_AUTH_COOKIE || "").trim();
+  const vrcTwoFactor = (fromFile.VRC_TWOFACTOR_COOKIE || process.env.VRC_TWOFACTOR_COOKIE || "").trim().replace(/^twoFactorAuth=/, "");
+  const vrcAuthCookie = vrcAuth ? (vrcAuth.startsWith("auth=") ? vrcAuth : `auth=${vrcAuth}`) + (vrcTwoFactor ? `; twoFactorAuth=${vrcTwoFactor}` : "") : null;
   return { discordToken, githubToken, listKeys, listKeepPlain, vrcAuthCookie };
 }
 
