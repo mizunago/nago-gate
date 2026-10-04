@@ -1,0 +1,681 @@
+{
+ "v": 1,
+ "generatedAt": "2026-10-03T23:17:54.105Z",
+ "tiers": [
+  {
+   "id": "supporter",
+   "rank": 1,
+   "label": "Supporter",
+   "color": "#F5C542"
+  },
+  {
+   "id": "platinum",
+   "rank": 2,
+   "label": "Platinum",
+   "color": "#8FD3FF"
+  }
+ ],
+ "access": {
+  "b64384034ab63fe5f657ac9e3a8ebdca781b4e9181ec34993d2f7e91cf61f038": 2,
+  "4135aa9dc1b842a653dea846903ddb95bfb8c5a10c504a7fa16e10bc31d1fdf0": 2,
+  "78d493c78d397731ea47bc8cae3bf2445d52304e152f4c319b4bf727b06df071": 2,
+  "77b4599841b1cd31cf77ad6eaa6933fd47f94150fcb5b0f992c1dbd010de0982": 2,
+  "07e07e1e07220d33db2944af6daca0eea0c5331201e95d7e4381cb24cea4b8a1": 2,
+  "32ddaf65cc3aa8d3e6eda3ca2da7c18b71e169e9aa444cccb479c9ca759dd095": 2,
+  "972595fec54739b9d1275c3960a5346f22bfbe20db5663375d13dc24d0a24404": 2,
+  "c59f1f2edf9e36ac69e8874577019636f5a54200e9b0ab555350ccd39fa2f1a6": 2,
+  "7991e54f7e4b99d9b9b3f40e604ae85cdad6873b63d77b30fc6755482b1fb5c5": 2,
+  "970ec274ca867815174ebe4eff19282000f9495a6c7254e94991d1fb4dc3df30": 2,
+  "b342d77b4ea9d6bec154ed354e8c08185281023c852eeec7014541972684ccca": 2,
+  "20d8a8fffabceb9c32615b4fd85f2956025c0dc429eeab1cf8422db6e1dec74e": 2,
+  "c2b3e1ffb4b103c8788dbe279f17bd19203653633456b9e786e028fcca0b853d": 2,
+  "627c34deeb3f5fdedefa83f767934e6542db8d18778035ab1b14a22e08f2f89a": 2,
+  "154adae1aafee0c20ef633f3f0263c50208363ed660d5056e98ee0e7bde638ec": 2,
+  "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb": 2,
+  "65b37fc91934157ed61ebb4c53b51b960eacbc4ca78ca830eb19892725fd2af5": 2,
+  "a3afd54d7cff67bb96c580537260a97e63f468deaa1560a3385a6591c5215a84": 2,
+  "8882dbb66f5274f1f009bb71c33c33039a0f68d54a3bc6a12789577840508dc6": 2,
+  "3100486406b39efc3f3d3565bc97cc3b9e2d7b6e3427b194f4442ef4beb05b41": 2,
+  "c16c4b510837196537645955eb3247a40ace9b1568bbcc17b1c9bf5bd7b913d6": 1,
+  "882099af2b09373f44dfc974cacee3830f1ab7fd8954e732f4f07ed15cf754d9": 1,
+  "b0515435cae0f1672463559396f9570da2ec96ec6680e758af3fad63bd74dc94": 1,
+  "c0efc4493cb6f04a421b766b3cea4f2b7d7917cac2a01bc73b941d6f2deb99f3": 1,
+  "bcadd9404e7e55da1c5af8134f3b40fdf922d15d47f602f1272fc9bdb85ca9fe": 1,
+  "a4c745facd3a921565e2c12d2db6a4021d4764f633a18400634d68df575ffb35": 1,
+  "ea49da5b3571116cc2030a5e167929801121a8c372cb6777bad546133c696664": 1,
+  "9ecb36561341d18eb65484e833efea61edc74b84cf5e6ae1b81c63533e25fc8f": 1,
+  "6c2ca38e2ae77ccb0b1f261c0b19b04d32cf1f58418595a99e8c0ef3e3ade6dc": 1,
+  "ae8f5080a348fbfeb2c776957979728034cdf3eee0160c8667ee66daa8440a48": 1,
+  "582e51a0a7a2435f129ec479f4b87e94fa5ea64cd535e25376810f7327f1f24d": 1,
+  "d63f85570d771fd3c02368eab32a98e6ff5883fe6d37824d6d8b58ed7b8a3b5c": 1,
+  "cc361fd4876757d6812f8f2a0de8e547d36fb0ef0cdd8e86dada9c1ab65dcac9": 1,
+  "568423c589495fe17e8f8353f85db1e66f0eb5589e3dd671289db57107903616": 1,
+  "33946e5c52e57755a27d6a6f22ecdee7c7351c096d5b5705be1224b1c91b7d5b": 1,
+  "abc37b92d721c97fc7ffb307093cbb3c33c96d152f286ce187ca28e9a387a531": 1,
+  "b346fea65f1b8051f3563eed8dd29fb4db98970936d787bb6035ed68ffd13e3e": 1,
+  "45d01b2ad0606535344a61e8c3e778cbfe8ad6ebb32ddedda8beb1c807976c7d": 1,
+  "be5ba4c25b2183327e1ce154209487b5eeb290c17123068f0c6def7991645b3b": 1,
+  "7680ee6922944787329354247fa6d15bf1252766d0817e7d82031c103305d3e3": 1,
+  "d016e31294552ff277e1ef413b7d12d36282efb7f34b5ede5b52e3de4123d1a7": 1,
+  "68ca60508b943301e147f9d7deceb1e2d7eac5540225da592cc5945e90a9dfa6": 1,
+  "e021a0b090979951d0c5d26c2126fd7cb9f9df2957674fff883c10d46b913b76": 1,
+  "dedf876286899e680355c629ac147eae60ebe7aa0d5d8e81c453564af5810add": 1,
+  "aa8d71bb28250e46c1bef7e5dad2a370668fae6bb2ebb8bacee6b0a7a03e68bb": 1,
+  "35fb6d06955ad86d9ef05a8c8b27b89bfc449fda1981c0dc91dd8b1b09c9cfdd": 1,
+  "415383ad46fe7c793b411bb0d51a64dae69662f8b02f3e882796043bf29ebafc": 1,
+  "1a58d701979eaf2c66516745804f7f2127170f446631740335ca23196c8a5ef9": 1,
+  "bbac08f80ba1961a1499f99c5edbbed093d97784d78ba6a978d024d745e9bfff": 1,
+  "56a1d627390c9e7d36143a53b8fe0d928907dd14710ea1e8c9ad1d42fba0a2f4": 1,
+  "db0313bf2e5f2d0e58b7231a28fcce81b47506d829d702daad5265492d77213f": 1,
+  "2c3a4249d77070058649dbd822dcaf7957586fce428cfb2ca88b94741eda8b07": 1,
+  "4794a9cd4416653ff467ac00fde47bd776e047665399b694c580e19c9d915ac6": 1,
+  "3bda3e3e2e66ece5e2e8f48e21883f09dffdf1958a7db2dcf7c51649b9ec2a1b": 1,
+  "5773eda8212e4a7b9e327dddfe333bc3680274b5ad9fb8c87024b8bdb72ae434": 1,
+  "a4f413570234f968e5afe7836fee01b1b7b9a65e19788e6720e2c6d65839e570": 1,
+  "f118657911242daa3659816bb572dd2e0841e2a0efe8ee323ff5c0b80aacedb8": 1,
+  "bc9c54701cd90cb041b4553b7b617ca45637d0db41876c8c3225e489fa740bd8": 1,
+  "ca9e784a2f2992f8b1d7c748e774c391165f3e57580fede41d49a896d524f66c": 1,
+  "ef975118b97680a076f36cbb5d767e99ca909b2a086d2454a13a5a401be46781": 1,
+  "8645a7076c643d3cc1b783e73c595031242c7127948790e62eb98ae7dae39f65": 1,
+  "da659adca911479f712296377b6816166fe7d61ffcf72acc4e75ad2bc7a646fa": 1,
+  "8bf8fefb46201bc83d84919fd4e202e198a5c21646a9b8a306c08215f7ffe915": 1,
+  "a1c894838a3f762274c826752b5849dfe9c4af408f16b56c89914f019c78ee27": 1,
+  "9987b4ab3632592e60d5e9d9df108b7c8fbb30c883dc4be8b62825599bffcbe4": 1,
+  "188e4bddf7ca337777ba040d51f31349bdb191634131414ccceac899d44ec97a": 1,
+  "2130d0504ca8fd0ece084aca6f136ebeb25b23d8b11d0875138e32fa4cd06943": 1,
+  "3cc15e4973b127e32319ffd0667ca0c22fbceecb2ed8d0d8cf4c16a0fc334c68": 1,
+  "d49ef060142616d9d1b2a87bc0437fac60ba568e7401a86fa6133a10838dfd68": 1,
+  "5bccf90735f390a4296ae5548748cadcdc5f32b3f208c909f25516fc9d49bf71": 1,
+  "ea3c0fff603fe4b107d37eecafb34e9786a8cde21b3c2d34502ab3ec595eff5d": 1,
+  "c9c6c2ea4d97a873931989d732c83d97388f5859a2d0c114f1231c737d32d499": 1,
+  "03601268f21d5b0997d066acc35f830c2331eff8526a509a6e54ebcaef288b31": 1,
+  "7e2564e3fed6429199476f92271ee9adaff266dfd4ae7894a15b867d82f0c16c": 1,
+  "57aefcd63b8951680a9c369eece7a63e51502d90d9412c965e07a8184d8d7576": 1,
+  "a532c196f9b5b72c7253e9b6d47d0ab504d12822d2fb997b7940b17c30632697": 1,
+  "53467cb557757ef5e8e141a0f23b09b7ce70f8757db9cbb94b8e2e1fbb3a1d25": 1,
+  "fc8568c077c625f7d5bd9aa1baea900c73b037230560f8e2d8c4c366aabb8312": 1,
+  "2020e295425fd82681ad9c80b2e5aceee17e0070968e7be774e9c76c9a8dba87": 1,
+  "35213815d21ac587ebed868717d91b55365572d89b75b89602312f1d7828c686": 1,
+  "0f4826ba3635bbc288899f928f95ca39561b17a88fe0410d8d8d7371594e3ffb": 1,
+  "2b1946e4ff365f93b8161601826da1d357dc4c2e7f4e17cac4c826b90e40ee98": 1,
+  "9ca21c5ff56b66f7561ba1d88fc96cb7cb0173971182288be65b0ddff7522fac": 1,
+  "e4e516fc498fcca559849d1f4c96712d31f0c76f000c288f0671928409f2c1e6": 1,
+  "71ce60a99f93bbe47c6847620edb231469b7994b7954a634143c17d0bcaba360": 1,
+  "9137dee858c537d7454c22b6ba13c1666f463b0dfa3186bf198f8ca0a4914ebe": 1,
+  "8e8bff62d75d4b6cf7e177e18310e83eba2d7051511afad023ff8e6f77fa4a6f": 1,
+  "f46dd28a5499d8efef0b8fb8ee1ec1c5a5e407c9381741d576ba8deb4f59ec3f": 1,
+  "edd1a2f43c2f37525448d6f01e28003dca9aeac66d3e9c83684c74b110a7491c": 1,
+  "d92974b5a199ec6afdf7cc7c9672dfebe016e75ab3eb1e2d81a03ee3e88e557d": 1,
+  "673e50509a9ebfd31b87405c430536f45186644348cbdfaf1e2d8bb2e0afee9a": 1,
+  "d988ec373f02be058f9e670cde1da492ba0ab54a260c9f9e98d5bd6de1446e83": 1,
+  "7638cdf1951c4f88802b4f4f7e2da57bdc1e008df43e5cd43a78dced172c6f97": 1,
+  "52a90620b5c545dbb202f7f717f69a13cb9a8536de46c821a0712b7b74792a2f": 1,
+  "284020ce1a42cf814301986d9837021ca9dcdd92532c6da022a255172a3c4ef5": 1,
+  "04dce7cfdedca2930e742d2b3503d080f9572e4dcc2dfce1442f1e9cd6bcd881": 1,
+  "b8833b67370a797b5a03105436fdb1ac43f0814f5a3b4bd089f9544f036eedc8": 1,
+  "828c4c87014357de5f5718336b81d996bf3cd6f68a3f16515b5c8e1208ea77a0": 1,
+  "13faef507942b287b5f42c8f7e05f36b8931e7f4079952c0bb83db0a98a624de": 1,
+  "99e884381477014c9c1207d35fc43b3e68c45e7d5c55fa8ab76b37caff944244": 1,
+  "7de2c28cd1baaa0fe3fb1ca98d7b7c9b0d2ee93a5e54ee76eb8e973cbea643fb": 1,
+  "66a00e8b4d70eacf5d2344a7802cda7ba7f05f81db91c47e2a68e234065037be": 1,
+  "801d02084d76bfa026cd896e04ec5574d73fec3b17b9179927150ecc5615ab88": 1,
+  "d3244d2149ebc121bc4f87413720fe19282d9e32dddf56c92f302eec116d7d40": 1,
+  "b7a30e0ed8ab0928002d8ac0aab99e6eab304e2807aff26743d5e2a6c923f94e": 1,
+  "082300ae3d4440dc1153eceee2c6eb2c757152ae63bce31f77823ce751be65ea": 1,
+  "932ec9d70692e5dd3302b708977eb0a460baedba3ca6f65ce8266fe83224e361": 1,
+  "a63d4a7b7998d49258ecc4826a4aa944f91c75a795129429e15c9be6adafbdd8": 1,
+  "84ad5157242d712dd1b8d5d7d2ed8a78b343ccce9d235c20d2cd05226ef2b065": 1,
+  "ec2f96e53e5c18f560df43959d702b236e6dfff3f0e8df144bcd7801975bf4ab": 1,
+  "2690dfaa82b69c0573e2023ad251d77a3d9c591329f39550a3b073a994a3beec": 1,
+  "0e9a8a5f46d6584927df8774cc3bbb3bdf37fcb996487f79be2c6aaca83efa04": 1,
+  "8688142acffa079fa7a60e2015816624e04a13d35b36736ac962caadc7aec341": 1,
+  "69d42fd20f8be7611a1c9272c5173566649faad388ce13b1aad1b9b39b5509bc": 1,
+  "d3f4e4db40089e04076a8c983daee69408f433dd5efb3b1d1d655a8b10744ee3": 1,
+  "55abd57ee497f3178e724a6605af35a7731c8db77b71f6d41a835f7da95e700a": 1,
+  "3a98fb23dcd935230a0d4fc50772e2606ad19f35bdb28f3aee9c5429f39c42f2": 1,
+  "558e758e6156ce1638e52a37957a693931054f7c27573fb3c33fd29af0f3db90": 1,
+  "9778a0c76f273901134b712eee44a8dab16b5dc32052628782286e524b0c6bf5": 1,
+  "8daf05002a810911857f13c60e730e85f781f3ec6ea93d57d292705447fbb52f": 1,
+  "8e52f53439bef42bdd2f7d0e244a6da353e039329f99cb57a952d5b0334e1aee": 1,
+  "2d5c972b4d0686a3a36b1365872028bf4d7b8b76a1df6eed30bf61c6fe1bedc1": 1,
+  "3433e2db0dc006944d5dadad1e6e1ba6df5743edf9974d9c40c54e64f8751071": 1,
+  "4539e4b4889079c2a00afeae0bfc1439840ef2379a1fb81c8ba27361ad476d6b": 1,
+  "bfde6556c1f6f45d7a44be3167f31d6a7fe1896cfd4def1fea6279ea40969b78": 1,
+  "3455218e33d559e5885501a8591af06159d3d55c3fce952a8f04a809e8716a8c": 1,
+  "5d248f3d7913d5417c7b8dd2dd25e58ba1081dc98a16fa5d6c46300e8a75fdfd": 1,
+  "4f7291edcfa377e7b0c64a1e90c6c8dc0fe7d65861bb69c90aa45c7deff6ff06": 1,
+  "520dd75b48139752bff82ba9427455b14872bac70f6946e4cc1a9aa06bf94f7b": 1,
+  "072ba780c10524473259e6241afa2ac71c0a486146d9d93ad0008ed1dbfba53a": 1
+ },
+ "credits": [
+  {
+   "n": "なごなご",
+   "r": 2
+  },
+  {
+   "n": "Alex",
+   "r": 2
+  },
+  {
+   "n": "さくら",
+   "r": 2
+  },
+  {
+   "n": "Mika_VR",
+   "r": 2
+  },
+  {
+   "n": "ゆきんこ",
+   "r": 2
+  },
+  {
+   "n": "John Smith",
+   "r": 2
+  },
+  {
+   "n": "まるまる",
+   "r": 2
+  },
+  {
+   "n": "xX_Shadow_Xx",
+   "r": 2
+  },
+  {
+   "n": "くろねこ",
+   "r": 2
+  },
+  {
+   "n": "Luna",
+   "r": 2
+  },
+  {
+   "n": "しろくま",
+   "r": 2
+  },
+  {
+   "n": "Kuro",
+   "r": 2
+  },
+  {
+   "n": "あおぞら",
+   "r": 2
+  },
+  {
+   "n": "Very Long Display Name 123",
+   "r": 2
+  },
+  {
+   "n": "ひだまり",
+   "r": 2
+  },
+  {
+   "n": "a",
+   "r": 2
+  },
+  {
+   "n": "つきよみ",
+   "r": 2
+  },
+  {
+   "n": "Hanako-chan",
+   "r": 2
+  },
+  {
+   "n": "ほしぞら",
+   "r": 2
+  },
+  {
+   "n": "Momo",
+   "r": 2
+  },
+  {
+   "n": "かぜまかせ",
+   "r": 1
+  },
+  {
+   "n": "NightOwl",
+   "r": 1
+  },
+  {
+   "n": "もちもち大福",
+   "r": 1
+  },
+  {
+   "n": "Rin",
+   "r": 1
+  },
+  {
+   "n": "ねむねむ",
+   "r": 1
+  },
+  {
+   "n": "Sora",
+   "r": 1
+  },
+  {
+   "n": "ぽかぽか",
+   "r": 1
+  },
+  {
+   "n": "The Quick Brown Fox",
+   "r": 1
+  },
+  {
+   "n": "きらきら星",
+   "r": 1
+  },
+  {
+   "n": "Zed",
+   "r": 1
+  },
+  {
+   "n": "夜更かし同盟",
+   "r": 1
+  },
+  {
+   "n": "ポテト Potato",
+   "r": 1
+  },
+  {
+   "n": "深夜のラーメン",
+   "r": 1
+  },
+  {
+   "n": "Neko★",
+   "r": 1
+  },
+  {
+   "n": "眠れる森の住人",
+   "r": 1
+  },
+  {
+   "n": "Yuki (雪)",
+   "r": 1
+  },
+  {
+   "n": "なごなご2",
+   "r": 1
+  },
+  {
+   "n": "Alex2",
+   "r": 1
+  },
+  {
+   "n": "さくら2",
+   "r": 1
+  },
+  {
+   "n": "Mika_VR2",
+   "r": 1
+  },
+  {
+   "n": "ゆきんこ2",
+   "r": 1
+  },
+  {
+   "n": "John Smith2",
+   "r": 1
+  },
+  {
+   "n": "まるまる2",
+   "r": 1
+  },
+  {
+   "n": "xX_Shadow_Xx2",
+   "r": 1
+  },
+  {
+   "n": "くろねこ2",
+   "r": 1
+  },
+  {
+   "n": "Luna2",
+   "r": 1
+  },
+  {
+   "n": "しろくま2",
+   "r": 1
+  },
+  {
+   "n": "Kuro2",
+   "r": 1
+  },
+  {
+   "n": "あおぞら2",
+   "r": 1
+  },
+  {
+   "n": "Very Long Display Name 1232",
+   "r": 1
+  },
+  {
+   "n": "ひだまり2",
+   "r": 1
+  },
+  {
+   "n": "a2",
+   "r": 1
+  },
+  {
+   "n": "つきよみ2",
+   "r": 1
+  },
+  {
+   "n": "Hanako-chan2",
+   "r": 1
+  },
+  {
+   "n": "ほしぞら2",
+   "r": 1
+  },
+  {
+   "n": "Momo2",
+   "r": 1
+  },
+  {
+   "n": "かぜまかせ2",
+   "r": 1
+  },
+  {
+   "n": "NightOwl2",
+   "r": 1
+  },
+  {
+   "n": "もちもち大福2",
+   "r": 1
+  },
+  {
+   "n": "Rin2",
+   "r": 1
+  },
+  {
+   "n": "ねむねむ2",
+   "r": 1
+  },
+  {
+   "n": "Sora2",
+   "r": 1
+  },
+  {
+   "n": "ぽかぽか2",
+   "r": 1
+  },
+  {
+   "n": "The Quick Brown Fox2",
+   "r": 1
+  },
+  {
+   "n": "きらきら星2",
+   "r": 1
+  },
+  {
+   "n": "Zed2",
+   "r": 1
+  },
+  {
+   "n": "夜更かし同盟2",
+   "r": 1
+  },
+  {
+   "n": "ポテト Potato2",
+   "r": 1
+  },
+  {
+   "n": "深夜のラーメン2",
+   "r": 1
+  },
+  {
+   "n": "Neko★2",
+   "r": 1
+  },
+  {
+   "n": "眠れる森の住人2",
+   "r": 1
+  },
+  {
+   "n": "Yuki (雪)2",
+   "r": 1
+  },
+  {
+   "n": "なごなご3",
+   "r": 1
+  },
+  {
+   "n": "Alex3",
+   "r": 1
+  },
+  {
+   "n": "さくら3",
+   "r": 1
+  },
+  {
+   "n": "Mika_VR3",
+   "r": 1
+  },
+  {
+   "n": "ゆきんこ3",
+   "r": 1
+  },
+  {
+   "n": "John Smith3",
+   "r": 1
+  },
+  {
+   "n": "まるまる3",
+   "r": 1
+  },
+  {
+   "n": "xX_Shadow_Xx3",
+   "r": 1
+  },
+  {
+   "n": "くろねこ3",
+   "r": 1
+  },
+  {
+   "n": "Luna3",
+   "r": 1
+  },
+  {
+   "n": "しろくま3",
+   "r": 1
+  },
+  {
+   "n": "Kuro3",
+   "r": 1
+  },
+  {
+   "n": "あおぞら3",
+   "r": 1
+  },
+  {
+   "n": "Very Long Display Name 1233",
+   "r": 1
+  },
+  {
+   "n": "ひだまり3",
+   "r": 1
+  },
+  {
+   "n": "a3",
+   "r": 1
+  },
+  {
+   "n": "つきよみ3",
+   "r": 1
+  },
+  {
+   "n": "Hanako-chan3",
+   "r": 1
+  },
+  {
+   "n": "ほしぞら3",
+   "r": 1
+  },
+  {
+   "n": "Momo3",
+   "r": 1
+  },
+  {
+   "n": "かぜまかせ3",
+   "r": 1
+  },
+  {
+   "n": "NightOwl3",
+   "r": 1
+  },
+  {
+   "n": "もちもち大福3",
+   "r": 1
+  },
+  {
+   "n": "Rin3",
+   "r": 1
+  },
+  {
+   "n": "ねむねむ3",
+   "r": 1
+  },
+  {
+   "n": "Sora3",
+   "r": 1
+  },
+  {
+   "n": "ぽかぽか3",
+   "r": 1
+  },
+  {
+   "n": "The Quick Brown Fox3",
+   "r": 1
+  },
+  {
+   "n": "きらきら星3",
+   "r": 1
+  },
+  {
+   "n": "Zed3",
+   "r": 1
+  },
+  {
+   "n": "夜更かし同盟3",
+   "r": 1
+  },
+  {
+   "n": "ポテト Potato3",
+   "r": 1
+  },
+  {
+   "n": "深夜のラーメン3",
+   "r": 1
+  },
+  {
+   "n": "Neko★3",
+   "r": 1
+  },
+  {
+   "n": "眠れる森の住人3",
+   "r": 1
+  },
+  {
+   "n": "Yuki (雪)3",
+   "r": 1
+  },
+  {
+   "n": "なごなご4",
+   "r": 1
+  },
+  {
+   "n": "Alex4",
+   "r": 1
+  },
+  {
+   "n": "さくら4",
+   "r": 1
+  },
+  {
+   "n": "Mika_VR4",
+   "r": 1
+  },
+  {
+   "n": "ゆきんこ4",
+   "r": 1
+  },
+  {
+   "n": "John Smith4",
+   "r": 1
+  },
+  {
+   "n": "まるまる4",
+   "r": 1
+  },
+  {
+   "n": "xX_Shadow_Xx4",
+   "r": 1
+  },
+  {
+   "n": "くろねこ4",
+   "r": 1
+  },
+  {
+   "n": "Luna4",
+   "r": 1
+  },
+  {
+   "n": "しろくま4",
+   "r": 1
+  },
+  {
+   "n": "Kuro4",
+   "r": 1
+  },
+  {
+   "n": "あおぞら4",
+   "r": 1
+  },
+  {
+   "n": "Very Long Display Name 1234",
+   "r": 1
+  },
+  {
+   "n": "ひだまり4",
+   "r": 1
+  },
+  {
+   "n": "a4",
+   "r": 1
+  },
+  {
+   "n": "つきよみ4",
+   "r": 1
+  },
+  {
+   "n": "Hanako-chan4",
+   "r": 1
+  },
+  {
+   "n": "ほしぞら4",
+   "r": 1
+  },
+  {
+   "n": "Momo4",
+   "r": 1
+  },
+  {
+   "n": "かぜまかせ4",
+   "r": 1
+  },
+  {
+   "n": "NightOwl4",
+   "r": 1
+  }
+ ],
+ "members": {
+  "2bd806c97f0e00af1a1fc3328fa763a9269723c8db8fac4f93af71db186d6e90": 1,
+  "81b637d8fcd2c6da6359e6963113a1170de795e4b725b84d1e0b4cfd9ec58ce9": 1,
+  "bf22bacff9c689433b39bf86d3bfe0694c492d4be57db8051290eddeb479ea89": 1,
+  "0c086cdc772aa579506fd17a735af6e7d14db0ad1d49730c301e007c3e663d36": 1
+ },
+ "links": {
+  "discord": "https://discord.gg/testInvite/"
+ }
+}

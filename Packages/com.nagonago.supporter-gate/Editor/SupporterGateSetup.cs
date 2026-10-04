@@ -25,6 +25,7 @@ public static class SupporterGateSetup
     private const string PackageRoot = "Packages/com.nagonago.supporter-gate";
     private const string TextsPath = PackageRoot + "/Runtime/SupporterGateTexts.json";
     private const string TextsObjectName = "Texts";
+    private const string InfoPanelName = "InfoPanel";
     private const int ApprovalRows = 12;
 
     [MenuItem("Tools/SupporterGate/Create Scene Setup", false, 1)]
@@ -79,8 +80,10 @@ public static class SupporterGateSetup
         TextMeshProUGUI status = CreateText(lobbyCanvas, "Status", "モード: -", 36, new Vector2(20f, 300f), new Vector2(860f, 260f), TextAlignmentOptions.TopLeft);
         TextMeshProUGUI message = CreateText(lobbyCanvas, "Message", "", 32, new Vector2(20f, 170f), new Vector2(860f, 120f), TextAlignmentOptions.TopLeft);
         message.color = new Color(1f, 0.6f, 0.4f);
-        CreateButton(lobbyCanvas, "EnterButton", "入場する", new Vector2(20f, 40f), new Vector2(400f, 100f), gate, nameof(SupporterGate._EnterContent));
-        CreateButton(lobbyCanvas, "ReturnButton", "ロビーへ戻る", new Vector2(480f, 40f), new Vector2(400f, 100f), gate, nameof(SupporterGate._ReturnToLobby));
+        GameObject enterBtn = CreateButton(lobbyCanvas, "EnterButton", "入場する", new Vector2(20f, 40f), new Vector2(400f, 100f), gate, nameof(SupporterGate._EnterContent));
+        GameObject returnBtn = CreateButton(lobbyCanvas, "ReturnButton", "ロビーへ戻る", new Vector2(480f, 40f), new Vector2(400f, 100f), gate, nameof(SupporterGate._ReturnToLobby));
+        SetRef(gate, "enterButtonText", enterBtn.GetComponentInChildren<TextMeshProUGUI>());
+        SetRef(gate, "returnButtonText", returnBtn.GetComponentInChildren<TextMeshProUGUI>());
         SetRef(gate, "statusText", status);
         SetRef(gate, "messageText", message);
 
@@ -132,6 +135,13 @@ public static class SupporterGateSetup
         SupporterCreditsBoard credits = creditsCanvas.AddUdonSharpComponent<SupporterCreditsBoard>();
         SetRef(credits, "registry", registry);
         SetRef(credits, "text", creditsText);
+        FitText(creditsText, 18f);
+
+        // ---- Info panel（本人の状態と Discord の案内。名前の一覧とは別のパネルにする） ----
+        GameObject infoCanvas = CreateCanvas(root, InfoPanelName, new Vector3(-3.2f, 1.5f, 3f), new Vector2(900f, 600f));
+        TextMeshProUGUI infoText = CreateText(infoCanvas, "Text", "", 34, new Vector2(20f, 20f), new Vector2(860f, 560f), TextAlignmentOptions.Center);
+        FitText(infoText, 20f);
+        SetRef(credits, "infoText", infoText);
 
         // ---- 文言の表と共通の通知 ----
         WireNotices(root);
@@ -242,7 +252,7 @@ public static class SupporterGateSetup
 
         // 5. スポーン地点とパネルを、部屋の中へ移す（部屋ごと動かせるように、部屋の子にする）
         Transform lobbySpawn = null;
-        foreach (string name in new[] { "LobbySpawn", "LobbyPanel", "ApprovalPanel", "CreditsBoard" })
+        foreach (string name in new[] { "LobbySpawn", "LobbyPanel", "ApprovalPanel", "CreditsBoard", InfoPanelName })
         {
             Transform t = root.transform.Find(name);
             if (t == null) continue;
@@ -379,6 +389,30 @@ public static class SupporterGateSetup
         box.transform.localScale = size;
     }
 
+    [MenuItem("Tools/SupporterGate/Add Info Panel (existing scene)", false, 21)]
+    public static void AddInfoPanels()
+    {
+        int added = 0;
+        foreach (SupporterCreditsBoard credits in Object.FindObjectsOfType<SupporterCreditsBoard>(true))
+        {
+            if (new SerializedObject(credits).FindProperty("infoText").objectReferenceValue != null) continue;
+            Transform board = credits.transform;
+            GameObject parent = board.parent != null ? board.parent.gameObject : null;
+            GameObject info = CreateCanvas(parent != null ? parent : credits.gameObject, InfoPanelName, Vector3.zero, new Vector2(900f, 600f));
+            if (parent == null) info.transform.SetParent(null, true);
+            Undo.RegisterCreatedObjectUndo(info, "Add Info Panel");
+            // ボードの左隣に置く（あとで自由に動かしてよい）
+            info.transform.SetPositionAndRotation(board.position - board.right * 1.6f, board.rotation);
+            info.transform.localScale = board.localScale;
+            TextMeshProUGUI infoText = CreateText(info, "Text", "", 34, new Vector2(20f, 20f), new Vector2(860f, 560f), TextAlignmentOptions.Center);
+            FitText(infoText, 20f);
+            SetRef(credits, "infoText", infoText);
+            EditorSceneManager.MarkSceneDirty(credits.gameObject.scene);
+            added++;
+        }
+        Debug.Log("[SupporterGate] 案内のパネルを " + added + " 個足しました（ボードの左隣。位置は自由に動かせます）");
+    }
+
     /// <summary>
     /// 一式（systemRoot の下）に、文言の表（NoticeTable）と共通の通知（NoticeHub）を配線する。
     /// 何度呼んでも増えない。NoticeHub はシーンに 1 つ（無ければプレハブから置く）。
@@ -394,6 +428,14 @@ public static class SupporterGateSetup
         {
             SetRef(gate, "notice", hub);
             SetRef(gate, "texts", table);
+            // 前の版で作ったシーン: ロビーのボタンの文字を、今の言語で出せるようにつなぐ
+            foreach (Button button in systemRoot.GetComponentsInChildren<Button>(true))
+            {
+                TextMeshProUGUI label = button.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (label == null) continue;
+                if (button.name == "EnterButton") SetRef(gate, "enterButtonText", label);
+                else if (button.name == "ReturnButton") SetRef(gate, "returnButtonText", label);
+            }
         }
         foreach (SupporterApprovalPanel panel in systemRoot.GetComponentsInChildren<SupporterApprovalPanel>(true))
         {
@@ -407,6 +449,9 @@ public static class SupporterGateSetup
         {
             SetRef(credits, "notice", hub);
             SetRef(credits, "texts", table);
+            // 名前が多いときや長いときに、枠からはみ出さないようにする（前の版で作ったシーンにも効かせる）
+            TextMeshProUGUI boardText = new SerializedObject(credits).FindProperty("text").objectReferenceValue as TextMeshProUGUI;
+            if (boardText != null) FitText(boardText, 18f);
             // 同じ一式のゲートを渡す（本人がこのワールドに入れないときの表示用）
             if (boardGate != null) SetRef(credits, "gate", boardGate);
         }
@@ -431,6 +476,17 @@ public static class SupporterGateSetup
         }
         SetRef(table, "json", json);
         return table;
+    }
+
+    /// <summary>文字を、枠に収まるまで自動で小さくする。それでも入らない分は切る</summary>
+    private static void FitText(TextMeshProUGUI tmp, float minSize)
+    {
+        Undo.RecordObject(tmp, "Fit text");
+        tmp.fontSizeMax = tmp.fontSize;
+        tmp.fontSizeMin = Mathf.Min(minSize, tmp.fontSize);
+        tmp.enableAutoSizing = true;
+        tmp.overflowMode = TextOverflowModes.Truncate;
+        EditorUtility.SetDirty(tmp);
     }
 
     private static bool ProgramAssetsReady()

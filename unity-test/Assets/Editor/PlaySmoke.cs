@@ -45,7 +45,8 @@ public static class PlaySmoke
         settings.enableClientSim = true;
         settings.spawnPlayer = true;
         settings.hideMenuOnLaunch = true;
-        settings.currentLanguage = "ja";
+        string langEnv = System.Environment.GetEnvironmentVariable("SG_SMOKE_LANG");
+        settings.currentLanguage = string.IsNullOrEmpty(langEnv) ? "ja" : langEnv;
         string localName = System.Environment.GetEnvironmentVariable("SG_SMOKE_NAME");
         settings.customLocalPlayerName = string.IsNullOrEmpty(localName) ? "GuestLocal" : localName;
         File.AppendAllText(LogPath, "[EDITOR] local=" + settings.customLocalPlayerName + "\n");
@@ -108,7 +109,14 @@ public static class PlaySmoke
         SerializedObject so = new SerializedObject(gate);
         if (!convert)
         {
-            so.FindProperty("mode").intValue = (int)(memberVariant ? SupporterGateMode.SupportersOnly : SupporterGateMode.SupporterPresence);
+            // SG_SMOKE_MODE: open / supporters / approval / (default) presence
+            string modeEnv = Env("SG_SMOKE_MODE");
+            SupporterGateMode mode = memberVariant ? SupporterGateMode.SupportersOnly
+                : modeEnv == "open" ? SupporterGateMode.Open
+                : modeEnv == "supporters" ? SupporterGateMode.SupportersOnly
+                : modeEnv == "approval" ? SupporterGateMode.SupporterApproval
+                : SupporterGateMode.SupporterPresence;
+            so.FindProperty("mode").intValue = (int)mode;
             so.FindProperty("useMemberList").boolValue = memberVariant;
         }
         File.AppendAllText(LogPath, "[EDITOR] gate mode=" + so.FindProperty("mode").intValue + " useMemberList=" + so.FindProperty("useMemberList").boolValue + "\n");
@@ -121,7 +129,10 @@ public static class PlaySmoke
 
         SupporterRegistry registry = Object.FindObjectOfType<SupporterRegistry>(true);
         // local test list (python -m http.server) that contains "links"
-        registry.dataUrl = new VRCUrl("http://127.0.0.1:8765/supporters.json");
+        // SG_SMOKE_BADURL=1: the list cannot be loaded
+        // SG_SMOKE_LIST: another list in TestData (e.g. supporters-130.json)
+        string listFile = Env("SG_SMOKE_LIST") == "" ? "supporters.json" : Env("SG_SMOKE_LIST");
+        registry.dataUrl = new VRCUrl("http://127.0.0.1:8765/" + (Env("SG_SMOKE_BADURL") == "1" ? "missing.json" : listFile));
         UdonSharpEditorUtility.CopyProxyToUdon(registry);
 
         NoticeHub hub = Object.FindObjectOfType<NoticeHub>(true);
@@ -150,11 +161,106 @@ public static class PlaySmoke
             if (t.name == "Message") driver.gateMessage = t;
         }
         driver.creditsText = Object.FindObjectOfType<SupporterCreditsBoard>(true).GetComponentInChildren<TextMeshProUGUI>(true);
+        foreach (Canvas c in Object.FindObjectsOfType<Canvas>(true))
+        {
+            if (c.name == "InfoPanel") driver.infoText = c.GetComponentInChildren<TextMeshProUGUI>(true);
+        }
         driver.registry = registry;
+        driver.skipEnter = Env("SG_SMOKE_NOENTER") == "1";         // stay in the lobby (for screenshots)
+        driver.noticeGallery = Env("SG_SMOKE_NOTICES") == "1";     // show every kind of gate notice (for screenshots)
+        driver.skipLangSwitch = Env("SG_SHOTS") != "";            // keep one language while taking screenshots
         UdonSharpEditorUtility.CopyProxyToUdon(driver);
 
         Directory.CreateDirectory("Assets/Test");
         EditorSceneManager.SaveScene(scene, ScenePath);
+    }
+
+    private static string Env(string name)
+    {
+        return System.Environment.GetEnvironmentVariable(name) ?? "";
+    }
+
+    // ---- screenshots (SG_SHOTS=<folder>): each panel, and the local player's view ----
+
+    private static int _shot;
+    private static bool _early;
+
+    private static void Capture(string folder, string tag, bool withView = true)
+    {
+        try
+        {
+            string dir = Path.Combine(Directory.GetCurrentDirectory(), "screenshots", folder);
+            Directory.CreateDirectory(dir);
+            foreach (Canvas canvas in Object.FindObjectsOfType<Canvas>())
+            {
+                if (canvas.renderMode != RenderMode.WorldSpace) continue;
+                string n = canvas.name;
+                if (n != "LobbyPanel" && n != "ApprovalPanel" && n != "CreditsBoard" && n != "InfoPanel") continue;
+                RenderCanvas(canvas, Path.Combine(dir, tag + "-" + n + ".png"));
+            }
+            if (withView) RenderView(Path.Combine(dir, tag + "-view.png"));
+            File.AppendAllText(LogPath, "[EDITOR] screenshots " + folder + "/" + tag + "\n");
+        }
+        catch (System.Exception ex)
+        {
+            File.AppendAllText(LogPath, "[EDITOR] screenshot failed: " + ex.Message + "\n");
+        }
+    }
+
+    private static void RenderCanvas(Canvas canvas, string path)
+    {
+        RectTransform rt = canvas.GetComponent<RectTransform>();
+        float w = rt.sizeDelta.x * rt.lossyScale.x, h = rt.sizeDelta.y * rt.lossyScale.y;
+        GameObject go = new GameObject("ShotCamera");
+        Camera cam = go.AddComponent<Camera>();
+        cam.enabled = false;
+        cam.orthographic = true;
+        cam.orthographicSize = h * 0.5f;
+        cam.aspect = w / h;
+        cam.nearClipPlane = 0.01f;
+        cam.farClipPlane = 3f;
+        cam.clearFlags = CameraClearFlags.SolidColor;
+        cam.backgroundColor = new Color(0.16f, 0.17f, 0.2f);
+        cam.cullingMask = ~(1 << 5);   // without the notice overlay (UI layer)
+        go.transform.SetPositionAndRotation(rt.position - rt.forward * 1f, rt.rotation);
+        Save(cam, Mathf.RoundToInt(w * 800f), Mathf.RoundToInt(h * 800f), path);
+        Object.DestroyImmediate(go);
+    }
+
+    private static void RenderView(string path)
+    {
+        VRCPlayerApi local = Networking.LocalPlayer;
+        if (local == null) return;
+        VRCPlayerApi.TrackingData head = local.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
+        GameObject go = new GameObject("ShotCamera");
+        Camera cam = go.AddComponent<Camera>();
+        cam.enabled = false;
+        cam.fieldOfView = 60f;
+        cam.nearClipPlane = 0.05f;
+        cam.farClipPlane = 500f;
+        cam.clearFlags = CameraClearFlags.Skybox;
+        cam.cullingMask = ~(1 << 19);   // without ClientSim's own menu (InternalUI layer)
+        go.transform.SetPositionAndRotation(head.position, head.rotation);
+        Save(cam, 1280, 720, path);
+        Object.DestroyImmediate(go);
+    }
+
+    private static void Save(Camera cam, int width, int height, string path)
+    {
+        RenderTexture rtex = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
+        cam.targetTexture = rtex;
+        cam.Render();
+        RenderTexture prev = RenderTexture.active;
+        RenderTexture.active = rtex;
+        Texture2D tex = new Texture2D(width, height, TextureFormat.RGB24, false);
+        tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        tex.Apply();
+        RenderTexture.active = prev;
+        cam.targetTexture = null;
+        File.WriteAllBytes(path, tex.EncodeToPNG());
+        Object.DestroyImmediate(tex);
+        rtex.Release();
+        Object.DestroyImmediate(rtex);
     }
 
     private static void OnLog(string condition, string stackTrace, LogType type)
@@ -177,8 +283,22 @@ public static class PlaySmoke
         if (!_spawned && t > 0.5 && ClientSimMain.HasInstance())
         {
             _spawned = true;
-            ClientSimMain.SpawnRemotePlayer("OwnerDummy");
-            File.AppendAllText(LogPath, "[EDITOR] spawned remote OwnerDummy\n");
+            // SG_SMOKE_REMOTE: name of the remote player ("none" = nobody). Only "OwnerDummy" leaves at t=11
+            string remote = Env("SG_SMOKE_REMOTE");
+            if (string.IsNullOrEmpty(remote)) remote = "OwnerDummy";
+            if (remote != "none")
+            {
+                ClientSimMain.SpawnRemotePlayer(remote);
+                File.AppendAllText(LogPath, "[EDITOR] spawned remote " + remote + "\n");
+            }
+        }
+        string shots = Env("SG_SHOTS");
+        if (!string.IsNullOrEmpty(shots))
+        {
+            if (!_early && t > 4.0) { _early = true; Capture(shots, "p", false); }   // first page of the board
+            if (_shot < 1 && t > 9.7) { _shot = 1; Capture(shots, "a"); }
+            if (_shot < 2 && t > 13.3) { _shot = 2; Capture(shots, "b"); }
+            if (_shot < 3 && t > 20.5) { _shot = 3; Capture(shots, "c"); }
         }
         if (!_removed && t > 11.0)
         {

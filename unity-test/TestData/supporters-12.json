@@ -1,0 +1,91 @@
+{
+ "v": 1,
+ "generatedAt": "2026-10-03T23:17:54.105Z",
+ "tiers": [
+  {
+   "id": "supporter",
+   "rank": 1,
+   "label": "Supporter",
+   "color": "#F5C542"
+  },
+  {
+   "id": "platinum",
+   "rank": 2,
+   "label": "Platinum",
+   "color": "#8FD3FF"
+  }
+ ],
+ "access": {
+  "b64384034ab63fe5f657ac9e3a8ebdca781b4e9181ec34993d2f7e91cf61f038": 2,
+  "4135aa9dc1b842a653dea846903ddb95bfb8c5a10c504a7fa16e10bc31d1fdf0": 2,
+  "78d493c78d397731ea47bc8cae3bf2445d52304e152f4c319b4bf727b06df071": 2,
+  "77b4599841b1cd31cf77ad6eaa6933fd47f94150fcb5b0f992c1dbd010de0982": 1,
+  "07e07e1e07220d33db2944af6daca0eea0c5331201e95d7e4381cb24cea4b8a1": 1,
+  "32ddaf65cc3aa8d3e6eda3ca2da7c18b71e169e9aa444cccb479c9ca759dd095": 1,
+  "972595fec54739b9d1275c3960a5346f22bfbe20db5663375d13dc24d0a24404": 1,
+  "c59f1f2edf9e36ac69e8874577019636f5a54200e9b0ab555350ccd39fa2f1a6": 1,
+  "7991e54f7e4b99d9b9b3f40e604ae85cdad6873b63d77b30fc6755482b1fb5c5": 1,
+  "970ec274ca867815174ebe4eff19282000f9495a6c7254e94991d1fb4dc3df30": 1,
+  "b342d77b4ea9d6bec154ed354e8c08185281023c852eeec7014541972684ccca": 1,
+  "20d8a8fffabceb9c32615b4fd85f2956025c0dc429eeab1cf8422db6e1dec74e": 1
+ },
+ "credits": [
+  {
+   "n": "なごなご",
+   "r": 2
+  },
+  {
+   "n": "Alex",
+   "r": 2
+  },
+  {
+   "n": "さくら",
+   "r": 2
+  },
+  {
+   "n": "Mika_VR",
+   "r": 1
+  },
+  {
+   "n": "ゆきんこ",
+   "r": 1
+  },
+  {
+   "n": "John Smith",
+   "r": 1
+  },
+  {
+   "n": "まるまる",
+   "r": 1
+  },
+  {
+   "n": "xX_Shadow_Xx",
+   "r": 1
+  },
+  {
+   "n": "くろねこ",
+   "r": 1
+  },
+  {
+   "n": "Luna",
+   "r": 1
+  },
+  {
+   "n": "しろくま",
+   "r": 1
+  },
+  {
+   "n": "Kuro",
+   "r": 1
+  }
+ ],
+ "members": {
+  "2bd806c97f0e00af1a1fc3328fa763a9269723c8db8fac4f93af71db186d6e90": 1,
+  "81b637d8fcd2c6da6359e6963113a1170de795e4b725b84d1e0b4cfd9ec58ce9": 1,
+  "bf22bacff9c689433b39bf86d3bfe0694c492d4be57db8051290eddeb479ea89": 1,
+  "0c086cdc772aa579506fd17a735af6e7d14db0ad1d49730c301e007c3e663d36": 1
+ },
+ "links": {
+  "discord": "https://discord.gg/testInvite/"
+ }
+}

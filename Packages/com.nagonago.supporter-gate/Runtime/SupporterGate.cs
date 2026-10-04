@@ -71,6 +71,9 @@ public class SupporterGate : UdonSharpBehaviour
     [Header("UI (optional)")]
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private TextMeshProUGUI messageText;
+    [Tooltip("任意。入れると、ボタンの文字を今の言語で出す")]
+    [SerializeField] private TextMeshProUGUI enterButtonText;
+    [SerializeField] private TextMeshProUGUI returnButtonText;
 
     [Header("Notice (optional)")]
     [Tooltip("共通の通知（NagoNotice の NoticeHub）。未設定なら通知は出さず、ロビーパネルの文だけ更新する")]
@@ -135,6 +138,8 @@ public class SupporterGate : UdonSharpBehaviour
 
     public SupporterGateMode _GetMode() { return mode; }
     public int _GetRequiredRank() { return requiredRank; }
+    /// <summary>メンバーで判定するゲートか（表示の言葉を「メンバー」に替えるために、パネルが見る）</summary>
+    public bool _UsesMemberList() { return useMemberList; }
     public bool _RequiresActivation() { return requireSupporterActivation; }
     public bool _IsActivated() { return _activated; }
     public bool _IsLocalAllowed() { return _localAllowed; }
@@ -590,6 +595,8 @@ public class SupporterGate : UdonSharpBehaviour
 
     private void UpdateStatusText(int localRank, bool presence)
     {
+        if (enterButtonText != null) enterButtonText.text = T("gate.button.enter", "入場する");
+        if (returnButtonText != null) returnButtonText.text = T("gate.button.return", "ロビーへ戻る");
         if (statusText == null) return;
         string modeLabel;
         if (mode == SupporterGateMode.Open) modeLabel = T("gate.mode.open", "公開");
@@ -598,20 +605,42 @@ public class SupporterGate : UdonSharpBehaviour
         else modeLabel = T("gate.mode.presence", "支援者在室中は開放");
 
         string you;
-        if (localRank == SupporterRegistry.RankUnknown) you = T("gate.you.checking", "確認中");
+        if (localRank == SupporterRegistry.RankUnknown) you = Tint(SupporterRegistry.ColorDim, T("gate.you.checking", "確認中"));
         else if (localRank >= requiredRank)
         {
-            you = useMemberList ? T("gate.you.member", "メンバー") : registry._GetTierLabel(localRank);
-            if (you == null || you.Length == 0) you = T("gate.you.supporter", "支援者");
+            if (useMemberList) you = T("gate.you.member", "メンバー");
+            else
+            {
+                // 呼び名は、案内のパネルと同じ（文言の表の credits.tier.<ティアの id>。無ければリストの label）
+                you = registry._GetTierLabel(localRank);
+                if (you == null || you.Length == 0) you = T("gate.you.supporter", "支援者");
+                string id = registry._GetTierId(localRank);
+                if (id.Length > 0) you = T("credits.tier." + id, you);
+            }
+            // 役割の名前には色を付ける（支援者はティアの色、メンバーはメンバーの色）
+            you = Tint(useMemberList ? SupporterRegistry.ColorMember : registry._GetTierColorHex(localRank), you);
         }
-        else you = _IsApproved(Networking.LocalPlayer.playerId) ? T("gate.you.approved", "許可済み") : T("gate.you.guest", "一般");
+        else if (_IsApproved(Networking.LocalPlayer.playerId)) you = Tint(SupporterRegistry.ColorOk, T("gate.you.approved", "許可済み"));
+        else you = "<b>" + T("gate.you.guest", "一般") + "</b>";
 
         string act = "";
         if (requireSupporterActivation) act = " / " + (_activated ? T("gate.act.on", "有効化済み") : T("gate.act.off", "未有効化"));
-        statusText.text = T("gate.status.mode", "モード") + ": " + modeLabel + act + "\n"
-            + T("gate.status.supporters", "在室支援者") + ": " + _supporterCount.ToString() + "\n"
-            + T("gate.status.you", "あなた") + ": " + you + "\n"
-            + T("gate.status.entry", "入場") + ": " + (_localAllowed ? T("gate.entry.yes", "可") : T("gate.entry.no", "不可"));
+        // 項目名は控えめな色、値は太字。入場の可否は色で分かるようにする
+        statusText.text = Label("gate.status.mode", "モード") + "<b>" + modeLabel + act + "</b>\n"
+            + Label("gate.status.supporters", "在室支援者") + "<b>" + _supporterCount.ToString() + "</b>\n"
+            + Label("gate.status.you", "あなた") + you + "\n"
+            + Label("gate.status.entry", "入場")
+            + (_localAllowed ? Tint(SupporterRegistry.ColorOk, T("gate.entry.yes", "可")) : Tint(SupporterRegistry.ColorWarn, T("gate.entry.no", "不可")));
+    }
+
+    private string Label(string key, string fallback)
+    {
+        return "<color=" + SupporterRegistry.ColorDim + ">" + T(key, fallback) + ":</color> ";
+    }
+
+    private string Tint(string colorHex, string s)
+    {
+        return "<color=" + colorHex + "><b>" + s + "</b></color>";
     }
 
     private void SetMessage(string msg)

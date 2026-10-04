@@ -101,7 +101,14 @@ public class SupporterApprovalPanel : UdonSharpBehaviour
     {
         if (texts != null)
         {
-            string s = texts._Get(key, Lang());
+            string lang = Lang();
+            // メンバーで判定するゲートでは、「支援者」を「メンバー」に言い換えた文（キー + ".member"）があればそれを使う
+            if (gate != null && gate._UsesMemberList())
+            {
+                string m = texts._Get(key + ".member", lang);
+                if (m != null) return m;
+            }
+            string s = texts._Get(key, lang);
             if (s != null) return s;
         }
         return fallback;
@@ -118,7 +125,7 @@ public class SupporterApprovalPanel : UdonSharpBehaviour
         if (deniedRoot != null) deniedRoot.SetActive(!isSupporter);
         if (!isSupporter)
         {
-            if (deniedText != null) deniedText.text = T("panel.denied", "このパネルは支援者専用です");
+            if (deniedText != null) deniedText.text = "<color=" + SupporterRegistry.ColorDim + ">" + T("panel.denied", "このパネルは支援者専用です") + "</color>";
             for (int i = 0; i < rows.Length; i++) if (rows[i] != null) rows[i]._Hide();
             return;
         }
@@ -130,8 +137,8 @@ public class SupporterApprovalPanel : UdonSharpBehaviour
         if (activationButtonText != null)
             activationButtonText.text = gate._IsActivated() ? T("panel.deactivate", "エリアを無効化") : T("panel.activate", "エリアを有効化");
 
-        string stateOn = "<color=#7CFC9A>" + T("panel.state.approved", "許可済み") + "</color>";
-        string stateOff = "<color=#AAAAAA>" + T("panel.state.notApproved", "未許可") + "</color>";
+        string stateOn = "<color=" + SupporterRegistry.ColorOk + "><b>" + T("panel.state.approved", "許可済み") + "</b></color>";
+        string stateOff = "<color=" + SupporterRegistry.ColorDim + ">" + T("panel.state.notApproved", "未許可") + "</color>";
         string buttonOn = T("panel.button.revoke", "取り消す");
         string buttonOff = T("panel.button.approve", "許可する");
 
@@ -164,10 +171,13 @@ public class SupporterApprovalPanel : UdonSharpBehaviour
         if (headerText != null)
         {
             string n = guests.ToString();
-            if (approvalMode) headerText.text = T("panel.header.approval", "入場許可（非支援者 {0} 人）").Replace("{0}", n);
-            else if (mode == SupporterGateMode.SupporterPresence) headerText.text = T("panel.header.presence", "支援者在室中は開放（非支援者 {0} 人）").Replace("{0}", n);
-            else if (mode == SupporterGateMode.SupportersOnly) headerText.text = T("panel.header.supportersOnly", "支援者限定モード");
-            else headerText.text = T("panel.header.open", "公開モード");
+            string header;
+            if (approvalMode) header = T("panel.header.approval", "入場許可（非支援者 {0} 人）").Replace("{0}", n);
+            else if (mode == SupporterGateMode.SupporterPresence) header = T("panel.header.presence", "支援者在室中は開放（非支援者 {0} 人）").Replace("{0}", n);
+            else if (mode == SupporterGateMode.SupportersOnly) header = T("panel.header.supportersOnly", "支援者限定モード");
+            else header = T("panel.header.open", "公開モード");
+            // 見出しは、ほかのパネルと同じ色にする
+            headerText.text = "<color=" + SupporterRegistry.ColorHeading + "><b>" + header + "</b></color>";
         }
     }
 }

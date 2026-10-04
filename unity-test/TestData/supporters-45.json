@@ -1,0 +1,256 @@
+{
+ "v": 1,
+ "generatedAt": "2026-10-03T23:17:54.105Z",
+ "tiers": [
+  {
+   "id": "supporter",
+   "rank": 1,
+   "label": "Supporter",
+   "color": "#F5C542"
+  },
+  {
+   "id": "platinum",
+   "rank": 2,
+   "label": "Platinum",
+   "color": "#8FD3FF"
+  }
+ ],
+ "access": {
+  "b64384034ab63fe5f657ac9e3a8ebdca781b4e9181ec34993d2f7e91cf61f038": 2,
+  "4135aa9dc1b842a653dea846903ddb95bfb8c5a10c504a7fa16e10bc31d1fdf0": 2,
+  "78d493c78d397731ea47bc8cae3bf2445d52304e152f4c319b4bf727b06df071": 2,
+  "77b4599841b1cd31cf77ad6eaa6933fd47f94150fcb5b0f992c1dbd010de0982": 2,
+  "07e07e1e07220d33db2944af6daca0eea0c5331201e95d7e4381cb24cea4b8a1": 2,
+  "32ddaf65cc3aa8d3e6eda3ca2da7c18b71e169e9aa444cccb479c9ca759dd095": 2,
+  "972595fec54739b9d1275c3960a5346f22bfbe20db5663375d13dc24d0a24404": 2,
+  "c59f1f2edf9e36ac69e8874577019636f5a54200e9b0ab555350ccd39fa2f1a6": 2,
+  "7991e54f7e4b99d9b9b3f40e604ae85cdad6873b63d77b30fc6755482b1fb5c5": 1,
+  "970ec274ca867815174ebe4eff19282000f9495a6c7254e94991d1fb4dc3df30": 1,
+  "b342d77b4ea9d6bec154ed354e8c08185281023c852eeec7014541972684ccca": 1,
+  "20d8a8fffabceb9c32615b4fd85f2956025c0dc429eeab1cf8422db6e1dec74e": 1,
+  "c2b3e1ffb4b103c8788dbe279f17bd19203653633456b9e786e028fcca0b853d": 1,
+  "627c34deeb3f5fdedefa83f767934e6542db8d18778035ab1b14a22e08f2f89a": 1,
+  "154adae1aafee0c20ef633f3f0263c50208363ed660d5056e98ee0e7bde638ec": 1,
+  "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb": 1,
+  "65b37fc91934157ed61ebb4c53b51b960eacbc4ca78ca830eb19892725fd2af5": 1,
+  "a3afd54d7cff67bb96c580537260a97e63f468deaa1560a3385a6591c5215a84": 1,
+  "8882dbb66f5274f1f009bb71c33c33039a0f68d54a3bc6a12789577840508dc6": 1,
+  "3100486406b39efc3f3d3565bc97cc3b9e2d7b6e3427b194f4442ef4beb05b41": 1,
+  "c16c4b510837196537645955eb3247a40ace9b1568bbcc17b1c9bf5bd7b913d6": 1,
+  "882099af2b09373f44dfc974cacee3830f1ab7fd8954e732f4f07ed15cf754d9": 1,
+  "b0515435cae0f1672463559396f9570da2ec96ec6680e758af3fad63bd74dc94": 1,
+  "c0efc4493cb6f04a421b766b3cea4f2b7d7917cac2a01bc73b941d6f2deb99f3": 1,
+  "bcadd9404e7e55da1c5af8134f3b40fdf922d15d47f602f1272fc9bdb85ca9fe": 1,
+  "a4c745facd3a921565e2c12d2db6a4021d4764f633a18400634d68df575ffb35": 1,
+  "ea49da5b3571116cc2030a5e167929801121a8c372cb6777bad546133c696664": 1,
+  "9ecb36561341d18eb65484e833efea61edc74b84cf5e6ae1b81c63533e25fc8f": 1,
+  "6c2ca38e2ae77ccb0b1f261c0b19b04d32cf1f58418595a99e8c0ef3e3ade6dc": 1,
+  "ae8f5080a348fbfeb2c776957979728034cdf3eee0160c8667ee66daa8440a48": 1,
+  "582e51a0a7a2435f129ec479f4b87e94fa5ea64cd535e25376810f7327f1f24d": 1,
+  "d63f85570d771fd3c02368eab32a98e6ff5883fe6d37824d6d8b58ed7b8a3b5c": 1,
+  "cc361fd4876757d6812f8f2a0de8e547d36fb0ef0cdd8e86dada9c1ab65dcac9": 1,
+  "568423c589495fe17e8f8353f85db1e66f0eb5589e3dd671289db57107903616": 1,
+  "33946e5c52e57755a27d6a6f22ecdee7c7351c096d5b5705be1224b1c91b7d5b": 1,
+  "abc37b92d721c97fc7ffb307093cbb3c33c96d152f286ce187ca28e9a387a531": 1,
+  "b346fea65f1b8051f3563eed8dd29fb4db98970936d787bb6035ed68ffd13e3e": 1,
+  "45d01b2ad0606535344a61e8c3e778cbfe8ad6ebb32ddedda8beb1c807976c7d": 1,
+  "be5ba4c25b2183327e1ce154209487b5eeb290c17123068f0c6def7991645b3b": 1,
+  "7680ee6922944787329354247fa6d15bf1252766d0817e7d82031c103305d3e3": 1,
+  "d016e31294552ff277e1ef413b7d12d36282efb7f34b5ede5b52e3de4123d1a7": 1,
+  "68ca60508b943301e147f9d7deceb1e2d7eac5540225da592cc5945e90a9dfa6": 1,
+  "e021a0b090979951d0c5d26c2126fd7cb9f9df2957674fff883c10d46b913b76": 1,
+  "dedf876286899e680355c629ac147eae60ebe7aa0d5d8e81c453564af5810add": 1,
+  "aa8d71bb28250e46c1bef7e5dad2a370668fae6bb2ebb8bacee6b0a7a03e68bb": 1
+ },
+ "credits": [
+  {
+   "n": "なごなご",
+   "r": 2
+  },
+  {
+   "n": "Alex",
+   "r": 2
+  },
+  {
+   "n": "さくら",
+   "r": 2
+  },
+  {
+   "n": "Mika_VR",
+   "r": 2
+  },
+  {
+   "n": "ゆきんこ",
+   "r": 2
+  },
+  {
+   "n": "John Smith",
+   "r": 2
+  },
+  {
+   "n": "まるまる",
+   "r": 2
+  },
+  {
+   "n": "xX_Shadow_Xx",
+   "r": 2
+  },
+  {
+   "n": "くろねこ",
+   "r": 1
+  },
+  {
+   "n": "Luna",
+   "r": 1
+  },
+  {
+   "n": "しろくま",
+   "r": 1
+  },
+  {
+   "n": "Kuro",
+   "r": 1
+  },
+  {
+   "n": "あおぞら",
+   "r": 1
+  },
+  {
+   "n": "Very Long Display Name 123",
+   "r": 1
+  },
+  {
+   "n": "ひだまり",
+   "r": 1
+  },
+  {
+   "n": "a",
+   "r": 1
+  },
+  {
+   "n": "つきよみ",
+   "r": 1
+  },
+  {
+   "n": "Hanako-chan",
+   "r": 1
+  },
+  {
+   "n": "ほしぞら",
+   "r": 1
+  },
+  {
+   "n": "Momo",
+   "r": 1
+  },
+  {
+   "n": "かぜまかせ",
+   "r": 1
+  },
+  {
+   "n": "NightOwl",
+   "r": 1
+  },
+  {
+   "n": "もちもち大福",
+   "r": 1
+  },
+  {
+   "n": "Rin",
+   "r": 1
+  },
+  {
+   "n": "ねむねむ",
+   "r": 1
+  },
+  {
+   "n": "Sora",
+   "r": 1
+  },
+  {
+   "n": "ぽかぽか",
+   "r": 1
+  },
+  {
+   "n": "The Quick Brown Fox",
+   "r": 1
+  },
+  {
+   "n": "きらきら星",
+   "r": 1
+  },
+  {
+   "n": "Zed",
+   "r": 1
+  },
+  {
+   "n": "夜更かし同盟",
+   "r": 1
+  },
+  {
+   "n": "ポテト Potato",
+   "r": 1
+  },
+  {
+   "n": "深夜のラーメン",
+   "r": 1
+  },
+  {
+   "n": "Neko★",
+   "r": 1
+  },
+  {
+   "n": "眠れる森の住人",
+   "r": 1
+  },
+  {
+   "n": "Yuki (雪)",
+   "r": 1
+  },
+  {
+   "n": "なごなご2",
+   "r": 1
+  },
+  {
+   "n": "Alex2",
+   "r": 1
+  },
+  {
+   "n": "さくら2",
+   "r": 1
+  },
+  {
+   "n": "Mika_VR2",
+   "r": 1
+  },
+  {
+   "n": "ゆきんこ2",
+   "r": 1
+  },
+  {
+   "n": "John Smith2",
+   "r": 1
+  },
+  {
+   "n": "まるまる2",
+   "r": 1
+  },
+  {
+   "n": "xX_Shadow_Xx2",
+   "r": 1
+  },
+  {
+   "n": "くろねこ2",
+   "r": 1
+  }
+ ],
+ "members": {
+  "2bd806c97f0e00af1a1fc3328fa763a9269723c8db8fac4f93af71db186d6e90": 1,
+  "81b637d8fcd2c6da6359e6963113a1170de795e4b725b84d1e0b4cfd9ec58ce9": 1,
+  "bf22bacff9c689433b39bf86d3bfe0694c492d4be57db8051290eddeb479ea89": 1,
+  "0c086cdc772aa579506fd17a735af6e7d14db0ad1d49730c301e007c3e663d36": 1
+ },
+ "links": {
+  "discord": "https://discord.gg/testInvite/"
+ }
+}

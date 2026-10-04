@@ -30,21 +30,27 @@ NOISE = ("ClientSimPlayerController", "NullReferenceException: Object reference 
 # 場面: (名前, 環境変数, 期待する文字列のリスト)。"A && B" は「A と B を両方含む行がある」
 SCENARIOS = [
     ("presence/GuestLocal（支援者が在室の間だけ開く。本人はメンバー）", {}, [
-        "credits(ja)= && Discord に参加  discord.gg/testInvite && あなたはメンバーです && Paula && Dave",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "info(ja)= && <color=#C9B8FF><b>あなたの状態</b></color> && あなたは<color=#9BE7A8><b>メンバー</b></color>です && <color=#C9B8FF><b>ご案内</b></color> && Discord で案内しています && <b>discord.gg/testInvite</b>",
         "支援者が退出しました。 && でロビーに戻ります",
-        "t=19  && allowed=False && 支援者が退出してから時間が経ったため",
-        "credits(late)= && あなたはこのワールドにアクセスする権限を持っていません",
+        "t=19  && allowed=False && 支援者の退出から時間が経ち",
+        "info(late)= && <color=#FF8A80>あなたはこのワールドにアクセスする権限を持っていません</color>",
     ]),
     ("member/Paula（メンバー限定。本人はプラチナかつメンバー）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula"}, [
-        "credits(ja)= && あなたはプラチナサポーター・メンバーです",
-        "credits(en)= && You are: Platinum Supporter / Member",
+        "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>・<color=#9BE7A8><b>メンバー</b></color>です",
+        "info(en)= && Your status && You are: <color=#8FD3FF><b>Platinum Supporter</b></color> / <color=#9BE7A8><b>Member</b></color>",
         "t=19  && allowed=True inside=True",
-        "status(late)=モード: メンバー限定/在室メンバー: 1/あなた: メンバー/入場: 可",
+        "status(late)=<color=#AEB4BE>モード:</color> <b>メンバー限定</b>/<color=#AEB4BE>在室メンバー:</color> <b>1</b>/<color=#AEB4BE>あなた:</color> <color=#9BE7A8><b>メンバー</b></color>/<color=#AEB4BE>入場:</color> <color=#7CFC9A><b>可</b></color>",
     ]),
     ("member/Dave（メンバー限定。本人は支援者だがメンバーではない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave"}, [
-        "credits(ja)= && あなたはサポーターです && あなたはこのワールドにアクセスする権限を持っていません",
+        "info(ja)= && あなたは<color=#F5C542><b>サポーター</b></color>です && あなたはこのワールドにアクセスする権限を持っていません",
         "t=9  && allowed=False inside=False && This area is for members only.",
-        "status(late)=モード: メンバー限定/在室メンバー: 0/あなた: 一般/入場: 不可",
+        "status(late)=<color=#AEB4BE>モード:</color> <b>メンバー限定</b>/<color=#AEB4BE>在室メンバー:</color> <b>0</b>/<color=#AEB4BE>あなた:</color> <b>一般</b>/<color=#AEB4BE>入場:</color> <color=#FF8A80><b>不可</b></color>",
+    ]),
+    ("many/Nobody（支援者が 130 人。名前の一覧をページに分けて切り替える）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NAME": "Nobody", "SG_SMOKE_REMOTE": "none", "SG_SMOKE_LIST": "supporters-130.json"}, [
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && <nobr> && / 5</color></size>",
+        "credits(late)=<size=125%><b>Special Thanks</b></size>// && / 5</color></size>",
+        "info(ja)= && <color=#AEB4BE>支援者・メンバーの登録は見つかりません</color>",
     ]),
     ("convert/GuestLocal（ゲートの無いワールドを変換。本人はメンバー）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member"}, [
         "convert report: 入口の部屋とゲートを足しました。入れるのは、メンバーだけです。",

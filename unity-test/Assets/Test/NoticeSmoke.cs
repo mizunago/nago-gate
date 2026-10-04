@@ -17,7 +17,11 @@ public class NoticeSmoke : UdonSharpBehaviour
     public TextMeshProUGUI gateStatus;
     public TextMeshProUGUI gateMessage;
     public TextMeshProUGUI creditsText;
+    public TextMeshProUGUI infoText;
     public SupporterRegistry registry;
+    public bool skipEnter;
+    public bool noticeGallery;
+    public bool skipLangSwitch;
 
     private int _tick;
 
@@ -85,28 +89,58 @@ public class NoticeSmoke : UdonSharpBehaviour
         hub._ClearSticky("cd");
         hub._ClearAll();
         VRCPlayerApi local = Networking.LocalPlayer;
-        if (local != null && contentSpawn != null) local.TeleportTo(contentSpawn.position, contentSpawn.rotation);
+        if (!skipEnter && local != null && contentSpawn != null) local.TeleportTo(contentSpawn.position, contentSpawn.rotation);
+        if (noticeGallery)
+        {
+            SendCustomEventDelayedSeconds(nameof(_GalleryA), 1.2f);
+            SendCustomEventDelayedSeconds(nameof(_GalleryB), 4.6f);
+        }
         Debug.Log("[SMOKE] status=" + gateStatus.text.Replace("\n", "/"));
         if (registry != null) Debug.Log("[SMOKE] link(discord)=" + registry._GetLink("discord") + " link(none)=[" + registry._GetLink("nothing") + "] loaded=" + registry._IsLoaded()
             + " hasMembers=" + registry._HasMemberList() + " localRank=" + registry._GetLocalRank() + " localMember=" + registry._IsLocalMember()
             + " rank(Paula)=" + registry._GetRankOfName("Paula") + " rank(Alice)=" + registry._GetRankOfName("Alice"));
         if (creditsText != null) Debug.Log("[SMOKE] credits(ja)=" + creditsText.text.Replace("\n", "/"));
-        hub._SetLanguageOverride("en");
-        SendCustomEventDelayedSeconds(nameof(_Step4), 1f);
+        if (infoText != null) Debug.Log("[SMOKE] info(ja)=" + infoText.text.Replace("\n", "/"));
+        if (!skipLangSwitch)
+        {
+            hub._SetLanguageOverride("en");
+            SendCustomEventDelayedSeconds(nameof(_Step4), 1f);
+        }
         SendCustomEventDelayedSeconds(nameof(_Step5), 12f);
     }
 
     public void _Step4()
     {
         if (creditsText != null) Debug.Log("[SMOKE] credits(en)=" + creditsText.text.Replace("\n", "/"));
+        if (infoText != null) Debug.Log("[SMOKE] info(en)=" + infoText.text.Replace("\n", "/"));
         if (gateStatus != null) Debug.Log("[SMOKE] status(en)=" + gateStatus.text.Replace("\n", "/"));
         hub._SetLanguageOverride("");
+    }
+
+    // every kind of gate notice, shown through the hub with the real texts (screenshots only)
+    public void _GalleryA()
+    {
+        hub._ClearAll();
+        hub._ShowKeyLevel("gate.approved", NoticeHub.LevelSuccess);
+        hub._ShowKeyArgs("gate.guestJoined", new string[] { "Hanako" });
+        hub._ShowKeyLevel("gate.return.revoked", NoticeHub.LevelWarning);
+        hub._ShowKeyLevel("gate.deny.supportersOnly", NoticeHub.LevelError);
+    }
+
+    public void _GalleryB()
+    {
+        hub._ClearAll();
+        hub._SetSticky("cd", hub._Text("gate.countdown").Replace("{0}", "1:58"), NoticeHub.LevelWarning);
+        hub._ShowKeyLevel("gate.supporterBack", NoticeHub.LevelSuccess);
+        hub._ShowKeyLevel("gate.return.noSupporter", NoticeHub.LevelWarning);
+        hub._ShowKeyLevel("gate.deny.notApproved", NoticeHub.LevelError);
     }
 
     public void _Step5()
     {
         Debug.Log("[SMOKE] step5: late state allowed=" + gate._IsLocalAllowed());
         if (creditsText != null) Debug.Log("[SMOKE] credits(late)=" + creditsText.text.Replace("\n", "/"));
+        if (infoText != null) Debug.Log("[SMOKE] info(late)=" + infoText.text.Replace("\n", "/"));
         if (gateStatus != null) Debug.Log("[SMOKE] status(late)=" + gateStatus.text.Replace("\n", "/"));
     }
 }

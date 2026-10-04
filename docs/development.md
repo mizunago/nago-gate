@@ -51,6 +51,15 @@ Unity をバッチモードで動かし、次を確かめます。Unity の場�
 
 通知のプレハブ（`NoticeHub.prefab`）は、公開したあとに作り直さない。中の ID が変わり、使う側の上書きが外れるため。
 
+## 表示の画像を作る
+
+```
+python tools/make_screenshots.py            全部（15 分ほど）
+python tools/make_screenshots.py members    名前に members を含む場面だけ
+```
+
+クレジットのボード、ロビーのパネル、承認パネル、本人の視点（通知が重なって見える）を、場面ごとに画像にします。出力は `unity-test/screenshots/` で、一覧は `unity-test/screenshots/README.md` です（リポジトリには入れません）。文言や見た目を変えたら、撮り直して目で確かめます。
+
 ## ずれの確認
 
 ```

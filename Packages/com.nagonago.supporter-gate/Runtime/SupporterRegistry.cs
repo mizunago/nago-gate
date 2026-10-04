@@ -24,6 +24,14 @@ using VRC.Udon.Common.Interfaces;
 public class SupporterRegistry : UdonSharpBehaviour
 {
     public const int RankUnknown = -1;
+
+    // 表示の色（どのパネルでも同じ意味で使う。支援者の呼び名は、リストのティアの色を使う）
+    public const string ColorHeading = "#C9B8FF";   // 見出し
+    public const string ColorDim = "#AEB4BE";       // ラベル・補足
+    public const string ColorOk = "#7CFC9A";        // 入れる・許可済み
+    public const string ColorWarn = "#FF8A80";      // 入れない・取得できない
+    public const string ColorMember = "#9BE7A8";    // メンバーの呼び名
+
     private const int MaxSlots = 128;
     private const int MaxListeners = 32;
 

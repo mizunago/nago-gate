@@ -21,3 +21,4 @@
 # VRChat の SDK など、取り込む物（VCC でこのプロジェクトを開くと入る。ここには置かない）
 /Packages/com.vrchat.*/
 /Packages/net.narazaka.*/
+/screenshots/
