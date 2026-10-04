@@ -1,6 +1,6 @@
 {
  "v": 1,
- "generatedAt": "2026-10-04T00:44:50.763Z",
+ "generatedAt": "2026-10-04T01:12:00.363Z",
  "tiers": [
   {
    "id": "supporter",
@@ -18,7 +18,8 @@
  "access": {},
  "credits": [],
  "members": {
-  "b64384034ab63fe5f657ac9e3a8ebdca781b4e9181ec34993d2f7e91cf61f038": 1
+  "b64384034ab63fe5f657ac9e3a8ebdca781b4e9181ec34993d2f7e91cf61f038": 1,
+  "232f8937a3f6b69b9a74ffee099313f6ef36ab525e552e998236052c1c7bf015": 1
  },
  "links": {
   "discord": "https://discord.gg/ENg5sh23J5"
