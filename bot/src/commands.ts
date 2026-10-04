@@ -51,11 +51,11 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand((s) => s.setName("setup-roles").setDescription("Supporter / Platinum / Member / src-* ロールを作り、config 用の ID を表示する"))
     .addSubcommand((s) => s.setName("setup-info").setDescription("INFO カテゴリ（はじめに・お知らせ・登録）を作る"))
-    .addSubcommand((s) => s.setName("setup-community").setDescription("コミュニティカテゴリ（雑談 jp/en・sfw-photo・nsfw-photo）を作る"))
+    .addSubcommand((s) => s.setName("setup-community").setDescription("コミュニティカテゴリ（雑談 jp/en/zh/ko・sfw-photo・nsfw-photo）を作る"))
     .addSubcommand((s) =>
       s
         .setName("setup-world")
-        .setDescription("ワールド用カテゴリ（ワールド・更新情報・フィードバック・雑談）を作る")
+        .setDescription("ワールド用カテゴリ（案内 JP/EN/ZH/KO・更新情報・フィードバック・雑談）を作る")
         .addStringOption((o) => o.setName("jp").setDescription("日本語名（例: さんぷるわーるど）").setRequired(true))
         .addStringOption((o) => o.setName("en").setDescription("英語名（例: Sample World）").setRequired(true))
         .addStringOption((o) =>

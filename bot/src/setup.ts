@@ -191,6 +191,19 @@ async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSp
 
 const FEEDBACK_TAGS = ["Bug", "Request", "JP", "EN", "ZH"];
 
+/**
+ * ワールドの案内（リンク・入るのに要るもの・概要）のチャンネル。言語ごとに 1 つずつ作る。
+ * 1 つのチャンネルに 4 か国語を並べると長くなり、読みたい言語にたどり着きにくいため
+ */
+export const WORLD_INFO_CHANNELS: { lang: string; name: string; topic: (jp: string, en: string) => string }[] = [
+  { lang: "ja", name: "🔗ワールド-jp", topic: (jp) => `${jp}: ワールドのリンクと概要` },
+  { lang: "en", name: "🔗world-en", topic: (_jp, en) => `${en}: world link and overview` },
+  { lang: "zh", name: "🔗世界-zh", topic: (_jp, en) => `${en}: 世界链接与简介` },
+  { lang: "ko", name: "🔗월드-ko", topic: (_jp, en) => `${en}: 월드 링크와 개요` },
+];
+/** 前の版の、案内のチャンネルの名前（1 つだけだった）。あれば、日本語のチャンネルとして使い続ける */
+const OLD_WORLD_INFO_NAME = "🔗ワールド-world";
+
 /** INFO カテゴリ（全員向け） */
 export async function setupInfo(guild: Guild, config: AppConfig): Promise<string> {
   log.info(`setup-info 開始 guild=${guild.name} (${guild.id})`);
@@ -239,13 +252,21 @@ export async function setupCommunity(guild: Guild): Promise<string> {
   const specs: ChannelSpec[] = [
     { name: "💬雑談-jp", type: ChannelType.GuildText, topic: "日本語の雑談" },
     { name: "💬chat-en", type: ChannelType.GuildText, topic: "English chat" },
+    { name: "💬闲聊-zh", type: ChannelType.GuildText, topic: "中文闲聊" },
+    { name: "💬잡담-ko", type: ChannelType.GuildText, topic: "한국어 잡담" },
     { name: "📷sfw-photo", type: ChannelType.GuildText, topic: "全年齢の写真・スクショ / SFW photos & screenshots" },
     { name: "🔞nsfw-photo", type: ChannelType.GuildText, topic: "年齢制限あり / Age-restricted photos", nsfw: true },
   ];
+  const ordered: GuildBasedChannel[] = [];
   for (const spec of specs) {
     const r = await ensureChannel(guild, cat, spec);
+    ordered.push(r.ch);
     out.push(`${r.created ? "作成" : "既存"}: ${spec.name}${spec.nsfw ? "（年齢制限）" : ""}`);
   }
+  // 並びを揃える: 雑談（言語ごと）→ 写真
+  await guild.channels
+    .setPositions(ordered.map((ch, i) => ({ channel: ch.id, position: i })))
+    .catch((err) => log.warn(`setup-community: 並び替えに失敗: ${String(err)}`));
   return out.join("\n");
 }
 
@@ -307,19 +328,33 @@ export async function setupWorld(
   // 雑談は、公開ワールドでも限定ワールドでも同じ名前で作る（公開は全員、限定は閲覧ロールだけが書ける）
   const loungeTopic =
     visibility === "public" ? `${jpName} の雑談 / ${enName} lounge` : visibility === "member" ? "メンバー雑談 / Members lounge" : "支援者雑談 / Supporter lounge";
+  // 前の版で作ったカテゴリ: 1 つだけだった案内のチャンネルを、日本語のチャンネルにする（投稿と権限はそのまま残る）
+  const oldInfo = cat.children.cache.find((c) => c.name === OLD_WORLD_INFO_NAME && c.type === ChannelType.GuildText);
+  if (oldInfo && !cat.children.cache.some((c) => c.name === WORLD_INFO_CHANNELS[0].name)) {
+    await oldInfo.setName(WORLD_INFO_CHANNELS[0].name, "SupporterGate setup");
+    log.info(`setup: 名前を変更 ${catName}/${OLD_WORLD_INFO_NAME} -> ${WORLD_INFO_CHANNELS[0].name} (${oldInfo.id})`);
+    out.push(`名前を変更: ${OLD_WORLD_INFO_NAME} → ${WORLD_INFO_CHANNELS[0].name}`);
+  }
+
   const specs: ChannelSpec[] = [
-    { name: "🔗ワールド-world", type: ChannelType.GuildText, topic: `${jpName} / ${enName}: ワールドリンクと概要`, nsfw, overwrites: readOnly },
+    ...WORLD_INFO_CHANNELS.map((info): ChannelSpec => ({ name: info.name, type: ChannelType.GuildText, topic: info.topic(jpName, enName), nsfw, overwrites: readOnly })),
     { name: "🔧更新情報-updates", type: ChannelType.GuildText, topic: "更新ログ / Update log", nsfw, overwrites: readOnly },
     { name: "🐛バグ報告と要望-feedback", type: ChannelType.GuildForum, topic: "バグ報告と要望 / Bug reports & requests. タグで種別と言語を選んでください", nsfw, sync: true, tags: FEEDBACK_TAGS },
     { name: "💬さろん-lounge", type: ChannelType.GuildText, topic: loungeTopic, nsfw, sync: true },
   ];
+  const ordered: GuildBasedChannel[] = [];
   for (const spec of specs) {
     const r = await ensureChannel(guild, cat, spec);
+    ordered.push(r.ch);
     out.push(`${r.created ? "作成" : "既存"}: ${spec.name}`);
   }
+  // 並びを揃える: 案内（言語ごと）→ 更新情報 → フォーラム → 雑談
+  await guild.channels
+    .setPositions(ordered.map((ch, i) => ({ channel: ch.id, position: i })))
+    .catch((err) => log.warn(`setup-world: 並び替えに失敗 ${catName}: ${String(err)}`));
   log.info(`setup-world 完了 ${catName} viewer=${viewer ? viewer.name : "@everyone"}`);
   out.push("");
   out.push("フォーラムと雑談はカテゴリの権限に従います（同期）。見える人を変えるときはカテゴリを変えてください。");
-  out.push("ワールドと更新情報はサーバーオーナーだけが書けます。他の管理者にも書かせる場合はチャンネル権限で個別に許可してください。");
+  out.push("ワールドの案内（言語ごとの 4 つ）と更新情報は、サーバーオーナーだけが書けます。他の管理者にも書かせる場合はチャンネル権限で個別に許可してください。");
   return out.join("\n");
 }

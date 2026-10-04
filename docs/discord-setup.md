@@ -69,7 +69,7 @@ npm start
 1. `/vrc-admin setup-roles` — `Supporter` / `Platinum` / `src-*` を作り、`config.jsonc` に貼る `tiers` を表示する。貼って Bot を再起動
 2. Patreon / Ci-en の連携画面で、各プランに `src-*` ロールを割り当てる
 3. `/vrc-admin setup-info` — INFO カテゴリを作る。表示された登録チャンネル ID を `discord.registerChannelId` に入れて再起動
-3b. `/vrc-admin setup-community` — 雑談 jp/en と写真チャンネル（sfw / nsfw）のカテゴリを作る
+3b. `/vrc-admin setup-community` — 雑談（日本語・英語・中国語・韓国語）と写真チャンネル（sfw / nsfw）のカテゴリを作る
 4. `登録-register` で `/vrc-admin panel` — ボタンパネルを投稿してピン留め
 5. `/vrc-admin setup-world jp:<公開ワールド名> en:<English name> visibility:全員` — 公開ワールドのカテゴリ
 6. `/vrc-admin setup-world jp:<限定ワールド名> en:<English name> visibility:Supporter` — 限定ワールドのカテゴリ（必要なら `nsfw:true`）
@@ -80,7 +80,9 @@ npm start
 `はじめに-start-here` の本文とウェルカム画面だけは手で書きます。
 
 ワールドのカテゴリは、権限をカテゴリに付けます。フォーラムと雑談はカテゴリの権限に従う（同期）ので、見える人を変えるときはカテゴリだけ変えれば足ります。
-`ワールド-world` と `更新情報-updates` だけは、サーバーの持ち主専用にするためにチャンネル独自の権限（送信の拒否）を持ちます。Discord は同期していないチャンネルにカテゴリの権限を重ねないので、この 2 つは `setup-world` を再実行して揃えます。
+ワールドの案内のチャンネル（言語ごとに 4 つ。`ワールド-jp` / `world-en` / `世界-zh` / `월드-ko`）と `更新情報-updates` だけは、サーバーの持ち主専用にするためにチャンネル独自の権限（送信の拒否）を持ちます。Discord は同期していないチャンネルにカテゴリの権限を重ねないので、これらは `setup-world` を再実行して揃えます。
+
+案内のチャンネルを言語ごとに分けているのは、1 つのチャンネルに 4 か国語を並べると長くなり、読みたい言語にたどり着きにくいためです。前の版で作った `ワールド-world` があるカテゴリは、`setup-world` を再実行すると、それが `ワールド-jp` に名前を変えて使い続けられます（投稿と権限は残ります）。
 
 常駐のさせ方は [hosting.md](hosting.md) を参照。データは `instance/data/db.json` に保存されます（バックアップ対象）。
 
@@ -100,8 +102,8 @@ npm start
 |---|---|
 | `/vrc-admin setup-roles` | 出力ロールと入力ロールを作成し、config 用の ID を表示 |
 | `/vrc-admin setup-info` | INFO カテゴリ（はじめに・お知らせ・登録）を作成 |
-| `/vrc-admin setup-community` | コミュニティカテゴリ（雑談 jp/en、sfw-photo、nsfw-photo）を作成 |
-| `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（ワールド・更新情報・フィードバック・雑談の lounge）を作成。visibility は 全員 / Supporter / Platinum / Member |
+| `/vrc-admin setup-community` | コミュニティカテゴリ（雑談 jp/en/zh/ko、sfw-photo、nsfw-photo）を作成 |
+| `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（案内 jp/en/zh/ko・更新情報・フィードバック・雑談の lounge）を作成。visibility は 全員 / Supporter / Platinum / Member |
 | `/vrc-admin panel` | 実行したチャンネルに登録ボタン付きパネルを投稿（登録チャンネルで実行してピン留め）。既にパネルがあれば、新しく投稿せずに書き換える |
 | `/vrc-admin sync` | 今すぐ同期＋公開 |
 | `/vrc-admin publish` | JSON を強制再公開 |
