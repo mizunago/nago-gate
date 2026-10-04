@@ -163,4 +163,10 @@ public class SupporterHash : UdonSharpBehaviour
         return digest;
     }
     // END-SHA256-CORE
+
+    /// <summary>文字列（UTF-8）の SHA-256 を 32 バイトで返す。鍵つきのリストの復号に使う</summary>
+    public byte[] _Sha256Bytes(string text)
+    {
+        return Sha256(Utf8Encode(text));
+    }
 }

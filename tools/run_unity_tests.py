@@ -27,7 +27,7 @@ PORT = 8765
 # ClientSim がバッチモードで出す、入力まわりの例外（中身と関係ない）
 NOISE = ("ClientSimPlayerController", "NullReferenceException: Object reference not set")
 
-# 場面: (名前, 環境変数, 期待する文字列のリスト)。"A && B" は「A と B を両方含む行がある」
+# 場面: (名前, 環境変数, 期待する文字列のリスト[, 出てよいエラーの目印のリスト])。"A && B" は「A と B を両方含む行がある」
 SCENARIOS = [
     ("presence/GuestLocal（支援者が在室の間だけ開く。本人はメンバー）", {}, [
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
@@ -51,6 +51,62 @@ SCENARIOS = [
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && <nobr> && / 5</color></size>",
         "credits(late)=<size=125%><b>Special Thanks</b></size>// && / 5</color></size>",
         "info(ja)= && <color=#AEB4BE>支援者・メンバーの登録は見つかりません</color>",
+    ]),
+    ("keyed/Paula（鍵つきのリスト。メンバー限定。本人はプラチナかつメンバー）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed.json", "SG_SMOKE_KEY": "TestListKey-0123"}, [
+        "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
+        "credits decrypted count=2",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>・<color=#9BE7A8><b>メンバー</b></color>です",
+        "t=19  && allowed=True inside=True",
+    ]),
+    ("keyed/many（鍵つきのリスト。支援者が 130 人）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NAME": "Nobody", "SG_SMOKE_REMOTE": "none", "SG_SMOKE_LIST": "supporters-130-keyed.json", "SG_SMOKE_KEY": "TestListKey-0123"}, [
+        "credits decrypted count=130",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && <nobr>なごなご && / 5</color></size>",
+        "info(ja)= && 支援者・メンバーの登録は見つかりません",
+    ]),
+    ("keyed/plain（鍵を入れたワールドが、鍵なしのリストを読む。切り替える前の状態）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_KEY": "TestListKey-0123"}, [
+        "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "t=19  && allowed=True inside=True",
+    ]),
+    ("keyed/nokey（鍵つきのリストを、鍵の無いワールドが読む。誰も入れない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed.json"}, [
+        "loaded=False",
+        "鍵つきのリストですが、List Key が未設定です",
+        "info(ja)= && <color=#FF8A80>リストを取得できませんでした</color>",
+        "t=9  && allowed=False inside=False",
+    ], ["List Key"]),
+    ("keyed/wrongkey（ワールドの鍵が、リストの鍵と違う。誰も入れない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed.json", "SG_SMOKE_KEY": "WrongKey-00000000"}, [
+        "loaded=False",
+        "List Key が、リストのどの鍵とも一致しません",
+        "t=9  && allowed=False inside=False",
+    ], ["List Key"]),
+    ("keyed/rotate-old（鍵を入れ替えている間。リストに新旧 2 本の区画。ワールドはまだ古い鍵）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed-two.json", "SG_SMOKE_KEY": "TestListKey-0123"}, [
+        "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
+        "credits decrypted count=2",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "t=19  && allowed=True inside=True",
+    ]),
+    ("keyed/rotate-new（鍵を入れ替えている間。ワールドは新しい鍵に上げ直した）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed-two.json", "SG_SMOKE_KEY": "NewListKey-45678"}, [
+        "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
+        "credits decrypted count=2",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "t=19  && allowed=True inside=True",
+    ]),
+    ("keyed/migrate-nokey（鍵なしから移る間。鍵なしの部分も残したリストを、鍵の無いワールドが読む）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed-plain.json"}, [
+        "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "t=19  && allowed=True inside=True",
+    ]),
+    ("keyed/migrate-key（鍵なしから移る間。鍵を入れたワールドは、鍵の区画のほうを読む）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed-plain.json", "SG_SMOKE_KEY": "TestListKey-0123"}, [
+        "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
+        "credits decrypted count=2",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "t=19  && allowed=True inside=True",
+    ]),
+    ("keyed/migrate-otherkey（鍵なしの部分が残っていれば、鍵が合わないワールドも鍵なしの部分で動く）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed-plain.json", "SG_SMOKE_KEY": "WrongKey-00000000"}, [
+        "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
+        "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
+        "t=19  && allowed=True inside=True",
     ]),
     ("convert/GuestLocal（ゲートの無いワールドを変換。本人はメンバー）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member"}, [
         "convert report: 入口の部屋とゲートを足しました。入れるのは、メンバーだけです。",
@@ -109,7 +165,9 @@ def main() -> int:
         if not build_ok:
             return 1
 
-        for name, env, expectations in SCENARIOS:
+        for scenario in SCENARIOS:
+            name, env, expectations = scenario[:3]
+            allowed_errors = scenario[3] if len(scenario) > 3 else []
             if only and only not in name:
                 continue
             print(f"== {name} ==")
@@ -118,7 +176,7 @@ def main() -> int:
             raw = path.read_text(encoding="utf-8", errors="replace").split("\n") if path.exists() else []
             lines = [l for l in raw if not any(n in l for n in NOISE) and l.strip()]
             failures = check(lines, expectations)
-            udon_errors = [l for l in lines if "halted" in l or "<Exception>" in l or "<Error>" in l]
+            udon_errors = [l for l in lines if ("halted" in l or "<Exception>" in l or "<Error>" in l) and not any(a in l for a in allowed_errors)]
             ended = any("SMOKE_END" in l for l in lines)
             if failures or udon_errors or not ended:
                 failed += 1
@@ -130,6 +188,10 @@ def main() -> int:
                     print("  FAIL 最後まで再生されなかった")
             else:
                 print(f"  ok（{len(expectations)} 項目、例外なし）")
+            # 鍵つきのリストで、名前を元に戻すのにかかった時間（参考）
+            for l in lines:
+                if "credits decrypted" in l:
+                    print("  " + l[l.index("credits decrypted"):].strip()[:120])
     finally:
         server.shutdown()
 

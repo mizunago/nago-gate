@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Guild, GuildMember } from "discord.js";
 import type { AppConfig, TierConfig } from "./config.js";
 import { displaySafeName, hashName } from "./hash.js";
+import { encryptText, keyedHashName, listKeyId } from "./protect.js";
 import { publishJson } from "./publish.js";
 import type { MemberRecord, Store } from "./store.js";
 
@@ -9,6 +10,10 @@ export interface SyncContext {
   config: AppConfig;
   store: Store;
   githubToken: string | null;
+  /** 鍵つきのリストの鍵（複数可）。無ければ、鍵なしの形式で公開する */
+  listKeys?: string[];
+  /** 鍵つきのときも、鍵なしの部分を残すか（移行用） */
+  listKeepPlain?: boolean;
   log: (msg: string) => void;
   /** Discord のログチャンネルに流さないログ。無ければ log を使う */
   logQuiet?: (msg: string) => void;
@@ -29,7 +34,8 @@ export interface SyncResult {
 
 /** 公開 JSON のスキーマ。Udon 側 SupporterRegistry.cs と対応 */
 export interface SupportersJson {
-  v: 1;
+  /** 1 = 鍵なし、2 = 鍵つき（keyed に、鍵ごとの区画が入る） */
+  v: 1 | 2;
   generatedAt: string;
   tiers: { id: string; rank: number; label: string; color: string }[];
   /** 正規化名の SHA-256 → ランク */
@@ -40,6 +46,30 @@ export interface SupportersJson {
   members?: Record<string, number>;
   /** 案内用のリンク（設定に 1 つでもあるときだけ出す） */
   links?: Record<string, string>;
+  /** 鍵つきのときだけ: 鍵なしの部分（access・credits・members）に中身があるか。false なら、鍵を持つワールドだけが読める */
+  plain?: boolean;
+  /** 鍵つきのときだけ: 鍵ごとの区画。ワールドは、自分の鍵の番号（k）の区画だけを読む */
+  keyed?: KeyedSection[];
+}
+
+export interface KeyedSection {
+  /** 鍵の番号 */
+  k: string;
+  /** nonce と、暗号化したクレジット（credits と同じ配列の JSON） */
+  n: string;
+  c: string;
+  /** 鍵を混ぜたハッシュ → ランク */
+  access: Record<string, number>;
+  /** 鍵を混ぜたハッシュ → 1 */
+  members?: Record<string, number>;
+}
+
+/** リストの形式を決める設定 */
+export interface ListProtection {
+  /** 鍵の並び。空なら鍵なし。複数あれば、それぞれの区画を載せる（鍵を入れ替えている間）*/
+  keys: string[];
+  /** 鍵つきのときも、鍵なしの部分を残すか（鍵をまだ入れていないワールドがある間） */
+  keepPlain: boolean;
 }
 
 function linksOf(config: AppConfig): { links?: Record<string, string> } {
@@ -165,35 +195,62 @@ async function applyRoles(
   }
 }
 
-export function buildSupportersJson(config: AppConfig, store: Store): SupportersJson {
-  const access: Record<string, number> = {};
+export function buildSupportersJson(config: AppConfig, store: Store, protection: ListProtection = { keys: [], keepPlain: false }): SupportersJson {
+  // 載せる人を先に集める。ハッシュは、鍵なしの部分と、鍵ごとの区画とで、別々に作る
+  const supporters: { name: string; rank: number }[] = [];
   const credits: { n: string; r: number }[] = [];
   for (const rec of store.all()) {
     // BAN 中の人は、支援が続いていても載せない
     if (rec.effectiveRank <= 0 || !rec.vrcName || rec.banned) continue;
     // 判定用のハッシュは、登録された名前そのままで作る。表示用の名前だけ、表示を乱す文字を落とす
-    access[hashName(rec.vrcName)] = rec.effectiveRank;
+    supporters.push({ name: rec.vrcName, rank: rec.effectiveRank });
     const shown = displaySafeName(rec.vrcName);
     if (rec.showCredit && shown) credits.push({ n: shown, r: rec.effectiveRank });
   }
   credits.sort((a, b) => b.r - a.r || a.n.localeCompare(b.n, "ja"));
 
-  let members: Record<string, number> | null = null;
-  if (config.member) {
-    members = {};
+  const memberNames: string[] | null = config.member ? [] : null;
+  if (memberNames) {
     for (const rec of store.all()) {
-      if (rec.memberActive && rec.vrcName) members[hashName(rec.vrcName)] = 1;
+      if (rec.memberActive && rec.vrcName) memberNames.push(rec.vrcName);
     }
   }
 
+  const accessOf = (hashOf: (name: string) => string): Record<string, number> => {
+    const access: Record<string, number> = {};
+    for (const s of supporters) access[hashOf(s.name)] = s.rank;
+    return access;
+  };
+  const membersOf = (hashOf: (name: string) => string): { members?: Record<string, number> } => {
+    if (!memberNames) return {};
+    const members: Record<string, number> = {};
+    for (const name of memberNames) members[hashOf(name)] = 1;
+    return { members };
+  };
+
+  const keyed = protection.keys.length > 0;
+  // 鍵なしの部分に中身を入れるのは、鍵を使わないときと、移行中（keepPlain）だけ
+  const plain = !keyed || protection.keepPlain;
+  const creditsJson = JSON.stringify(credits);
   return {
-    v: 1,
+    v: keyed ? 2 : 1,
     generatedAt: nowIso(),
     tiers: config.tiers.map((t: TierConfig) => ({ id: t.id, rank: t.rank, label: t.label, color: t.color })),
-    access,
-    credits,
-    ...(members ? { members } : {}),
+    access: plain ? accessOf(hashName) : {},
+    credits: plain ? credits : [],
+    ...(plain ? membersOf(hashName) : memberNames ? { members: {} } : {}),
     ...linksOf(config),
+    ...(keyed
+      ? {
+          plain,
+          keyed: protection.keys.map((key) => ({
+            k: listKeyId(key),
+            ...encryptText(key, creditsJson),
+            access: accessOf((name) => keyedHashName(key, name)),
+            ...membersOf((name) => keyedHashName(key, name)),
+          })),
+        }
+      : {}),
   };
 }
 
@@ -204,14 +261,18 @@ function digestOf(json: SupportersJson): string {
 
 /** JSON を（変化があれば）公開する */
 export async function publishIfChanged(ctx: SyncContext, force: boolean): Promise<{ published: boolean; url: string | null }> {
-  const json = buildSupportersJson(ctx.config, ctx.store);
+  const json = buildSupportersJson(ctx.config, ctx.store, { keys: ctx.listKeys ?? [], keepPlain: ctx.listKeepPlain ?? false });
   const digest = digestOf(json);
   if (!force && digest === ctx.store.lastPublishedDigest) return { published: false, url: null };
   const url = await publishJson(ctx.config.publish, JSON.stringify(json, null, 1), ctx.githubToken);
   ctx.store.markPublished(digest);
   ctx.store.save();
-  const memberCount = json.members ? `, members=${Object.keys(json.members).length}` : "";
-  ctx.log(`公開しました: ${url} (access=${Object.keys(json.access).length}, credits=${json.credits.length}${memberCount})`);
+  // 人数は、中身のある部分から数える（鍵つきだけのときは、最初の鍵の区画）
+  const keyedOnly = json.keyed !== undefined && !json.plain;
+  const counted = keyedOnly && json.keyed ? json.keyed[0] : json;
+  const memberCount = counted.members ? `, members=${Object.keys(counted.members).length}` : "";
+  const mode = json.keyed ? `, 鍵 ${json.keyed.length} 本${json.plain ? "＋鍵なしの部分" : ""}` : "";
+  ctx.log(`公開しました: ${url} (access=${Object.keys(counted.access).length}, credits=${keyedOnly ? "暗号化" : json.credits.length}${memberCount}${mode})`);
   return { published: true, url };
 }
 

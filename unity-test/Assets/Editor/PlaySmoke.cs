@@ -133,6 +133,15 @@ public static class PlaySmoke
         // SG_SMOKE_LIST: another list in TestData (e.g. supporters-130.json)
         string listFile = Env("SG_SMOKE_LIST") == "" ? "supporters.json" : Env("SG_SMOKE_LIST");
         registry.dataUrl = new VRCUrl("http://127.0.0.1:8765/" + (Env("SG_SMOKE_BADURL") == "1" ? "missing.json" : listFile));
+        // SG_SMOKE_KEY: the list key (for protected lists). Also turns on the debug log of the registry
+        string listKey = Env("SG_SMOKE_KEY");
+        if (listKey != "")
+        {
+            SerializedObject rso = new SerializedObject(registry);
+            rso.FindProperty("listKey").stringValue = listKey;
+            rso.FindProperty("debugMode").boolValue = true;
+            rso.ApplyModifiedPropertiesWithoutUndo();
+        }
         UdonSharpEditorUtility.CopyProxyToUdon(registry);
 
         NoticeHub hub = Object.FindObjectOfType<NoticeHub>(true);

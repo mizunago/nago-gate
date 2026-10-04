@@ -94,6 +94,14 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
             if (status.Length > 0) sb.Append("\n<size=70%>").Append(status).Append("</size>");
         }
 
+        // 鍵つきのリストは、名前を元に戻し終わるまで少しかかる
+        if (!registry._AreCreditsReady())
+        {
+            sb.Append("\n").Append(Note(SupporterRegistry.ColorDim, T("credits.loading", "読み込み中...")));
+            text.text = sb.ToString();
+            return;
+        }
+
         int total = registry._GetCreditCount();
         int tierCount = registry._GetTierCount();
 

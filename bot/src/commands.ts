@@ -10,6 +10,7 @@ import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
 import { buildPanelMessage, IDS } from "./panel.js";
+import { keyedHashName } from "./protect.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
 import { isMemberEligible, publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
@@ -439,7 +440,9 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
     }
     if (sub === "hash") {
       const name = interaction.options.getString("name", true);
-      await interaction.reply({ content: `\`${normalizeName(name)}\` → \`${hashName(name)}\``, ephemeral: true });
+      // 鍵つきのリストでは、リストに載るのは鍵を混ぜたハッシュのほう
+      const keyed = deps.listKeys?.length ? `\n鍵つき: \`${keyedHashName(deps.listKeys[0], name)}\`` : "";
+      await interaction.reply({ content: `\`${normalizeName(name)}\` → \`${hashName(name)}\`${keyed}`, ephemeral: true });
       return;
     }
   }

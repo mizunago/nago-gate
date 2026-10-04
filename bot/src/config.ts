@@ -1,5 +1,5 @@
 // 設定の読み込み。
-//   <instance>/.env          秘密情報（DISCORD_TOKEN, GITHUB_TOKEN）
+//   <instance>/.env          秘密情報（DISCORD_TOKEN, GITHUB_TOKEN, LIST_KEY）と、LIST_KEEP_PLAIN
 //   <instance>/config.jsonc  それ以外の設定（config.json でも可）
 //   <instance>/data/db.json  Bot が生成するデータ
 // <instance> は環境変数 INSTANCE_DIR、無ければカレントの ./instance
@@ -7,6 +7,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
+import { parseListKeys } from "./protect.js";
 
 export interface TierConfig {
   id: string;
@@ -57,6 +58,10 @@ export interface AppConfig {
 export interface Secrets {
   discordToken: string;
   githubToken: string | null;
+  /** 鍵つきのリストの鍵（LIST_KEY。カンマ区切りで複数）。空なら、鍵なしの今までの形式で公開する */
+  listKeys: string[];
+  /** 鍵つきのときも、鍵なしの部分を残すか（LIST_KEEP_PLAIN）。鍵をまだ入れていないワールドがある間の、移行用 */
+  listKeepPlain: boolean;
 }
 
 export interface Instance {
@@ -123,7 +128,9 @@ function loadSecrets(envPath: string): Secrets {
   const discordToken = fromFile.DISCORD_TOKEN || process.env.DISCORD_TOKEN || "";
   const githubToken = fromFile.GITHUB_TOKEN || process.env.GITHUB_TOKEN || null;
   if (!discordToken) throw new Error(`DISCORD_TOKEN が未設定です（${envPath} または環境変数）`);
-  return { discordToken, githubToken };
+  const listKeys = parseListKeys(fromFile.LIST_KEY || process.env.LIST_KEY);
+  const listKeepPlain = /^(1|true|yes|on)$/i.test(fromFile.LIST_KEEP_PLAIN || process.env.LIST_KEEP_PLAIN || "");
+  return { discordToken, githubToken, listKeys, listKeepPlain };
 }
 
 function loadConfig(configPath: string, instanceDir: string): AppConfig {

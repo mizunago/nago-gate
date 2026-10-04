@@ -1,0 +1,53 @@
+{
+ "v": 2,
+ "generatedAt": "2026-10-03T23:17:54.105Z",
+ "tiers": [
+  {
+   "id": "supporter",
+   "rank": 1,
+   "label": "Supporter",
+   "color": "#F5C542"
+  },
+  {
+   "id": "platinum",
+   "rank": 2,
+   "label": "Platinum",
+   "color": "#8FD3FF"
+  }
+ ],
+ "access": {},
+ "credits": [],
+ "links": {
+  "discord": "https://discord.gg/testInvite/"
+ },
+ "members": {},
+ "plain": false,
+ "keyed": [
+  {
+   "k": "0b228361315f423b",
+   "n": "9b71970053599b06",
+   "c": "416c633b4b315f2d11ba1ccdfd0e293dc284088d00b0671d97af37651d7a723d8884de01598e3fe6",
+   "access": {
+    "8f855a05f7a048910bfc4f8eb36fa77bf50e04d19280f90facea18972ce02201": 2,
+    "e91c55a90affccbf52472c696bdd4795f3cff6ca75bcea23fae0082f7137b9c4": 1
+   },
+   "members": {
+    "8659a821550029ee3529a80874f08c126a52708b6b24d5e4d2bd3a7a02c859a8": 1,
+    "8f855a05f7a048910bfc4f8eb36fa77bf50e04d19280f90facea18972ce02201": 1
+   }
+  },
+  {
+   "k": "f1e0a28c80b70e1c",
+   "n": "179d513aea6922ec",
+   "c": "69a016220ac01a194a3c34539a39b31746a38b0930ba9aed4aee8fff924b61f0d35ad0816058a377",
+   "access": {
+    "3771a4027fb0301a786fb3a7f3ab8c9a9b0924489e2c791dab59078e012f58c4": 2,
+    "ba52b674d913752ed450723edd24152bdbaef69d7a6d9b51f1201fa52b2a3d29": 1
+   },
+   "members": {
+    "8f53c5ebbb9ae1c1953f77684bc5854a047a305dff408e9e991e5fd1024a3bb9": 1,
+    "3771a4027fb0301a786fb3a7f3ab8c9a9b0924489e2c791dab59078e012f58c4": 1
+   }
+  }
+ ]
+}

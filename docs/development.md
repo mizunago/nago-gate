@@ -12,7 +12,7 @@
 ## 確かめ方
 
 ```
-python tools/run_unity_tests.py            全部（8 分ほど）
+python tools/run_unity_tests.py            全部（20 分ほど）
 python tools/run_unity_tests.py member     名前に member を含む場面だけ
 ```
 
@@ -30,10 +30,18 @@ Unity をバッチモードで動かし、次を確かめます。Unity の場�
 | presence/GuestLocal | 通知の積み上げと言語の切り替え、支援者の退出後のカウントダウン、理由つきでロビーへ戻る、ボードの本人向けの表示と招待 URL |
 | member/Paula | メンバー限定のゲートに、メンバーが入れる。「支援者」が「メンバー」に言い換わる |
 | member/Dave | メンバー限定のゲートに、支援者だがメンバーでない人は入れない |
+| many/Nobody | 支援者が 130 人のとき、名前の一覧がページに分かれて切り替わる |
+| keyed/Paula・keyed/many | 鍵つきのリストで、判定とクレジットの表示ができる（130 人でも元に戻せる） |
+| keyed/plain | 鍵を入れたワールドが、鍵なしのリストを読める |
+| keyed/nokey・keyed/wrongkey | 鍵が無い・合わないワールドは、取得できなかった扱いになり、誰も入れない |
+| keyed/rotate-old・keyed/rotate-new | 鍵を入れ替えている間（リストに新旧 2 本の区画）、古い鍵のワールドも新しい鍵のワールドも動く |
+| keyed/migrate-nokey・migrate-key・migrate-otherkey | 鍵なしから移る間（鍵なしの部分も残したリスト）、鍵の無いワールドも、鍵を入れたワールドも動く |
 | convert/GuestLocal | `Convert Existing World` で、スポーン地点の引き継ぎ・入口の部屋・リスポーンの高さが正しく設定され、メンバーが入場できる |
 | convert/Dave | 変換したワールドで、入れない人が入口の部屋に戻る |
 
 支援者リストは `unity-test/TestData/supporters.json` を、スクリプトが `127.0.0.1` で配ります。場面を足すときは、`unity-test/Assets/Editor/PlaySmoke.cs`（シーンの組み立て）、`unity-test/Assets/Test/NoticeSmoke.cs`（再生中の操作とログ）、`tools/run_unity_tests.py` の `SCENARIOS`（期待する表示）を直します。
+
+鍵つきの見本（`supporters-keyed*.json`、鍵は `TestListKey-0123` と `NewListKey-45678`）は、`python tools/protect_list.py` で作ります。Bot（`bot/src/protect.ts`）とは別の実装なので、形式を変えたときは、Bot の出力と突き合わせてください。
 
 ここで確かめられないもの:
 

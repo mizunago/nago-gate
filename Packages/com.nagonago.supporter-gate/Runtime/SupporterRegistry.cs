@@ -11,6 +11,14 @@
 //   "members": { "<sha256(normalized displayName)>": 1, ... },   // 任意。支援とは別の「メンバー」。名前は載らない
 //   "links": { "discord": "https://discord.gg/xxxx" }            // 任意。案内用のリンク
 // }
+//
+// 鍵つきのリスト（"v": 2。Bot に LIST_KEY を設定したとき。規則は bot/src/protect.ts と同じ）:
+//   "keyed": [ { "k": 鍵の番号, "n": nonce, "c": 暗号化したクレジット（16 進）, "access": {...}, "members": {...} }, ... ]
+//   鍵ごとに区画が 1 つ入る（鍵を入れ替えている間は、新旧 2 つ）。鍵の番号は sha256(鍵 + "\nid") の先頭 16 文字。
+//   区画の "access" と "members" のハッシュは sha256(鍵 + "\n" + normalized displayName)。
+//   "plain": false のときは、上の鍵なしの部分（access・credits・members）は空。true なら、鍵なしの部分にも中身がある（移行中）
+//   このコンポーネントの List Key に鍵を入れると、その鍵の区画を読む。区画が無ければ、鍵なしの部分に中身があるときだけ、そちらを読む。
+//   List Key を入れていても、鍵なしのリスト（"v": 1）はそのまま読める
 
 using UdonSharp;
 using UnityEngine;
@@ -42,6 +50,9 @@ public class SupporterRegistry : UdonSharpBehaviour
     [Tooltip("再取得の間隔（秒）。支援者の追加・猶予切れはこの間隔で反映される")]
     [SerializeField] private float refreshIntervalSeconds = 600f;
 
+    [Tooltip("鍵つきのリストの鍵（Bot の LIST_KEY と同じ文字列）。鍵なしのリストだけを使うなら空のまま")]
+    [SerializeField] private string listKey = "";
+
     [Tooltip("ハッシュ計算用コンポーネント（同じ GameObject に付ける）")]
     [SerializeField] private SupporterHash hasher;
 
@@ -65,6 +76,23 @@ public class SupporterRegistry : UdonSharpBehaviour
     private string _lastError = "";
     private int _dataRevision;
 
+    // ---- 鍵つきのリスト ----
+    private const int DecryptBlocksPerFrame = 1;   // 1 フレームに戻すブロック数（1 ブロック = 32 バイト。1 ブロックに 3 ミリ秒ほどかかる）
+    private bool _listKeyed;            // 今のリストが鍵つきか
+    private bool _hashKeyed;            // _slotHashes が、鍵を混ぜたハッシュか
+    private bool _creditsReady = true;  // クレジットを表示できるか（鍵つきのリストは、戻し終わるまで false）
+    private string _parseError = "";
+    private string _keyId;              // 自分の鍵の番号（最初にリストを読むときに作る。鍵が無ければ空文字）
+    private string _encCipher = "";     // 戻し終えた（または戻している途中の）暗号文。同じなら戻し直さない
+    private string _encNonce = "";
+    private byte[] _encData;
+    private int _encBlock;
+    private int _encDecoded;
+    private System.Text.StringBuilder _encText;
+    private bool _decrypting;
+    private float _encStartedAt;
+    private int _encStartFrame;
+
     // ---- プレイヤーごとのキャッシュ ----
     private int[] _slotIds = new int[MaxSlots];
     private string[] _slotHashes = new string[MaxSlots];
@@ -82,6 +110,8 @@ public class SupporterRegistry : UdonSharpBehaviour
         if (hasher == null) hasher = GetComponent<SupporterHash>();
         if (hasher == null) Debug.LogError("[SupporterRegistry] SupporterHash が見つかりません");
         for (int i = 0; i < MaxSlots; i++) _slotIds[i] = 0;
+        // 鍵が入っていれば、リストも鍵つきだと見込んでハッシュを作る（違っていたら、読み込んだときに作り直す）
+        _hashKeyed = listKey != null && listKey.Length > 0;
         _StartDownload();
     }
 
@@ -152,8 +182,7 @@ public class SupporterRegistry : UdonSharpBehaviour
     public int _GetRankOfName(string displayName)
     {
         if (!_loaded || hasher == null) return RankUnknown;
-        string hash = hasher._Sha256Hex(hasher._NormalizeName(displayName));
-        return LookupRank(hash);
+        return LookupRank(HashOfName(displayName));
     }
 
     public int _GetTierCount() { return _tierCount; }
@@ -184,6 +213,9 @@ public class SupporterRegistry : UdonSharpBehaviour
         int i = TierIndex(rank);
         return i >= 0 ? _tierColorHex[i] : "#FFFFFF";
     }
+
+    /// <summary>クレジットの名前を出せるか。鍵つきのリストは、読み込んでから名前を元に戻し終わるまで false</summary>
+    public bool _AreCreditsReady() { return _creditsReady; }
 
     public int _GetCreditCount() { return _credits == null ? 0 : _credits.Count; }
 
@@ -240,17 +272,36 @@ public class SupporterRegistry : UdonSharpBehaviour
     public override void OnStringLoadSuccess(IVRCStringDownload result)
     {
         _downloading = false;
+        _parseError = "";
         if (!ParseJson(result.Result))
         {
-            _lastError = "JSON の解析に失敗";
-            Debug.LogError("[SupporterRegistry] JSON parse failed");
+            _lastError = _parseError.Length > 0 ? _parseError : "JSON の解析に失敗";
+            Debug.LogError("[SupporterRegistry] " + _lastError);
             ScheduleRetry();
+            NotifyListeners();
             return;
         }
         _retryCount = 0;
         _lastError = "";
         _loaded = true;
         _dataRevision++;
+        if (_hashKeyed != _listKeyed)
+        {
+            // 見込みと違う種類のリストだった: ハッシュを作り直す（問い合わせがあればその場で、残りは 1 フレームに 1 人ずつ）
+            _hashKeyed = _listKeyed;
+            for (int i = 0; i < MaxSlots; i++)
+            {
+                if (_slotIds[i] == 0) continue;
+                _slotHashes[i] = null;
+                _slotRanks[i] = 0;
+                _slotMember[i] = false;
+            }
+            if (!_hashLoopRunning)
+            {
+                _hashLoopRunning = true;
+                SendCustomEventDelayedFrames(nameof(_ProcessPendingHash), 1);
+            }
+        }
         RecomputeAllSlots();
         if (debugMode) Debug.Log($"[SupporterRegistry] loaded rev={_dataRevision} access={_access.Count} credits={_GetCreditCount()} tiers={_tierCount}");
         NotifyListeners();
@@ -295,6 +346,49 @@ public class SupporterRegistry : UdonSharpBehaviour
         DataToken linksToken;
         DataDictionary links = null;
         if (dict.TryGetValue("links", TokenType.DataDictionary, out linksToken)) links = linksToken.DataDictionary;
+
+        // 鍵つきのリスト: 自分の鍵の区画を探す（区画の "k" が鍵の番号）
+        if (_keyId == null) _keyId = (listKey != null && listKey.Length > 0 && hasher != null) ? hasher._Sha256Hex(listKey + "\nid").Substring(0, 16) : "";
+        DataToken keyedToken;
+        bool hasKeyed = dict.TryGetValue("keyed", TokenType.DataList, out keyedToken);
+        DataDictionary section = null;
+        if (hasKeyed && _keyId.Length > 0)
+        {
+            DataList sections = keyedToken.DataList;
+            for (int i = 0; i < sections.Count; i++)
+            {
+                DataToken st = sections[i];
+                if (st.TokenType != TokenType.DataDictionary) continue;
+                DataToken kid;
+                if (st.DataDictionary.TryGetValue("k", TokenType.String, out kid) && kid.String == _keyId)
+                {
+                    section = st.DataDictionary;
+                    break;
+                }
+            }
+        }
+        bool keyed = section != null;
+        string cipher = "";
+        string nonce = "";
+        if (keyed)
+        {
+            DataToken sv;
+            if (!section.TryGetValue("access", TokenType.DataDictionary, out accessToken)) return false;
+            members = section.TryGetValue("members", TokenType.DataDictionary, out sv) ? sv.DataDictionary : null;
+            nonce = section.TryGetValue("n", TokenType.String, out sv) ? sv.String : "";
+            cipher = section.TryGetValue("c", TokenType.String, out sv) ? sv.String : "";
+        }
+        else if (hasKeyed)
+        {
+            // 自分の鍵の区画が無い。鍵なしの部分に中身があれば（移行中）、そちらを読む。
+            // 無ければ、取得できなかったときと同じ扱いにする（空のまま使うと、全員が支援者でない扱いになる）
+            DataToken plainToken;
+            if (!dict.TryGetValue("plain", TokenType.Boolean, out plainToken) || !plainToken.Boolean)
+            {
+                _parseError = _keyId.Length == 0 ? "鍵つきのリストですが、List Key が未設定です" : "List Key が、リストのどの鍵とも一致しません";
+                return false;
+            }
+        }
 
         DataToken tiersToken;
         int tierCount = 0;
@@ -343,7 +437,19 @@ public class SupporterRegistry : UdonSharpBehaviour
         }
 
         _access = accessToken.DataDictionary;
-        _credits = credits;
+        _listKeyed = keyed;
+        if (!keyed)
+        {
+            _credits = credits;
+            _creditsReady = true;
+            _encCipher = "";
+        }
+        else if (cipher != _encCipher)
+        {
+            // 名前を元に戻す（数フレームに分ける）。前のクレジットがあれば、戻し終わるまでそれを出しておく
+            if (_encCipher.Length == 0) { _credits = null; _creditsReady = false; }
+            StartDecrypt(cipher, nonce);
+        }
         _members = members;
         _links = links;
         _tierCount = tierCount;
@@ -353,6 +459,100 @@ public class SupporterRegistry : UdonSharpBehaviour
         _tierColorHex = hexes;
         _tierColors = colors;
         return true;
+    }
+
+    // ================= 鍵つきのリストの復号 =================
+
+    private void StartDecrypt(string cipher, string nonce)
+    {
+        _encCipher = cipher;
+        _encNonce = nonce;
+        _encData = new byte[cipher.Length / 2];
+        _encBlock = 0;
+        _encDecoded = 0;
+        _encText = new System.Text.StringBuilder(_encData.Length);
+        _encStartedAt = Time.realtimeSinceStartup;
+        _encStartFrame = Time.frameCount;
+        if (!_decrypting)
+        {
+            _decrypting = true;
+            SendCustomEventDelayedFrames(nameof(_DecryptStep), 1);
+        }
+    }
+
+    /// <summary>
+    /// 暗号文を 32 バイトずつ元に戻し、UTF-8 として文字にしていく。
+    /// 鍵の流れ: ブロック i = sha256(鍵 + "\n" + nonce + "\n" + i)
+    /// </summary>
+    public void _DecryptStep()
+    {
+        if (_encData == null)
+        {
+            _decrypting = false;
+            return;
+        }
+        int n = _encData.Length;
+        for (int step = 0; step < DecryptBlocksPerFrame && _encBlock * 32 < n; step++)
+        {
+            byte[] stream = hasher._Sha256Bytes(listKey + "\n" + _encNonce + "\n" + _encBlock.ToString());
+            int from = _encBlock * 32;
+            for (int i = 0; i < 32 && from + i < n; i++)
+            {
+                int v = HexPair(_encCipher, (from + i) * 2);
+                _encData[from + i] = (byte)((v < 0 ? 0 : v) ^ stream[i]);
+            }
+            _encBlock++;
+            // 戻し終えたところまでを文字にする。複数バイトの文字がブロックをまたぐので、最後のブロック以外は 4 バイト手前で止める
+            int ready = _encBlock * 32 < n ? _encBlock * 32 - 4 : n;
+            while (_encDecoded < ready) DecodeOne(n);
+        }
+        if (_encBlock * 32 < n)
+        {
+            SendCustomEventDelayedFrames(nameof(_DecryptStep), 1);
+            return;
+        }
+
+        _decrypting = false;
+        DataToken list;
+        if (VRCJson.TryDeserializeFromJson(_encText.ToString(), out list) && list.TokenType == TokenType.DataList) _credits = list.DataList;
+        else
+        {
+            _credits = null;
+            Debug.LogError("[SupporterRegistry] クレジットを元に戻せませんでした");
+        }
+        _encData = null;
+        _encText = null;
+        _creditsReady = true;
+        if (debugMode) Debug.Log($"[SupporterRegistry] credits decrypted count={_GetCreditCount()} blocks={_encBlock} frames={Time.frameCount - _encStartFrame} seconds={Time.realtimeSinceStartup - _encStartedAt}");
+        NotifyListeners();
+    }
+
+    /// <summary>_encData の _encDecoded の位置から、UTF-8 の 1 文字を読んで _encText に足す</summary>
+    private void DecodeOne(int n)
+    {
+        int b = _encData[_encDecoded];
+        _encDecoded++;
+        int cp;
+        int more;
+        if (b < 0x80) { cp = b; more = 0; }
+        else if (b >= 0xC0 && b < 0xE0) { cp = b & 0x1F; more = 1; }
+        else if (b >= 0xE0 && b < 0xF0) { cp = b & 0x0F; more = 2; }
+        else if (b >= 0xF0 && b < 0xF8) { cp = b & 0x07; more = 3; }
+        else { cp = 0x3F; more = 0; }   // 壊れた並びは "?" にする
+        while (more > 0 && _encDecoded < n)
+        {
+            cp = (cp << 6) | (_encData[_encDecoded] & 0x3F);
+            _encDecoded++;
+            more--;
+        }
+        if (cp < 0x10000) _encText.Append((char)cp);
+        else
+        {
+            // 絵文字など: 上位と下位の 2 文字に分ける
+            cp -= 0x10000;
+            _encText.Append((char)(0xD800 + (cp >> 10)));
+            _encText.Append((char)(0xDC00 + (cp & 0x3FF)));
+        }
     }
 
     private Color ParseHexColor(string hex)
@@ -486,11 +686,18 @@ public class SupporterRegistry : UdonSharpBehaviour
     private void ComputeSlotHash(int slot, VRCPlayerApi player)
     {
         if (hasher == null) return;
-        string hash = hasher._Sha256Hex(hasher._NormalizeName(player.displayName));
+        string hash = HashOfName(player.displayName);
         _slotHashes[slot] = hash;
         _slotRanks[slot] = _loaded ? LookupRank(hash) : 0;
         _slotMember[slot] = _loaded && LookupMember(hash);
         if (debugMode) Debug.Log($"[SupporterRegistry] {player.displayName} -> {hash} rank={_slotRanks[slot]} member={_slotMember[slot]}");
+    }
+
+    /// <summary>名前から、リストを引くためのハッシュを作る。鍵つきのリストでは、鍵を混ぜる</summary>
+    private string HashOfName(string displayName)
+    {
+        string normalized = hasher._NormalizeName(displayName);
+        return hasher._Sha256Hex(_hashKeyed ? listKey + "\n" + normalized : normalized);
     }
 
     private void RecomputeAllSlots()

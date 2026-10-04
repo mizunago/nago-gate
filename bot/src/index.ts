@@ -6,6 +6,7 @@ import { loadInstance } from "./config.js";
 import { initLog, log as L } from "./log.js";
 import { attachDiscordLog } from "./discordlog.js";
 import { updateCommandBoard } from "./helpboard.js";
+import { listKeyId } from "./protect.js";
 import { Store } from "./store.js";
 import { publishIfChanged, runSync, type SyncContext } from "./sync.js";
 
@@ -18,8 +19,12 @@ async function main(): Promise<void> {
   initLog(inst.dir);
   const { config } = inst;
   const store = new Store(inst.dataPath);
-  const ctx: SyncContext = { config, store, githubToken: inst.secrets.githubToken, log, logQuiet: (m) => L.quiet(m) };
+  const ctx: SyncContext = { config, store, githubToken: inst.secrets.githubToken, listKeys: inst.secrets.listKeys, listKeepPlain: inst.secrets.listKeepPlain, log, logQuiet: (m) => L.quiet(m) };
   log(`設定フォルダ: ${inst.dir}`);
+  if (inst.secrets.listKeys.length > 0) {
+    const ids = inst.secrets.listKeys.map((key) => listKeyId(key)).join(", ");
+    log(`リストは鍵つきで公開します（鍵 ${inst.secrets.listKeys.length} 本、番号 ${ids}${inst.secrets.listKeepPlain ? "。鍵なしの部分も残す（移行中）" : ""}）`);
+  }
 
   const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers];
   if (config.registerChannelId) intents.push(GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent);
