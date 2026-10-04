@@ -160,6 +160,225 @@ public static class SupporterGateSetup
         Debug.Log("[SupporterGate] 通知と文言の表を配線しました（" + gates.Length + " 個のゲート）");
     }
 
+    // ===================== 既存のワールドへの後付け =====================
+    // ゲートの無いワールドに、入口の部屋（ロビー）とゲート一式を足す。
+    // 今のスポーン地点は「入場したあとに出る場所」として引き継ぎ、新しいスポーン地点は入口の部屋にする。
+
+    private const string LobbyRoomName = "LobbyRoom";
+    private const float LobbyDepth = 40f;       // ワールドの一番下から、入口の部屋の床までの距離
+    private const float LobbyWidth = 8f;
+    private const float LobbyHeight = 3.2f;
+    private const float LobbyWall = 0.2f;
+
+    [MenuItem("Tools/SupporterGate/Convert Existing World/メンバーだけが入れるワールドにする", false, 40)]
+    public static void ConvertMembersOnly() { ConvertWithDialog(SupporterGateMode.SupportersOnly, true); }
+
+    [MenuItem("Tools/SupporterGate/Convert Existing World/支援者だけが入れるワールドにする", false, 41)]
+    public static void ConvertSupportersOnly() { ConvertWithDialog(SupporterGateMode.SupportersOnly, false); }
+
+    [MenuItem("Tools/SupporterGate/Convert Existing World/支援者と、許可した人が入れるワールドにする", false, 42)]
+    public static void ConvertApproval() { ConvertWithDialog(SupporterGateMode.SupporterApproval, false); }
+
+    private static void ConvertWithDialog(SupporterGateMode mode, bool useMemberList)
+    {
+        bool go = EditorUtility.DisplayDialog("SupporterGate",
+            "今のシーンに、入口の部屋とゲートを足します。\n\n" +
+            "・今のスポーン地点は「入場したあとに出る場所」として引き継ぎます\n" +
+            "・新しいスポーン地点は、ワールドの下に作る入口の部屋になります\n" +
+            "・入れない人は、入口の部屋から先へ進めません\n\n" +
+            "ワールド本体のオブジェクトは動かしません。元に戻すときは Undo（Ctrl+Z）を使ってください。",
+            "実行する", "やめる");
+        if (!go) return;
+        EditorUtility.DisplayDialog("SupporterGate", ConvertExistingWorld(mode, useMemberList), "OK");
+    }
+
+    /// <summary>
+    /// ゲートの無いワールドを、入口の部屋つきのワールドに変える。戻り値は、やったことと次にやることの説明。
+    /// ワールド本体のオブジェクトには触らない（スポーン地点の設定と、落下時のリスポーンの高さだけ変える）。
+    /// </summary>
+    public static string ConvertExistingWorld(SupporterGateMode mode, bool useMemberList)
+    {
+        if (!ProgramAssetsReady()) return "UdonSharp のプログラムアセットがまだ生成されていません。コンパイルが終わるのを待ってから、もう一度実行してください。";
+        VRCSceneDescriptor descriptor = Object.FindObjectOfType<VRCSceneDescriptor>(true);
+        if (descriptor == null) return "シーンに VRC Scene Descriptor がありません。先に VRCWorld を置いてください。";
+        if (Object.FindObjectOfType<SupporterGate>(true) != null)
+        {
+            return "このシーンには既に SupporterGate があります。このツールは、ゲートの無いワールド用です。\n" +
+                "設定を変えたいときは、Gate の Inspector で Mode と Use Member List を直してください。";
+        }
+
+        Undo.IncrementCurrentGroup();
+        int group = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Convert World To SupporterGate");
+
+        // 1. 今のスポーン地点（入場したあとに出る場所として引き継ぐ）
+        Transform oldSpawn = null;
+        if (descriptor.spawns != null)
+        {
+            foreach (Transform t in descriptor.spawns)
+            {
+                if (t != null) { oldSpawn = t; break; }
+            }
+        }
+        if (oldSpawn == null) oldSpawn = descriptor.transform;
+        Vector3 oldPos = oldSpawn.position;
+        Quaternion oldRot = oldSpawn.rotation;
+        int oldSpawnCount = descriptor.spawns != null ? descriptor.spawns.Length : 0;
+
+        // 2. ワールドの範囲を、一式を作る前に測る
+        Bounds bounds = MeasureWorld();
+
+        // 3. 一式を作る
+        CreateSceneSetup();
+        SupporterGate gate = Object.FindObjectOfType<SupporterGate>(true);
+        if (gate == null || gate.transform.parent == null) return "ゲート一式を作れませんでした。Console のエラーを確かめてください。";
+        GameObject root = gate.transform.parent.gameObject;
+
+        // 4. 入口の部屋を、ワールドの真下に作る（本体と重ならず、中から本体が見えない）
+        float floorY = bounds.min.y - LobbyDepth;
+        GameObject room = Child(root, LobbyRoomName);
+        room.transform.position = new Vector3(bounds.center.x, floorY, bounds.center.z);
+        BuildLobbyRoom(room);
+
+        // 5. スポーン地点とパネルを、部屋の中へ移す（部屋ごと動かせるように、部屋の子にする）
+        Transform lobbySpawn = null;
+        foreach (string name in new[] { "LobbySpawn", "LobbyPanel", "ApprovalPanel", "CreditsBoard" })
+        {
+            Transform t = root.transform.Find(name);
+            if (t == null) continue;
+            t.SetParent(room.transform, false);     // 一式の原点からの位置を、そのまま部屋の中の位置にする
+            if (name == "LobbySpawn") lobbySpawn = t;
+            // 許可のパネルは、許可制のモードでだけ使う
+            if (name == "ApprovalPanel" && mode != SupporterGateMode.SupporterApproval) t.gameObject.SetActive(false);
+        }
+        if (lobbySpawn == null) return "LobbySpawn が見つかりません。";
+        lobbySpawn.localPosition = new Vector3(0f, 0.05f, 0f);
+
+        // 6. 入場したあとに出る場所 = 元のスポーン地点
+        Transform contentSpawn = root.transform.Find("ContentSpawn");
+        if (contentSpawn != null) contentSpawn.SetPositionAndRotation(oldPos, oldRot);
+
+        // 7. 本体の範囲を覆う判定（入れない人が中に入ったら、入口の部屋へ戻す）
+        Transform zone = root.transform.Find("ContentZone");
+        if (zone != null)
+        {
+            zone.SetPositionAndRotation(bounds.center, Quaternion.identity);
+            BoxCollider col = zone.GetComponent<BoxCollider>();
+            if (col != null)
+            {
+                col.center = Vector3.zero;
+                col.size = new Vector3(Mathf.Max(bounds.size.x, 2f) + 4f, Mathf.Max(bounds.size.y, 2f) + 4f, Mathf.Max(bounds.size.z, 2f) + 4f);
+            }
+        }
+
+        // 8. スポーン地点を入口の部屋に替える。部屋が落下のリスポーンの高さより下にならないようにする
+        Undo.RecordObject(descriptor, "Convert World To SupporterGate");
+        float oldRespawn = descriptor.RespawnHeightY;
+        descriptor.spawns = new[] { lobbySpawn };
+        descriptor.RespawnHeightY = Mathf.Min(oldRespawn, floorY - 20f);
+        EditorUtility.SetDirty(descriptor);
+
+        // 9. ゲートの設定
+        SetInt(gate, "mode", (int)mode);
+        SetBool(gate, "useMemberList", useMemberList);
+
+        Undo.CollapseUndoOperations(group);
+        Selection.activeGameObject = room;
+        EditorSceneManager.MarkSceneDirty(root.scene);
+
+        string who = useMemberList ? "メンバーだけ" : (mode == SupporterGateMode.SupporterApproval ? "支援者と、支援者が許可した人" : "支援者だけ");
+        string report =
+            "入口の部屋とゲートを足しました。入れるのは、" + who + "です。\n\n" +
+            "やったこと\n" +
+            "・入口の部屋（LobbyRoom）を、ワールドの " + LobbyDepth.ToString("0") + " m 下に作りました\n" +
+            "・スポーン地点を入口の部屋に替えました（元は " + oldSpawnCount + " か所。1 つ目を「入場したあとに出る場所」に引き継ぎました）\n" +
+            "・落下時のリスポーンの高さ: " + oldRespawn.ToString("0.#") + " → " + descriptor.RespawnHeightY.ToString("0.#") + "\n\n" +
+            "次にやること\n" +
+            "1. SupporterGate System > Registry の Data Url に、支援者リストの URL を入れる\n" +
+            "2. 自分が入れるように、Gate の Owner Display Names に自分の VRChat の表示名を入れる\n" +
+            "3. 入口の部屋の見た目は自由に変えてよい（LobbyRoom ごと動かせます）";
+        Debug.Log("[SupporterGate] " + report);
+        return report;
+    }
+
+    /// <summary>ワールド本体の範囲（描画されるものと地形）。NoticeHub は数えない</summary>
+    private static Bounds MeasureWorld()
+    {
+        bool any = false;
+        Bounds b = new Bounds(Vector3.zero, Vector3.zero);
+        foreach (Renderer r in Object.FindObjectsOfType<Renderer>(true))
+        {
+            if (r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;   // 範囲が決まらない
+            if (r.GetComponentInParent<NoticeHub>(true) != null) continue;
+            Bounds rb;
+            if (r.enabled && r.gameObject.activeInHierarchy)
+            {
+                rb = r.bounds;
+            }
+            else
+            {
+                // 非表示のものは bounds が当てにならないので、メッシュから求める
+                MeshFilter mf = r.GetComponent<MeshFilter>();
+                if (mf == null || mf.sharedMesh == null) continue;
+                rb = TransformBounds(mf.sharedMesh.bounds, r.transform.localToWorldMatrix);
+            }
+            if (rb.size.sqrMagnitude <= 0f || rb.size.magnitude > 5000f) continue;   // 空や、空を覆う巨大な球などは除く
+            if (!any) { b = rb; any = true; } else b.Encapsulate(rb);
+        }
+        foreach (Terrain terrain in Object.FindObjectsOfType<Terrain>(true))
+        {
+            if (terrain.terrainData == null) continue;
+            Bounds tb = terrain.terrainData.bounds;
+            tb.center += terrain.transform.position;
+            if (!any) { b = tb; any = true; } else b.Encapsulate(tb);
+        }
+        if (!any) b = new Bounds(Vector3.zero, new Vector3(20f, 6f, 20f));
+        return b;
+    }
+
+    private static Bounds TransformBounds(Bounds local, Matrix4x4 m)
+    {
+        Vector3 c = local.center, e = local.extents;
+        Bounds b = new Bounds(m.MultiplyPoint3x4(c), Vector3.zero);
+        for (int i = 0; i < 8; i++)
+        {
+            Vector3 corner = c + new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
+            b.Encapsulate(m.MultiplyPoint3x4(corner));
+        }
+        return b;
+    }
+
+    /// <summary>床・天井・壁 4 枚と明かりだけの、何もない四角い部屋</summary>
+    private static void BuildLobbyRoom(GameObject room)
+    {
+        GameObject geo = Child(room, "Geometry");
+        float w = LobbyWidth, h = LobbyHeight, t = LobbyWall;
+        LobbyBox(geo, "Floor", new Vector3(0f, -t * 0.5f, 0f), new Vector3(w + t * 2f, t, w + t * 2f));
+        LobbyBox(geo, "Ceiling", new Vector3(0f, h + t * 0.5f, 0f), new Vector3(w + t * 2f, t, w + t * 2f));
+        LobbyBox(geo, "Wall +Z", new Vector3(0f, h * 0.5f, w * 0.5f + t * 0.5f), new Vector3(w + t * 2f, h, t));
+        LobbyBox(geo, "Wall -Z", new Vector3(0f, h * 0.5f, -w * 0.5f - t * 0.5f), new Vector3(w + t * 2f, h, t));
+        LobbyBox(geo, "Wall +X", new Vector3(w * 0.5f + t * 0.5f, h * 0.5f, 0f), new Vector3(t, h, w));
+        LobbyBox(geo, "Wall -X", new Vector3(-w * 0.5f - t * 0.5f, h * 0.5f, 0f), new Vector3(t, h, w));
+
+        GameObject lightGo = Child(room, "Light");
+        lightGo.transform.localPosition = new Vector3(0f, h - 0.5f, 0f);
+        Light light = lightGo.AddComponent<Light>();
+        light.type = LightType.Point;
+        light.range = 10f;
+        light.intensity = 1.2f;
+        light.shadows = LightShadows.None;
+        light.lightmapBakeType = LightmapBakeType.Realtime;
+    }
+
+    private static void LobbyBox(GameObject parent, string name, Vector3 localPosition, Vector3 size)
+    {
+        GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        box.name = name;
+        box.transform.SetParent(parent.transform, false);
+        box.transform.localPosition = localPosition;
+        box.transform.localScale = size;
+    }
+
     /// <summary>
     /// 一式（systemRoot の下）に、文言の表（NoticeTable）と共通の通知（NoticeHub）を配線する。
     /// 何度呼んでも増えない。NoticeHub はシーンに 1 つ（無ければプレハブから置く）。
@@ -348,6 +567,20 @@ public static class SupporterGateSetup
             return;
         }
         prop.intValue = value;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        UdonSharpEditorUtility.CopyProxyToUdon(proxy);
+    }
+
+    private static void SetBool(UdonSharp.UdonSharpBehaviour proxy, string field, bool value)
+    {
+        SerializedObject so = new SerializedObject(proxy);
+        SerializedProperty prop = so.FindProperty(field);
+        if (prop == null)
+        {
+            Debug.LogError($"[SupporterGate] フィールド {field} が {proxy.GetType().Name} にありません");
+            return;
+        }
+        prop.boolValue = value;
         so.ApplyModifiedPropertiesWithoutUndo();
         UdonSharpEditorUtility.CopyProxyToUdon(proxy);
     }
