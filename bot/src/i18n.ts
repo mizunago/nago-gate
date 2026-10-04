@@ -251,11 +251,26 @@ const M = {
     ko: "먼저 **등록** 버튼으로 VRChat 표시 이름을 등록해 주세요.",
   },
   "member.explain": {
-    ja: "**メンバー登録**\nサーバーに参加してから {days} 日以上たった方は、支援の有無に関係なく、メンバー限定のワールドの案内を見られます。\n・メンバー限定のワールドには、大人向けの表現や、刺激の強い演出があります\n・18 歳以上で、そうした内容に抵抗がない方だけ登録してください\n・ワールドの名前やリンクを、このサーバーの外に出さないでください\n下のボタンを押すと、上の内容に同意して登録します。",
-    en: "**Membership**\nOnce you have been on this server for {days} days, you can see the member-only worlds, whether or not you are a supporter.\n- Member-only worlds contain adult themes and intense effects\n- Please apply only if you are 18 or older and comfortable with such content\n- Please do not share the world names or links outside this server\nPressing the button below means you agree to the above.",
-    "zh-CN": "**成员登记**\n加入本服务器满 {days} 天后，无论是否支持，都可以查看成员限定世界的说明。\n・成员限定世界包含面向成人的表现和较强烈的演出\n・请仅在年满 18 岁且不介意此类内容时登记\n・请勿将世界名称或链接带到本服务器之外\n点击下方按钮即表示同意以上内容并完成登记。",
-    "zh-TW": "**成員登記**\n加入本伺服器滿 {days} 天後，無論是否支持，都可以查看成員限定世界的說明。\n・成員限定世界包含面向成人的表現和較強烈的演出\n・請僅在年滿 18 歲且不介意此類內容時登記\n・請勿將世界名稱或連結帶到本伺服器之外\n點擊下方按鈕即表示同意以上內容並完成登記。",
-    ko: "**멤버 등록**\n이 서버에 참가한 지 {days}일이 지나면, 후원 여부와 관계없이 멤버 전용 월드 안내를 볼 수 있습니다.\n・멤버 전용 월드에는 성인용 표현과 자극이 강한 연출이 있습니다\n・18세 이상이며 그런 내용에 거부감이 없는 분만 등록해 주세요\n・월드 이름이나 링크를 이 서버 밖으로 내보내지 마세요\n아래 버튼을 누르면 위 내용에 동의하고 등록합니다.",
+    ja: "**メンバー登録**\nサーバーに参加してから {days} 日以上たった方は、支援の有無に関係なく、メンバー限定のワールドの案内を見られます。\n・メンバー限定のワールドには、大人向けの表現や、刺激の強い演出があります\n・18 歳以上で、そうした内容に抵抗がない方だけ登録してください",
+    en: "**Membership**\nOnce you have been on this server for {days} days, you can see the member-only worlds, whether or not you are a supporter.\n- Member-only worlds contain adult themes and intense effects\n- Please apply only if you are 18 or older and comfortable with such content",
+    "zh-CN": "**成员登记**\n加入本服务器满 {days} 天后，无论是否支持，都可以查看成员限定世界的说明。\n・成员限定世界包含面向成人的表现和较强烈的演出\n・请仅在年满 18 岁且不介意此类内容时登记",
+    "zh-TW": "**成員登記**\n加入本伺服器滿 {days} 天後，無論是否支持，都可以查看成員限定世界的說明。\n・成員限定世界包含面向成人的表現和較強烈的演出\n・請僅在年滿 18 歲且不介意此類內容時登記",
+    ko: "**멤버 등록**\n이 서버에 참가한 지 {days}일이 지나면, 후원 여부와 관계없이 멤버 전용 월드 안내를 볼 수 있습니다.\n・멤버 전용 월드에는 성인용 표현과 자극이 강한 연출이 있습니다\n・18세 이상이며 그런 내용에 거부감이 없는 분만 등록해 주세요",
+  },
+  "member.confirm": {
+    ja: "下のボタンを押すと、上の内容すべてに同意して登録します。",
+    en: "Pressing the button below means you agree to all of the above.",
+    "zh-CN": "点击下方按钮即表示同意以上全部内容并完成登记。",
+    "zh-TW": "點擊下方按鈕即表示同意以上全部內容並完成登記。",
+    ko: "아래 버튼을 누르면 위 내용 전체에 동의하고 등록합니다.",
+  },
+  // 共有のお願い。支援者にもメンバーにも同じ文を出す（登録の返答と、メンバー登録の同意の画面）
+  "share.notice": {
+    ja: "**共有についてのお願い**\n・スクリーンショットや動画を投稿するときは、まず投稿先のルールを守ってください\n・投稿はかまいませんが、**ワールドを特定できる情報（ワールド名・リンク・ID・招待リンク）は一切載せないでください**\n・知り合いに見せるときも、ワールドの情報は画像・動画・説明文・キャプション・メタデータに入れず、別に伝えてください",
+    en: "**Sharing notice**\n- When you post screenshots or videos, first follow the rules of the platform you post on\n- Posting is fine, but **never include anything that identifies the world (world name, link, ID, or invite link)**\n- Even when you share with people you know, give the world information separately. Do not put it in the image, the video, the description, the caption, or the metadata",
+    "zh-CN": "**关于分享**\n・发布截图或视频时，请首先遵守发布平台的规则\n・可以发布，但**请勿包含任何能识别世界的信息（世界名称、链接、ID、邀请链接）**\n・即使只分享给认识的人，也请另行告知世界信息，不要写在图片、视频、说明、标题或元数据中",
+    "zh-TW": "**關於分享**\n・發布截圖或影片時，請首先遵守發布平台的規則\n・可以發布，但**請勿包含任何能識別世界的資訊（世界名稱、連結、ID、邀請連結）**\n・即使只分享給認識的人，也請另行告知世界資訊，不要寫在圖片、影片、說明、標題或中繼資料中",
+    ko: "**공유에 관한 안내**\n・스크린샷이나 영상을 올릴 때는 먼저 올리는 플랫폼의 규칙을 지켜 주세요\n・올리는 것은 괜찮지만, **월드를 특정할 수 있는 정보(월드 이름, 링크, ID, 초대 링크)는 절대 포함하지 마세요**\n・아는 사람에게 보여 줄 때도 월드 정보는 이미지, 영상, 설명, 캡션, 메타데이터에 넣지 말고 따로 전달해 주세요",
   },
   "member.agree": {
     ja: "18 歳以上です。同意して登録する",

@@ -107,7 +107,8 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
 
   const message =
     `${t(lang, "registered")}\n${describe(config, rec, lang)}\n` +
-    t(lang, rec.effectiveRank > 0 ? "registered.active" : "registered.inactive");
+    t(lang, rec.effectiveRank > 0 ? "registered.active" : "registered.inactive") +
+    `\n\n${t(lang, "share.notice")}`;
   return { ok: true, changed: true, message };
 }
 

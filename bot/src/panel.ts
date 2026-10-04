@@ -55,6 +55,14 @@ export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
       `🇰🇷 **멤버** 버튼: 서버 참가 후 ${d}일이 지나면 후원 여부와 관계없이 멤버 전용 안내를 볼 수 있습니다 (18세 이상).`,
     );
   }
+  // 共有のお願いは、支援者にもメンバーにも共通。全員が読む場所なので、ここにも出す
+  lines.push(
+    "",
+    "🇯🇵 **共有のお願い**: スクリーンショットや動画の投稿はかまいませんが、**ワールドを特定できる情報（ワールド名・リンク・ID・招待リンク）は載せないでください**。知り合いに見せるときも、ワールドの情報は別に伝えてください。",
+    "🇬🇧 **Sharing**: you may post screenshots and videos, but **never include anything that identifies the world (name, link, ID, or invite link)**. Even with people you know, give the world information separately.",
+    "🇨🇳 **分享**：可以发布截图和视频，但**请勿包含能识别世界的信息（名称、链接、ID、邀请链接）**。即使分享给认识的人，也请另行告知世界信息。",
+    "🇰🇷 **공유**: 스크린샷과 영상은 올려도 되지만, **월드를 특정할 수 있는 정보(이름, 링크, ID, 초대 링크)는 포함하지 마세요**. 아는 사람에게도 월드 정보는 따로 전달해 주세요.",
+  );
   lines.push(
     "",
     "-# スラッシュコマンド `/vrc register` も使えますが、コピペでは動きません。入力欄で `/` を打って候補から選んでください。",
@@ -103,7 +111,8 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, "member.agree")).setStyle(ButtonStyle.Success),
       );
-      await interaction.reply({ content: t(lang, "member.explain", { days: mc.minDays }), components: [row], ephemeral: true });
+      const content = [t(lang, "member.explain", { days: mc.minDays }), t(lang, "share.notice"), t(lang, "member.confirm")].join("\n\n");
+      await interaction.reply({ content, components: [row], ephemeral: true });
     } else {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, "member.leave")).setStyle(ButtonStyle.Secondary),
