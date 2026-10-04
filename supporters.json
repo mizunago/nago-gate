@@ -1,6 +1,6 @@
 {
  "v": 2,
- "generatedAt": "2026-10-04T03:39:17.607Z",
+ "generatedAt": "2026-10-04T06:17:29.570Z",
  "tiers": [
   {
    "id": "supporter",
@@ -17,15 +17,11 @@
  ],
  "access": {},
  "credits": [],
- "members": {
-  "b64384034ab63fe5f657ac9e3a8ebdca781b4e9181ec34993d2f7e91cf61f038": 1,
-  "232f8937a3f6b69b9a74ffee099313f6ef36ab525e552e998236052c1c7bf015": 1,
-  "0a971af024bdbec3480e894db327396cd890b38c1ceef7448b9a806f7d5177a3": 1
- },
+ "members": {},
  "links": {
   "discord": "https://discord.gg/ENg5sh23J5"
  },
- "plain": true,
+ "plain": false,
  "keyed": [
   {
    "k": "fb385a5279c526b8",
