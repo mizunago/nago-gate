@@ -22,6 +22,9 @@ public class NoticeSmoke : UdonSharpBehaviour
     public bool skipEnter;
     public bool noticeGallery;
     public bool skipLangSwitch;
+    public NoticeJoinLeave joinLeave;
+    public TextMeshProUGUI joinLeaveLabel;
+    public bool joinLeaveToggle;
 
     private int _tick;
 
@@ -71,6 +74,11 @@ public class NoticeSmoke : UdonSharpBehaviour
     public void _Step2()
     {
         Debug.Log("[SMOKE] step2: sticky + language override");
+        if (joinLeave != null && joinLeaveToggle)
+        {
+            joinLeave._Toggle();
+            Debug.Log("[SMOKE] joinleave toggled on=" + joinLeave._IsOn() + " label=" + joinLeaveLabel.text);
+        }
         hub._SetSticky("cd", "あと 1:59", NoticeHub.LevelWarning);
         hub._SetSticky("cd", "あと 1:58", NoticeHub.LevelWarning);
         hub._SetLanguageOverride("en");
@@ -139,6 +147,7 @@ public class NoticeSmoke : UdonSharpBehaviour
     public void _Step5()
     {
         Debug.Log("[SMOKE] step5: late state allowed=" + gate._IsLocalAllowed());
+        if (joinLeave != null) Debug.Log("[SMOKE] joinleave(late) on=" + joinLeave._IsOn() + " text=" + joinLeave._GetStateText() + " label=" + joinLeaveLabel.text);
         if (creditsText != null) Debug.Log("[SMOKE] credits(late)=" + creditsText.text.Replace("\n", "/"));
         if (infoText != null) Debug.Log("[SMOKE] info(late)=" + infoText.text.Replace("\n", "/"));
         if (gateStatus != null) Debug.Log("[SMOKE] status(late)=" + gateStatus.text.Replace("\n", "/"));

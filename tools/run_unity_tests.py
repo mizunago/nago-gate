@@ -27,7 +27,7 @@ PORT = 8765
 # ClientSim がバッチモードで出す、入力まわりの例外（中身と関係ない）
 NOISE = ("ClientSimPlayerController", "NullReferenceException: Object reference not set")
 
-# 場面: (名前, 環境変数, 期待する文字列のリスト[, 出てよいエラーの目印のリスト])。"A && B" は「A と B を両方含む行がある」
+# 場面: (名前, 環境変数, 期待する文字列のリスト[, 出てよいエラーの目印のリスト[, 出てはいけない文字列のリスト]])。"A && B" は「A と B を両方含む行がある」
 SCENARIOS = [
     ("presence/GuestLocal（支援者が在室の間だけ開く。本人はメンバー）", {}, [
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
@@ -120,6 +120,25 @@ SCENARIOS = [
         "t=9  && allowed=False inside=False && This area is for members only.",
         "t=19  && pos=(0.0, -44.0, 0.0) && allowed=False",
     ]),
+    ("joinleave/on（入退室の通知。既定を ON にしたワールド。入室と退室が出る）", {"SG_SMOKE_JL": "on"}, [
+        "[NoticeJoinLeave] && OwnerDummy && が入室しました",
+        "[NoticeJoinLeave] && OwnerDummy && が退室しました",
+        "joinleave(late) on=True text=入退室の通知: ON label=入退室の通知: ON",
+    ]),
+    ("joinleave/off（入退室の通知。既定は OFF。何も出ない）", {"SG_SMOKE_JL": "off"}, [
+        "joinleave(late) on=False text=入退室の通知: OFF label=入退室の通知: OFF",
+    ], [], ["[NoticeJoinLeave] && OwnerDummy"]),
+    ("joinleave/toggle（入退室の通知。OFF から ON に切り替える。切り替えたあとの退室だけ出て、設定を保存する）", {"SG_SMOKE_JL": "toggle"}, [
+        "joinleave toggled on=True label=入退室の通知: ON",
+        "[NoticeJoinLeave] saved on=True",
+        "[NoticeJoinLeave] && OwnerDummy && が退室しました",
+        "joinleave(late) on=True",
+    ], [], ["[NoticeJoinLeave] && が入室しました"]),
+    ("joinleave/restore（入退室の通知。直前の toggle の場面で保存した ON を、次に来たときに引き継ぐ。単独では通らない）", {"SG_SMOKE_JL": "off", "SG_SMOKE_JL_KEEP": "1"}, [
+        "[NoticeJoinLeave] restored on=True",
+        "[NoticeJoinLeave] && OwnerDummy && が退室しました",
+        "joinleave(late) on=True text=入退室の通知: ON label=入退室の通知: ON",
+    ]),
 ]
 
 
@@ -130,13 +149,13 @@ def run_unity(method: str, log_name: str, env_extra: dict, quit_after: bool) -> 
     return subprocess.run(cmd, env={**os.environ, **env_extra}).returncode
 
 
+def found(lines: list, exp: str) -> bool:
+    parts = [p.strip(" ") if not p.startswith("t=") else p for p in exp.split(" && ")]
+    return any(all(p in line for p in parts) for line in lines)
+
+
 def check(lines: list, expectations: list) -> list:
-    failures = []
-    for exp in expectations:
-        parts = [p.strip(" ") if not p.startswith("t=") else p for p in exp.split(" && ")]
-        if not any(all(p in line for p in parts) for line in lines):
-            failures.append(exp)
-    return failures
+    return [exp for exp in expectations if not found(lines, exp)]
 
 
 def main() -> int:
@@ -160,7 +179,7 @@ def main() -> int:
         print("== コンパイルと配線の確認 ==")
         run_unity("PackageBatch.BuildAll", "unity-build.log", {}, True)
         result = (PROJECT / "batch-result.txt").read_text(encoding="utf-8", errors="replace") if (PROJECT / "batch-result.txt").exists() else ""
-        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result
+        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result
         print("  " + ("ok" if build_ok else "FAIL（unity-test/batch-result.txt と unity-build.log を見る）"))
         if not build_ok:
             return 1
@@ -168,6 +187,7 @@ def main() -> int:
         for scenario in SCENARIOS:
             name, env, expectations = scenario[:3]
             allowed_errors = scenario[3] if len(scenario) > 3 else []
+            forbidden = scenario[4] if len(scenario) > 4 else []
             if only and only not in name:
                 continue
             print(f"== {name} ==")
@@ -176,18 +196,21 @@ def main() -> int:
             raw = path.read_text(encoding="utf-8", errors="replace").split("\n") if path.exists() else []
             lines = [l for l in raw if not any(n in l for n in NOISE) and l.strip()]
             failures = check(lines, expectations)
+            unwanted = [f for f in forbidden if found(lines, f)]
             udon_errors = [l for l in lines if ("halted" in l or "<Exception>" in l or "<Error>" in l) and not any(a in l for a in allowed_errors)]
             ended = any("SMOKE_END" in l for l in lines)
-            if failures or udon_errors or not ended:
+            if failures or unwanted or udon_errors or not ended:
                 failed += 1
                 for f in failures:
                     print(f"  FAIL 期待した表示が無い: {f}")
+                for f in unwanted:
+                    print(f"  FAIL 出てはいけない表示がある: {f}")
                 for l in udon_errors[:5]:
                     print(f"  FAIL 例外やエラー: {l[:200]}")
                 if not ended:
                     print("  FAIL 最後まで再生されなかった")
             else:
-                print(f"  ok（{len(expectations)} 項目、例外なし）")
+                print(f"  ok（{len(expectations) + len(forbidden)} 項目、例外なし）")
             # 鍵つきのリストで、名前を元に戻すのにかかった時間（参考）
             for l in lines:
                 if "credits decrypted" in l:

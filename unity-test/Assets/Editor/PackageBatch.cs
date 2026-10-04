@@ -205,6 +205,23 @@ public static class PackageBatch
         Log("board only, after upgrade x2: credits.texts = " + texts + " | credits.notice = " + notice + " | hubs=" + hubs + " tables=" + tables);
         bool ok = texts.Contains("UdonBehaviour") && notice.Contains("UdonBehaviour") && hubs == 1 && tables == 1;
         Log(ok ? "VERIFY_BOARD_ONLY_OK" : "VERIFY_BOARD_ONLY_FAIL");
+        VerifyJoinLeave();
+    }
+
+    /// <summary>The join/leave notice menu in an empty scene: it must place the hub too, wire the clips, and not duplicate on a second run.</summary>
+    private static void VerifyJoinLeave()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+        NoticeJoinLeave first = NoticeMenu.EnsureJoinLeaveInScene();
+        NoticeJoinLeave second = NoticeMenu.EnsureJoinLeaveInScene();
+        if (first == null) { Log("VERIFY_JOINLEAVE_FAIL missing"); return; }
+        string notice = Var(first, "notice"), join = Var(first, "joinClip"), leave = Var(first, "leaveClip"), key = Var(first, "saveKey");
+        int count = UnityEngine.Object.FindObjectsOfType<NoticeJoinLeave>(true).Length, hubs = UnityEngine.Object.FindObjectsOfType<NoticeHub>(true).Length;
+        Log("joinleave: notice = " + notice + " | joinClip = " + join + " | leaveClip = " + leave + " | saveKey = " + key + " | defaultOn = " + Var(first, "defaultOn")
+            + " | count=" + count + " hubs=" + hubs + " same=" + (first == second));
+        bool ok = notice.Contains("UdonBehaviour") && join.Contains("notice-join") && leave.Contains("notice-leave") && key == "nago.notice.joinleave"
+            && count == 1 && hubs == 1 && first == second;
+        Log(ok ? "VERIFY_JOINLEAVE_OK" : "VERIFY_JOINLEAVE_FAIL");
     }
 
     // ------------------------------------------------------------------

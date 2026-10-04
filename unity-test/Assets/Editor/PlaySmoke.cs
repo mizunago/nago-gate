@@ -9,6 +9,7 @@
 using System.IO;
 using System.Text;
 using NagoNotice;
+using NagoNotice.EditorTools;
 using TMPro;
 using UdonSharp;
 using UdonSharpEditor;
@@ -40,6 +41,12 @@ public static class PlaySmoke
     {
         File.WriteAllText(LogPath, "");
         PlayerSettings.insecureHttpOption = InsecureHttpOption.AlwaysAllowed;   // test project only: local http list
+        // ClientSim keeps PlayerData in files between runs. Start clean unless SG_SMOKE_JL_KEEP=1 (to check that a saved setting is restored)
+        string saved = Path.Combine(Directory.GetCurrentDirectory(), "ClientSimStorage", "PlayerData");
+        if (Env("SG_SMOKE_JL_KEEP") != "1" && Directory.Exists(saved))
+        {
+            foreach (string f in Directory.GetFiles(saved, "PlayerData_*_Smoke.json")) File.Delete(f);
+        }
         BuildScene();
         ClientSimSettings settings = ClientSimSettings.Instance;
         settings.enableClientSim = true;
@@ -175,6 +182,30 @@ public static class PlaySmoke
             if (c.name == "InfoPanel") driver.infoText = c.GetComponentInChildren<TextMeshProUGUI>(true);
         }
         driver.registry = registry;
+
+        // SG_SMOKE_JL: join/leave notice. on = default ON / off = default OFF / toggle = default OFF, switched on at t=5
+        string jlMode = Env("SG_SMOKE_JL");
+        if (jlMode != "")
+        {
+            NoticeJoinLeave jl = NoticeMenu.EnsureJoinLeaveInScene();
+            GameObject labelCanvas = new GameObject("JoinLeaveLabelCanvas", typeof(Canvas));
+            GameObject labelGo = new GameObject("JoinLeaveLabel", typeof(RectTransform));
+            labelGo.transform.SetParent(labelCanvas.transform, false);
+            TextMeshProUGUI label = labelGo.AddComponent<TextMeshProUGUI>();
+            SerializedObject jso = new SerializedObject(jl);
+            jso.FindProperty("defaultOn").boolValue = jlMode == "on";
+            jso.FindProperty("debugLog").boolValue = true;
+            SerializedProperty labels = jso.FindProperty("stateLabels");
+            labels.arraySize = 1;
+            labels.GetArrayElementAtIndex(0).objectReferenceValue = label;
+            jso.ApplyModifiedPropertiesWithoutUndo();
+            UdonSharpEditorUtility.CopyProxyToUdon(jl);
+            driver.joinLeave = jl;
+            driver.joinLeaveLabel = label;
+            driver.joinLeaveToggle = jlMode == "toggle";
+            File.AppendAllText(LogPath, "[EDITOR] joinleave mode=" + jlMode + " keep=" + Env("SG_SMOKE_JL_KEEP") + "\n");
+        }
+
         driver.skipEnter = Env("SG_SMOKE_NOENTER") == "1";         // stay in the lobby (for screenshots)
         driver.noticeGallery = Env("SG_SMOKE_NOTICES") == "1";     // show every kind of gate notice (for screenshots)
         driver.skipLangSwitch = Env("SG_SHOTS") != "";            // keep one language while taking screenshots
@@ -274,7 +305,7 @@ public static class PlaySmoke
 
     private static void OnLog(string condition, string stackTrace, LogType type)
     {
-        bool interesting = condition.Contains("[SMOKE]") || condition.Contains("[NoticeHub]") || condition.Contains("[SupporterRegistry]")
+        bool interesting = condition.Contains("[SMOKE]") || condition.Contains("[NoticeHub]") || condition.Contains("[SupporterRegistry]") || condition.Contains("[NoticeJoinLeave]")
             || type == LogType.Exception || type == LogType.Error
             || condition.Contains("exception") || condition.Contains("halted");
         if (!interesting) return;

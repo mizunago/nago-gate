@@ -38,8 +38,14 @@ Unity をバッチモードで動かし、次を確かめます。Unity の場�
 | keyed/migrate-nokey・migrate-key・migrate-otherkey | 鍵なしから移る間（鍵なしの部分も残したリスト）、鍵の無いワールドも、鍵を入れたワールドも動く |
 | convert/GuestLocal | `Convert Existing World` で、スポーン地点の引き継ぎ・入口の部屋・リスポーンの高さが正しく設定され、メンバーが入場できる |
 | convert/Dave | 変換したワールドで、入れない人が入口の部屋に戻る |
+| joinleave/on・joinleave/off | 入退室の通知が、ON のときだけ出る（入室と退室。状態の表示も切り替わる） |
+| joinleave/toggle・joinleave/restore | OFF から ON に切り替えると、そのあとの退室から通知が出て、設定が保存される。次に来たときに引き継ぐ（restore は、直前の toggle の保存を使うので単独では通らない） |
 
 支援者リストは `unity-test/TestData/supporters.json` を、スクリプトが `127.0.0.1` で配ります。場面を足すときは、`unity-test/Assets/Editor/PlaySmoke.cs`（シーンの組み立て）、`unity-test/Assets/Test/NoticeSmoke.cs`（再生中の操作とログ）、`tools/run_unity_tests.py` の `SCENARIOS`（期待する表示）を直します。
+
+検証用のプロジェクトの Scripting Define Symbols には、実際のワールドのプロジェクトと同じ `VRC_SDK_VRCSDK3;UDON;UDONSHARP;VRC_ENABLE_PLAYER_PERSISTENCE` を入れてあります。`VRC_ENABLE_PLAYER_PERSISTENCE` が無いと、ClientSim で PlayerData の保存と `OnPlayerRestored` が動きません。ClientSim が保存したデータは `unity-test/ClientSimStorage/` に残るので、場面を始める前に消しています（`SG_SMOKE_JL_KEEP=1` のときだけ残す）。
+
+新しい U# のスクリプトを足した直後の 1 回目は、プログラムアセットを作った同じ回で配線の確認まで進むため、`outdated script version` の例外で止まります。もう一度実行すれば通ります。
 
 鍵つきの見本（`supporters-keyed*.json`、鍵は `TestListKey-0123` と `NewListKey-45678`）は、`python tools/protect_list.py` で作ります。Bot（`bot/src/protect.ts`）とは別の実装なので、形式を変えたときは、Bot の出力と突き合わせてください。
 

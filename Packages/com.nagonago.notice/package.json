@@ -1,9 +1,9 @@
 {
   "name": "com.nagonago.notice",
   "displayName": "Nago Notice",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "unity": "2022.3",
-  "description": "Shared toast notifications for VRChat worlds: multilingual, always-on-top, reading time from text length, automatic wrapping.",
+  "description": "Shared toast notifications for VRChat worlds: multilingual, always-on-top, reading time from text length, automatic wrapping. Includes an optional join/leave notice with a per-player on/off setting.",
   "author": {
     "name": "nagonago",
     "url": "https://github.com/mizunago"

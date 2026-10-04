@@ -83,7 +83,7 @@ un.bat をダブルクリックでも可 / サーバーは docker compose up -d 
 4. `Registry` の **Data Url** に Bot が公開した JSON の URL を入れる
 5. `Gate` の **Mode** を選び、`ContentRoot` の下にワールド本体を入れる
 
-通知だけを使うワールドは、**Nago Notice** だけを足して `Tools > Nago Notice > Add Notice Hub To Scene`（[使い方](Packages/com.nagonago.notice/README.md)）。
+通知だけを使うワールドは、**Nago Notice** だけを足して `Tools > Nago Notice > Add Notice Hub To Scene`（[使い方](Packages/com.nagonago.notice/README.md)）。入退室の通知を足すときは `Tools > Nago Notice > Add Join-Leave Notice To Scene`。
 
 ## パッケージを公開する（保守する人向け）
 

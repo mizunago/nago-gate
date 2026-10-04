@@ -1,7 +1,8 @@
 // NoticeMenu.cs
 // 利用する側のメニューと、他のエディタツールから呼ぶ入口。
-//   Tools > Nago Notice > Add Notice Hub To Scene     シーンに通知（NoticeHub）を 1 つ置く
-//   Tools > Nago Notice > Apply Selected Font Asset   Project で選んだ TMP フォントを通知の文字に使う
+//   Tools > Nago Notice > Add Notice Hub To Scene          シーンに通知（NoticeHub）を 1 つ置く
+//   Tools > Nago Notice > Add Join-Leave Notice To Scene   入退室の通知（NoticeJoinLeave）を 1 つ置く
+//   Tools > Nago Notice > Apply Selected Font Asset        Project で選んだ TMP フォントを通知の文字に使う
 
 #if UNITY_EDITOR
 using TMPro;
@@ -40,6 +41,46 @@ namespace NagoNotice.EditorTools
             EditorSceneManager.MarkSceneDirty(go.scene);
             Debug.Log("[NagoNotice] NoticeHub をシーンに置きました");
             return go.GetComponent<NoticeHub>();
+        }
+
+        [MenuItem("Tools/Nago Notice/Add Join-Leave Notice To Scene", false, 2)]
+        public static void AddJoinLeaveToScene()
+        {
+            NoticeJoinLeave joinLeave = EnsureJoinLeaveInScene();
+            if (joinLeave != null) Selection.activeGameObject = joinLeave.gameObject;
+        }
+
+        /// <summary>
+        /// シーンに NoticeJoinLeave があればそれを返し、無ければ置いて返す（NoticeHub も無ければ一緒に置く）。
+        /// 音は、パッケージの入室・退室の音を割り当てる。
+        /// </summary>
+        public static NoticeJoinLeave EnsureJoinLeaveInScene()
+        {
+            NoticeJoinLeave existing = Object.FindObjectOfType<NoticeJoinLeave>(true);
+            if (existing != null) return existing;
+
+            NoticeHub hub = EnsureInScene();
+            if (hub == null) return null;
+
+            GameObject go = new GameObject("NoticeJoinLeave");
+            Undo.RegisterCreatedObjectUndo(go, "Add Join-Leave Notice");
+            NoticeJoinLeave joinLeave = go.AddUdonSharpComponent<NoticeJoinLeave>();
+            SerializedObject so = new SerializedObject(joinLeave);
+            so.FindProperty("notice").objectReferenceValue = hub;
+            so.FindProperty("joinClip").objectReferenceValue = LoadClip("notice-join.wav");
+            so.FindProperty("leaveClip").objectReferenceValue = LoadClip("notice-leave.wav");
+            so.ApplyModifiedPropertiesWithoutUndo();
+            UdonSharpEditorUtility.CopyProxyToUdon(joinLeave);
+            EditorSceneManager.MarkSceneDirty(go.scene);
+            Debug.Log("[NagoNotice] NoticeJoinLeave をシーンに置きました（既定は OFF。切り替えは _Toggle を呼ぶ）");
+            return joinLeave;
+        }
+
+        private static AudioClip LoadClip(string fileName)
+        {
+            AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(NoticePrefabBuilder.PackageRoot + "/Runtime/Audio/" + fileName);
+            if (clip == null) Debug.LogWarning("[NagoNotice] 音が見つかりません: " + fileName);
+            return clip;
         }
 
         /// <summary>文言の表（NoticeTable）を Hub の tables に足す。既に入っていれば何もしない</summary>
