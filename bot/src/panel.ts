@@ -16,6 +16,7 @@ import { langOf, t, type Lang } from "./i18n.js";
 import { log } from "./log.js";
 import { describe, fmtDate, memberState, parseTextRegister, registerName } from "./register.js";
 import { isMemberEligible, memberEligibleFrom, type SyncContext } from "./sync.js";
+import { bringIntoGroup } from "./vrchat.js";
 
 export const IDS = {
   register: "sg:register",
@@ -197,7 +198,28 @@ async function handleGroupButton(deps: PanelDeps, interaction: ButtonInteraction
     // このログは Discord のログチャンネルにも流れる。VRChat に届いた申請と、表示名で照らせる
     log.info(`グループ参加の希望 ${interaction.user.tag} (${interaction.user.id}): VRChat の表示名=${rec.vrcName} ランク=${rec.effectiveRank} メンバー=${rec.memberActive ? "有効" : "無効"}`);
   }
-  await interaction.reply({ content: t(lang, "group.howto", { name: group.name, url: group.url, vrcName: rec.vrcName }), ephemeral: true });
+  const params = { name: group.name, url: group.url, vrcName: rec.vrcName };
+  const access = deps.vrc?.get() ?? null;
+  if (!access) {
+    // API を使わないとき: 持ち主が、ログを見て手で招待する
+    await interaction.reply({ content: t(lang, "group.howto", params), ephemeral: true });
+    return;
+  }
+  // API の問い合わせは数秒かかるので、先に受け付けだけ返す
+  await interaction.deferReply({ ephemeral: true });
+  try {
+    const r = await bringIntoGroup(access.client, access.groupId, rec.vrcName);
+    if (r.user && rec.vrcUserId !== r.user.id) {
+      rec.vrcUserId = r.user.id;
+      store.save();
+    }
+    log.info(`グループへの招待 ${interaction.user.tag} (${interaction.user.id}): VRChat の表示名=${rec.vrcName} 結果=${r.outcome}`);
+    await interaction.editReply({ content: t(lang, `group.${r.outcome}`, params) });
+  } catch (err) {
+    // API が使えなかったときは、手作業の流れに戻す（持ち主がログを見て招待する）
+    log.warn(`グループへの招待に失敗 ${interaction.user.tag} (${interaction.user.id}): VRChat の表示名=${rec.vrcName} ${String(err)}。手で招待してください`);
+    await interaction.editReply({ content: t(lang, "group.howto", params) });
+  }
 }
 
 export async function handleButton(deps: PanelDeps, interaction: ButtonInteraction): Promise<void> {

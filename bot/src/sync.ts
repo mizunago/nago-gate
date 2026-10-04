@@ -4,6 +4,7 @@ import type { AppConfig, TierConfig } from "./config.js";
 import { displaySafeName, hashName } from "./hash.js";
 import { encryptText, keyedHashName, listKeyId } from "./protect.js";
 import { publishJson } from "./publish.js";
+import type { VrcClient } from "./vrchat.js";
 import type { MemberRecord, Store } from "./store.js";
 
 export interface SyncContext {
@@ -14,9 +15,16 @@ export interface SyncContext {
   listKeys?: string[];
   /** 鍵つきのときも、鍵なしの部分を残すか（移行用） */
   listKeepPlain?: boolean;
+  /** VRChat の API で Group へ招待できる状態なら、その入口。使えないときは null（持ち主が手で招待する） */
+  vrc?: { get(): VrcGroupAccess | null };
   log: (msg: string) => void;
   /** Discord のログチャンネルに流さないログ。無ければ log を使う */
   logQuiet?: (msg: string) => void;
+}
+
+export interface VrcGroupAccess {
+  client: VrcClient;
+  groupId: string;
 }
 
 export interface SyncResult {

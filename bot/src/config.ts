@@ -1,5 +1,5 @@
 // 設定の読み込み。
-//   <instance>/.env          秘密情報（DISCORD_TOKEN, GITHUB_TOKEN, LIST_KEY）と、LIST_KEEP_PLAIN
+//   <instance>/.env          秘密情報（DISCORD_TOKEN, GITHUB_TOKEN, LIST_KEY, VRC_AUTH_COOKIE）と、LIST_KEEP_PLAIN
 //   <instance>/config.jsonc  それ以外の設定（config.json でも可）
 //   <instance>/data/db.json  Bot が生成するデータ
 // <instance> は環境変数 INSTANCE_DIR、無ければカレントの ./instance
@@ -63,6 +63,10 @@ export interface GroupConfig {
   name: string;
   /** Group のページの URL（https://vrc.group/XXXX.0000 など） */
   url: string;
+  /** Group の ID（grp_...）。未設定なら、URL の短いコードから、Bot 用のアカウントが入っている Group を探す */
+  id: string | null;
+  /** URL の末尾の短いコード（XXXX.0000）。取り出せなければ null */
+  shortCode: string | null;
 }
 
 export interface Secrets {
@@ -72,6 +76,8 @@ export interface Secrets {
   listKeys: string[];
   /** 鍵つきのときも、鍵なしの部分を残すか（LIST_KEEP_PLAIN）。鍵をまだ入れていないワールドがある間の、移行用 */
   listKeepPlain: boolean;
+  /** VRChat の Bot 用アカウントの認証クッキー（VRC_AUTH_COOKIE）。未設定なら、Group への招待は持ち主が手で行う */
+  vrcAuthCookie: string | null;
 }
 
 export interface Instance {
@@ -91,7 +97,7 @@ interface ConfigFile {
   publish?: PublishConfig;
   member?: { roleId?: string; minDays?: number };
   links?: Record<string, unknown>;
-  vrcGroup?: { name?: string; url?: string };
+  vrcGroup?: { name?: string; url?: string; id?: string };
 }
 
 export function resolveInstanceDir(): string {
@@ -141,7 +147,8 @@ function loadSecrets(envPath: string): Secrets {
   if (!discordToken) throw new Error(`DISCORD_TOKEN が未設定です（${envPath} または環境変数）`);
   const listKeys = parseListKeys(fromFile.LIST_KEY || process.env.LIST_KEY);
   const listKeepPlain = /^(1|true|yes|on)$/i.test(fromFile.LIST_KEEP_PLAIN || process.env.LIST_KEEP_PLAIN || "");
-  return { discordToken, githubToken, listKeys, listKeepPlain };
+  const vrcAuthCookie = (fromFile.VRC_AUTH_COOKIE || process.env.VRC_AUTH_COOKIE || "").trim() || null;
+  return { discordToken, githubToken, listKeys, listKeepPlain, vrcAuthCookie };
 }
 
 function loadConfig(configPath: string, instanceDir: string): AppConfig {
@@ -202,7 +209,8 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
   let group: GroupConfig | null = null;
   if (raw.vrcGroup?.url) {
     if (typeof raw.vrcGroup.url !== "string" || !/^https:\/\/\S{1,200}$/.test(raw.vrcGroup.url)) throw new Error("vrcGroup.url は https の URL にしてください");
-    group = { name: raw.vrcGroup.name?.trim() || "VRChat Group", url: raw.vrcGroup.url };
+    const code = /([A-Za-z0-9]{3,8}\.\d{4})\/?$/.exec(raw.vrcGroup.url);
+    group = { name: raw.vrcGroup.name?.trim() || "VRChat Group", url: raw.vrcGroup.url, id: raw.vrcGroup.id?.trim() || null, shortCode: code ? code[1] : null };
   }
 
   return {

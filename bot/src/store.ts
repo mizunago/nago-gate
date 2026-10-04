@@ -35,6 +35,8 @@ export interface MemberRecord {
   joinedAt: string | null;
   /** 登録パネルのボタンで、VRChat の Group への参加を希望した日時。まだなら null */
   groupRequestedAt: string | null;
+  /** 表示名から引いた VRChat のユーザー ID（Group への招待のときに分かったもの）。まだなら null */
+  vrcUserId: string | null;
   /** 管理者が BAN したか。BAN 中は、支援者・メンバーのどのリストにも載せず、登録も受け付けない */
   banned: boolean;
   /** BAN した日時 (ISO) */
@@ -71,6 +73,7 @@ export class Store {
       rec.memberManual ??= false;
       rec.joinedAt ??= null;
       rec.groupRequestedAt ??= null;
+      rec.vrcUserId ??= null;
       rec.banned ??= false;
       rec.bannedAt ??= null;
       rec.banReason ??= null;
@@ -111,6 +114,7 @@ export class Store {
       memberManual: false,
       joinedAt: null,
       groupRequestedAt: null,
+      vrcUserId: null,
       banned: false,
       bannedAt: null,
       banReason: null,

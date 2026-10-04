@@ -7,8 +7,9 @@ import { initLog, log as L } from "./log.js";
 import { attachDiscordLog } from "./discordlog.js";
 import { updateCommandBoard } from "./helpboard.js";
 import { listKeyId } from "./protect.js";
+import { VrcClient } from "./vrchat.js";
 import { Store } from "./store.js";
-import { publishIfChanged, runSync, type SyncContext } from "./sync.js";
+import { publishIfChanged, runSync, type SyncContext, type VrcGroupAccess } from "./sync.js";
 
 function log(msg: string): void {
   L.info(msg);
@@ -19,7 +20,28 @@ async function main(): Promise<void> {
   initLog(inst.dir);
   const { config } = inst;
   const store = new Store(inst.dataPath);
-  const ctx: SyncContext = { config, store, githubToken: inst.secrets.githubToken, listKeys: inst.secrets.listKeys, listKeepPlain: inst.secrets.listKeepPlain, log, logQuiet: (m) => L.quiet(m) };
+  // VRChat の API で Group へ招待できるか。起動のあとで確かめて、使えるときだけ入れる
+  let vrcAccess: VrcGroupAccess | null = null;
+  const ctx: SyncContext = {
+    config, store, githubToken: inst.secrets.githubToken, listKeys: inst.secrets.listKeys, listKeepPlain: inst.secrets.listKeepPlain,
+    vrc: { get: () => vrcAccess },
+    log, logQuiet: (m) => L.quiet(m),
+  };
+  if (config.group && inst.secrets.vrcAuthCookie) {
+    const group = config.group;
+    const vrc = new VrcClient(inst.secrets.vrcAuthCookie);
+    void (async () => {
+      try {
+        const me = await vrc.currentUser();
+        const groupId = group.id ?? (group.shortCode ? await vrc.findMyGroupId(me.id, group.shortCode) : null);
+        if (!groupId) throw new Error(`Group が見つかりません（${group.shortCode ?? group.url}）。Bot 用のアカウントが Group に入っているかを確かめるか、vrcGroup.id に Group の ID を入れてください`);
+        vrcAccess = { client: vrc, groupId };
+        log(`VRChat の API を使えます（アカウント: ${me.displayName}、Group: ${group.name} ${groupId}）。「グループ」のボタンで、招待を自動で送ります`);
+      } catch (err) {
+        L.warn(`VRChat の API を使えません: ${String(err)}。「グループ」のボタンは、持ち主が手で招待する流れになります`);
+      }
+    })();
+  }
   log(`設定フォルダ: ${inst.dir}`);
   if (inst.secrets.listKeys.length > 0) {
     const ids = inst.secrets.listKeys.map((key) => listKeyId(key)).join(", ");
