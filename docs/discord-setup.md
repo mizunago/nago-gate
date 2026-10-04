@@ -9,7 +9,7 @@
 1. https://discord.com/developers/applications で New Application
 2. Bot → Reset Token でトークン取得（`instance/.env` の `DISCORD_TOKEN`）
 3. Bot → Privileged Gateway Intents で **SERVER MEMBERS INTENT** を ON（必須）。登録チャンネルの自動処理を使うなら **MESSAGE CONTENT INTENT** も ON
-4. OAuth2 → URL Generator: scope `bot` + `applications.commands`、権限 `Manage Roles` + `Manage Channels` + `Manage Messages` + `Send Messages` + `View Channels`。`/vrc-admin ban` を使うなら `Ban Members` も（あとから足すときは、サーバー設定 → ロール → Bot のロールで「メンバーを BAN」を ON）
+4. OAuth2 → URL Generator: scope `bot` + `applications.commands`、権限 `Manage Roles` + `Manage Channels` + `Manage Messages` + `Send Messages` + `View Channels`
 5. 生成 URL でサーバーに招待し、サーバー設定 → ロールで **Bot のロールを一番上へ** 移動（Bot は自分より下のロールしか作成・付与できない）
 
 ## 3. 公開先の準備（GitHub Pages、同じリポジトリの gh-pages ブランチ）
@@ -111,8 +111,8 @@ npm start
 | `/vrc-admin revoke user:@x` | 手動付与の取り消し |
 | `/vrc-admin member-grant user:@x` | メンバーに手動で認定する。在籍日数と同意を待たない（表示名の登録は必要） |
 | `/vrc-admin member-revoke user:@x` | メンバーの手動の認定を取り消す（本人のメンバー登録も取り消す） |
-| `/vrc-admin ban user:@x [reason:<理由>]` | サーバーから BAN し、支援者・メンバーのリストから外す（下の「BAN」を参照） |
-| `/vrc-admin unban user:@x` | ban を解除する（サーバーの BAN も解く） |
+| `/vrc-admin ban user:@x [reason:<理由>]` | 支援者・メンバーのリストから外し、Bot が付けるロールを外す（下の「BAN」を参照） |
+| `/vrc-admin unban user:@x` | ban を解除する |
 | `/vrc-admin hash name:<表示名>` | ハッシュ値の確認（Udon 側デバッグ用） |
 
 ## 6b. メンバー登録（任意）
@@ -179,12 +179,18 @@ npm start
 
 メンバーの認定を取り消すだけだと、本人が登録し直せば戻れます。戻れないようにするには `/vrc-admin ban` を使います。
 
-- サーバーから BAN する（Bot に「メンバーを BAN」の権限が必要。無いときは、リストから外すところまでを行い、その旨を返す）
+Bot が行うのは、次の 3 つです。サーバーからの BAN は行いません（Bot に BAN の権限を持たせないため）。必要なら、人が Discord の画面から BAN します。
+
 - 支援が続いていても、支援者・メンバーのどのリストにも載せない。メンバー登録と手動の付与は取り消す
-- 登録していた表示名は記録に残すので、別の Discord アカウントで同じ表示名を登録し直すこともできない
+- Bot が付けるロール（Member と、支援者のロール）を外す。支援サイトの Bot が付けるロールには触らない
+- 本人の登録し直しを断る。登録していた表示名は記録に残すので、別の Discord アカウントで同じ表示名を登録し直すこともできない
+
+そのほか:
+
 - ワールドへの反映は、公開と再取得を合わせて、遅くとも 20 分ほど
 - 支援サイトでの支援は止まらない。必要なら、支援サイト側でもブロックする
-- `/vrc-admin lookup` に BAN の日付と理由が出る。解除は `/vrc-admin unban`（本人がサーバーに入り直して登録し直せば、通常の条件で戻れる）
+- `/vrc-admin lookup` に BAN の日付と理由が出る
+- 解除は `/vrc-admin unban`。支援中なら次の同期で支援者に戻り、メンバーは本人が登録し直せば通常の条件で戻れる。サーバーから BAN していた場合は、Discord の画面からも解除する
 
 ## 鍵つきのリスト（任意）
 
@@ -195,7 +201,7 @@ npm start
 - 判定用のハッシュに鍵を混ぜる。鍵を知らないと、名前から同じハッシュを作れない
 - クレジットの名前は鍵で暗号化する。ワールドが同じ鍵で元に戻して表示する
 
-鍵は、Bot（`instance/.env` の `LIST_KEY`）とワールド（`SupporterRegistry` の `List Key`）の両方に入れます。ワールドのデータを解析できる人は鍵を取り出せるので、強い秘密にはなりません。「リストの URL を開いただけでは分からない」ところまでの保護です。
+鍵は、Bot（`instance/.env` の `LIST_KEY`）とワールド（`SupporterRegistry` の `List Key`）の両方に入れます。鍵は、リポジトリに入るファイルや、公開される場所に書かないでください（GitHub に上げると、誰でも読めます）。ワールドのデータを解析できる人は鍵を取り出せるので、強い秘密にはなりません。「リストの URL を開いただけでは分からない」ところまでの保護です。
 
 ### ワールドの上げ直しの時期がずれても動く仕組み
 

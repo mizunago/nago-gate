@@ -117,14 +117,14 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .addSubcommand((s) =>
       s
         .setName("ban")
-        .setDescription("サーバーから BAN し、支援者・メンバーのリストから外す（同じ表示名での登録し直しも防ぐ）")
+        .setDescription("支援者・メンバーのリストから外し、ロールを外す（登録し直しも防ぐ。サーバーからの BAN は Discord の画面で行う）")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true))
         .addStringOption((o) => o.setName("reason").setDescription("理由（管理用のメモ。本人には送らない）")),
     )
     .addSubcommand((s) =>
       s
         .setName("unban")
-        .setDescription("ban を解除する（サーバーの BAN も解く。本人が入り直して登録し直せば、通常の条件で戻れる）")
+        .setDescription("ban を解除する（本人が登録し直せば、通常の条件で戻れる）")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
     .addSubcommand((s) =>
@@ -370,6 +370,8 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       return;
     }
     if (sub === "ban" || sub === "unban") {
+      // サーバーからの BAN と、その解除は、人が Discord の画面で行う（Bot には BAN の権限を付けない）。
+      // ここで行うのは、リストから外すこと・Bot が付けるロールを外すこと・登録し直しを防ぐこと
       const user = interaction.options.getUser("user", true);
       const ban = sub === "ban";
       if (ban && (user.id === member.id || user.bot)) {
@@ -380,24 +382,21 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       const now = new Date();
 
       if (!ban) {
-        // Discord 側で既に解かれている（BAN が見つからない）場合は、そのまま進める
-        const failed = await interaction.guild.bans
-          .remove(user.id, `SupporterGate unban by ${member.user.tag}`)
-          .then(() => null)
-          .catch((err) => (String(err).includes("Unknown Ban") ? null : String(err)));
         const rec = store.get(user.id);
-        if (rec?.banned) {
-          rec.banned = false;
-          rec.bannedAt = null;
-          rec.banReason = null;
-          rec.updatedAt = now.toISOString();
-          store.save();
+        if (!rec?.banned) {
+          await interaction.editReply(`<@${user.id}> は BAN されていません`);
+          return;
         }
-        log.info(`管理者 unban ${user.tag} (${user.id}) by ${member.user.tag}${failed ? ` Discord 側の解除に失敗: ${failed}` : ""}`);
+        rec.banned = false;
+        rec.bannedAt = null;
+        rec.banReason = null;
+        rec.updatedAt = now.toISOString();
+        store.save();
+        deps.requestPublish();
+        log.info(`管理者 unban ${user.tag} (${user.id}) by ${member.user.tag}`);
         await interaction.editReply(
-          failed
-            ? `<@${user.id}> の登録の停止は解きましたが、サーバーの BAN の解除に失敗しました: ${failed}\nDiscord の「サーバー設定 → BAN」から解除してください。`
-            : `<@${user.id}> の BAN を解除しました。本人がサーバーに入り直して登録し直せば、通常の条件で戻れます。`,
+          `<@${user.id}> の BAN を解除しました。支援中なら、次の同期で支援者に戻ります。メンバーは、本人が登録し直せば、通常の条件で戻れます。\n` +
+            "サーバーから BAN していた場合は、Discord の「サーバー設定 → BAN」からも解除してください。",
         );
         return;
       }
@@ -418,23 +417,27 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       store.save();
       deps.requestPublish();
 
-      const failed = await interaction.guild.members
-        .ban(user.id, { reason: `SupporterGate ban by ${member.user.tag}${reason ? `: ${reason}` : ""}`.slice(0, 500) })
-        .then(() => null)
-        .catch((err) => String(err));
-      if (failed && target) {
-        // サーバーに残っている間も、ロールは外しておく
+      // Bot が付けるロール（Member と、支援者のロール）を外す。失敗しても、次の同期が外し直す
+      let roleNote = "サーバーにいないので、外すロールはありません。";
+      if (target) {
         const managed = [...config.tiers.map((tier) => tier.roleId), ...(config.member ? [config.member.roleId] : [])].filter((id) => target.roles.cache.has(id));
-        if (managed.length > 0) await target.roles.remove(managed, "SupporterGate ban").catch((err) => log.warn(`BAN のロール剥奪に失敗 ${user.tag}: ${String(err)}`));
+        const names = managed.map((id) => interaction.guild.roles.cache.get(id)?.name ?? id).join("・");
+        roleNote = managed.length > 0 ? `ロール（${names}）を外しました。` : "外すロールはありませんでした。";
+        if (managed.length > 0) {
+          await target.roles.remove(managed, `SupporterGate ban by ${member.user.tag}`).catch((err) => {
+            log.warn(`BAN のロール剥奪に失敗 ${user.tag}: ${String(err)}`);
+            roleNote = "ロールを外せませんでした（次の同期で外し直します）。";
+          });
+        }
       }
-      log.info(`管理者 ban ${user.tag} (${user.id}) name=${rec.vrcName ?? "-"} reason=${reason || "-"} by ${member.user.tag}${failed ? ` Discord 側の BAN に失敗: ${failed}` : ""}`);
+      log.info(`管理者 ban ${user.tag} (${user.id}) name=${rec.vrcName ?? "-"} reason=${reason || "-"} by ${member.user.tag}`);
       const nameNote = rec.vrcName ? `登録していた表示名（**${rec.vrcName}**）は、ほかのアカウントでも登録できません。` : "表示名は登録されていませんでした。";
       await interaction.editReply(
-        (failed
-          ? `<@${user.id}> を支援者・メンバーのリストから外しましたが、サーバーからの BAN に失敗しました: ${failed}\nBot のロールに「メンバーを BAN」の権限を付けてやり直すか、Discord の画面から BAN してください。\n`
-          : `<@${user.id}> をサーバーから BAN し、支援者・メンバーのリストから外しました。\n`) +
-          `${nameNote}\nワールドへの反映は、遅くとも 20 分ほどです（今いるインスタンスからは、リストの読み直しのあとに出されます）。\n` +
-          "支援サイトでの支援は止まりません。必要なら、支援サイト側でもブロックしてください。解除は `/vrc-admin unban` です。",
+        `<@${user.id}> を支援者・メンバーのリストから外しました。${roleNote}\n` +
+          `${nameNote}本人も、登録とメンバー登録をやり直せません。\n` +
+          "ワールドへの反映は、遅くとも 20 分ほどです（今いるインスタンスからは、リストの読み直しのあとに出されます）。\n" +
+          "**サーバーからの BAN は行っていません。** 必要なら、Discord の画面から BAN してください。支援サイトでの支援も止まりません。\n" +
+          "解除は `/vrc-admin unban` です。",
       );
       return;
     }
