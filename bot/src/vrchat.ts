@@ -24,8 +24,6 @@ export interface VrcUser {
   displayName: string;
 }
 
-export type GroupMembership = "member" | "requested" | "invited" | "inactive" | "none";
-
 type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
 export class VrcClient {
@@ -83,16 +81,19 @@ export class VrcClient {
     return hit ? { id: hit.id, displayName: hit.displayName } : null;
   }
 
-  /** Group での状態。入っていない・申請も招待も無いときは "none" */
-  async groupMembership(groupId: string, userId: string): Promise<GroupMembership> {
-    try {
-      const m = await this.call<{ membershipStatus?: string } | null>("GET", `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(userId)}`);
-      const s = m?.membershipStatus;
-      return s === "member" || s === "requested" || s === "invited" || s === "inactive" ? s : "none";
-    } catch (err) {
-      if (err instanceof VrcApiError && err.status === 404) return "none";
-      throw err;
-    }
+  /**
+   * 参加の申請を出している人の ID。
+   * ほかの人のメンバー情報を 1 人ずつ見る問い合わせは、招待を管理する権限だけでは断られる（403）ので、一覧から探す
+   */
+  async pendingRequestUserIds(groupId: string): Promise<Set<string>> {
+    const list = await this.call<{ userId?: string }[]>("GET", `/groups/${encodeURIComponent(groupId)}/requests?n=100`);
+    return new Set((list ?? []).map((m) => m.userId ?? "").filter((id) => id.length > 0));
+  }
+
+  /** こちらから招待を送って、まだ返事が無い人の ID */
+  async invitedUserIds(groupId: string): Promise<Set<string>> {
+    const list = await this.call<{ userId?: string }[]>("GET", `/groups/${encodeURIComponent(groupId)}/invites?n=100`);
+    return new Set((list ?? []).map((m) => m.userId ?? "").filter((id) => id.length > 0));
   }
 
   async inviteToGroup(groupId: string, userId: string): Promise<void> {
@@ -114,18 +115,19 @@ export type GroupJoinOutcome = "invited" | "accepted" | "alreadyMember" | "alrea
 export async function bringIntoGroup(client: VrcClient, groupId: string, displayName: string): Promise<{ outcome: GroupJoinOutcome; user: VrcUser | null }> {
   const user = await client.findUserByDisplayName(displayName);
   if (!user) return { outcome: "userNotFound", user: null };
-  const status = await client.groupMembership(groupId, user.id);
-  if (status === "member") return { outcome: "alreadyMember", user };
-  if (status === "invited") return { outcome: "alreadyInvited", user };
-  if (status === "requested") {
+  if ((await client.pendingRequestUserIds(groupId)).has(user.id)) {
     await client.acceptJoinRequest(groupId, user.id);
     return { outcome: "accepted", user };
   }
+  if ((await client.invitedUserIds(groupId)).has(user.id)) return { outcome: "alreadyInvited", user };
   try {
     await client.inviteToGroup(groupId, user.id);
   } catch (err) {
-    // 状態の取得と招待の間に入っていた場合など
-    if (err instanceof VrcApiError && err.status === 400 && /already a member/i.test(err.message)) return { outcome: "alreadyMember", user };
+    // 既に入っている人・招待済みの人は、招待のときに 400 で断られる
+    if (err instanceof VrcApiError && err.status === 400) {
+      if (/already a member/i.test(err.message)) return { outcome: "alreadyMember", user };
+      if (/already.*invit|invit.*already/i.test(err.message)) return { outcome: "alreadyInvited", user };
+    }
     throw err;
   }
   return { outcome: "invited", user };
