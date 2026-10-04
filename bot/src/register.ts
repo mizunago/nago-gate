@@ -46,6 +46,7 @@ export function describe(config: AppConfig, rec: MemberRecord | null, lang: Lang
     `${t(lang, "status.credit")}: ${t(lang, rec.showCredit ? "on" : "off")}`,
   ];
   if (config.member) lines.push(`${t(lang, "member.label")}: ${memberState(config, rec, lang)}`);
+  if (rec.groupRequestedAt) lines.push(`${t(lang, "group.label")}: ${t(lang, "group.requested", { date: fmtDate(rec.groupRequestedAt) })}`);
   if (rec.banned) lines.push(`BAN: ${fmtDate(rec.bannedAt)}${rec.banReason ? ` (${rec.banReason})` : ""}`);
   if (rec.graceUntil) lines.push(`${t(lang, "status.grace")}: ${fmtDate(rec.graceUntil)}`);
   if (rec.manualRank > 0) {

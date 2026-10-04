@@ -108,6 +108,7 @@ npm start
 | `/vrc-admin sync` | 今すぐ同期＋公開 |
 | `/vrc-admin publish` | JSON を強制再公開 |
 | `/vrc-admin lookup user:@x` | 登録状態の確認 |
+| `/vrc-admin whois name:<表示名>` | VRChat の表示名から、登録した Discord の人と状態を調べる。Group の参加申請を承認してよいかも出る |
 | `/vrc-admin setname user:@x name:<表示名>` | クールダウン無視で名前を設定 |
 | `/vrc-admin grant user:@x rank:<n> [days:<n>]` | 手動でランク付与（支援サイトを使わない特例など） |
 | `/vrc-admin revoke user:@x` | 手動付与の取り消し |
@@ -145,6 +146,17 @@ npm start
 ### ワールドの中に Discord の招待 URL を出す
 
 `config.jsonc` に `"links": { "discord": "https://discord.gg/xxxxxxxx" }` を足すと、リストに URL が入り、各ワールドのクレジットのボードに表示されます。URL を変えたいときは、ここを直して Bot を再起動するだけです。招待リンクは、期限なし・回数無制限で作ってください。
+
+### VRChat の Group への参加を受け付ける（任意）
+
+支援者とメンバーが、フレンドでなくても同じインスタンスで遊べるように、VRChat の Group を使う場合の設定です。Group への申請と承認は VRChat の側で行い、Bot は「誰が申請してよい人か」を確かめる手伝いをします。
+
+`config.jsonc` に `"vrcGroup": { "name": "<Group の名前>", "url": "https://vrc.group/XXXX.0000" }` を足して起動し直し、`/vrc-admin panel` でパネルを書き換えると、登録パネルに「グループ」のボタンが出ます。
+
+- ボタンを押せるのは、表示名を登録済みの、支援者かメンバー。押すと、Group のリンクと申請のしかたが、その人にだけ返る
+- 押した記録は、ログ（Discord のログチャンネルにも流れる）に「グループ参加の希望 <Discord の人>: VRChat の表示名=…」と残る
+- VRChat に参加申請が届いたら、`/vrc-admin whois name:<申請者の表示名>` で、登録した Discord の人、支援とメンバーの状態、承認してよいかを確かめてから承認する。登録の無い名前や、支援者でもメンバーでもない人は、承認しない
+- Group の側は、参加の方法を「Request to Join」にしておく（自動で入れる設定にしない）
 
 ### コマンドの一覧を管理用のチャンネルに出しておく
 

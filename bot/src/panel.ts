@@ -25,6 +25,7 @@ export const IDS = {
   member: "sg:member",
   memberAgree: "sg:member:agree",
   memberLeave: "sg:member:leave",
+  group: "sg:group",
   modal: "sg:register-modal",
   modalName: "name",
 } as const;
@@ -55,6 +56,12 @@ export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
       `🇰🇷 **멤버** 버튼: 서버 참가 후 ${d}일이 지나면 후원 여부와 관계없이 멤버 전용 안내를 볼 수 있습니다 (18세 이상).`,
     );
   }
+  if (config.group) {
+    lines.push(
+      "",
+      "👥 **グループ / Group** ボタン: 支援者とメンバーの方は、VRChat の Group に参加できます。フレンドでなくても、Group のインスタンスで一緒に遊べます。 / Supporters and members can join our VRChat Group and play together without being friends.",
+    );
+  }
   // 共有のお願いは、支援者にもメンバーにも共通。全員が読む場所なので、ここにも出す
   lines.push(
     "",
@@ -77,13 +84,11 @@ export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
       new ButtonBuilder().setCustomId(IDS.creditOff).setLabel("クレジット OFF / Credits OFF").setStyle(ButtonStyle.Secondary),
     ),
   ];
-  if (config.member) {
-    rows.push(
-      new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder().setCustomId(IDS.member).setLabel("メンバー / Membership").setStyle(ButtonStyle.Secondary).setEmoji("🔑"),
-      ),
-    );
-  }
+  // メンバーとグループのボタンは、2 段目に並べる（設定されているものだけ）
+  const second: ButtonBuilder[] = [];
+  if (config.member) second.push(new ButtonBuilder().setCustomId(IDS.member).setLabel("メンバー / Membership").setStyle(ButtonStyle.Secondary).setEmoji("🔑"));
+  if (config.group) second.push(new ButtonBuilder().setCustomId(IDS.group).setLabel("グループ / Group").setStyle(ButtonStyle.Secondary).setEmoji("👥"));
+  if (second.length > 0) rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...second));
   return { content: lines.join("\n"), components: rows };
 }
 
@@ -160,6 +165,41 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
   await interaction.update({ content: t(lang, "member.left"), components: [] });
 }
 
+/**
+ * グループのボタン。VRChat の Group への参加を希望したことを記録し、申請のしかたを返す。
+ * Group への申請と承認は VRChat の側で行う。ここで残した記録とログは、持ち主が申請者を確かめるのに使う
+ */
+async function handleGroupButton(deps: PanelDeps, interaction: ButtonInteraction<"cached">, lang: Lang): Promise<void> {
+  const { config, store } = deps;
+  const group = config.group;
+  if (!group) {
+    await interaction.reply({ content: t(lang, "group.unavailable"), ephemeral: true });
+    return;
+  }
+  const rec = store.get(interaction.user.id);
+  if (rec?.banned) {
+    await interaction.reply({ content: t(lang, "err.banned"), ephemeral: true });
+    return;
+  }
+  if (!rec || !rec.vrcName) {
+    await interaction.reply({ content: t(lang, "group.needName"), ephemeral: true });
+    return;
+  }
+  if (rec.effectiveRank <= 0 && !rec.memberActive) {
+    await interaction.reply({ content: t(lang, "group.notEligible"), ephemeral: true });
+    return;
+  }
+  if (!rec.groupRequestedAt) {
+    rec.groupRequestedAt = new Date().toISOString();
+    rec.discordTag = interaction.user.tag;
+    rec.updatedAt = rec.groupRequestedAt;
+    store.save();
+    // このログは Discord のログチャンネルにも流れる。VRChat に届いた申請と、表示名で照らせる
+    log.info(`グループ参加の希望 ${interaction.user.tag} (${interaction.user.id}): VRChat の表示名=${rec.vrcName} ランク=${rec.effectiveRank} メンバー=${rec.memberActive ? "有効" : "無効"}`);
+  }
+  await interaction.reply({ content: t(lang, "group.howto", { name: group.name, url: group.url, vrcName: rec.vrcName }), ephemeral: true });
+}
+
 export async function handleButton(deps: PanelDeps, interaction: ButtonInteraction): Promise<void> {
   const { config, store } = deps;
   const lang = langOf(interaction.locale);
@@ -191,6 +231,11 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
 
   if (id === IDS.member || id === IDS.memberAgree || id === IDS.memberLeave) {
     await handleMemberButton(deps, interaction, lang);
+    return;
+  }
+
+  if (id === IDS.group) {
+    await handleGroupButton(deps, interaction, lang);
     return;
   }
 

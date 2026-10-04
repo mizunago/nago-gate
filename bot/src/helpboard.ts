@@ -41,6 +41,7 @@ export function buildCommandHelpLines(config: AppConfig): string[] {
   lines.push("`状態` … 自分の登録の状態を見る");
   lines.push("`クレジット ON / OFF` … ワールドのクレジットに名前を載せるかを切り替える");
   if (config.member) lines.push(`\`メンバー\` … メンバー登録（18 歳以上の確認と同意。在籍 ${config.member.minDays} 日で有効）と、その取り消し`);
+  if (config.group) lines.push("`グループ` … VRChat の Group への参加を希望する（支援者かメンバーの方。申請と承認は VRChat の側で行う）");
   return lines;
 }
 

@@ -33,6 +33,8 @@ export interface MemberRecord {
   memberActive: boolean;
   /** サーバーに参加した日時（在籍日数の計算用）。サーバーにいないときは null */
   joinedAt: string | null;
+  /** 登録パネルのボタンで、VRChat の Group への参加を希望した日時。まだなら null */
+  groupRequestedAt: string | null;
   /** 管理者が BAN したか。BAN 中は、支援者・メンバーのどのリストにも載せず、登録も受け付けない */
   banned: boolean;
   /** BAN した日時 (ISO) */
@@ -68,6 +70,7 @@ export class Store {
       rec.memberActive ??= false;
       rec.memberManual ??= false;
       rec.joinedAt ??= null;
+      rec.groupRequestedAt ??= null;
       rec.banned ??= false;
       rec.bannedAt ??= null;
       rec.banReason ??= null;
@@ -107,6 +110,7 @@ export class Store {
       memberActive: false,
       memberManual: false,
       joinedAt: null,
+      groupRequestedAt: null,
       banned: false,
       bannedAt: null,
       banReason: null,

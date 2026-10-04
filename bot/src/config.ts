@@ -53,6 +53,16 @@ export interface AppConfig {
   member: MemberConfig | null;
   /** リストに入れて、ワールドの中に出す案内用のリンク（"discord" → 招待 URL など） */
   links: Record<string, string>;
+  /** VRChat の Group（未設定なら、登録パネルにグループのボタンを出さない） */
+  group: GroupConfig | null;
+}
+
+/** VRChat の Group。支援者とメンバーが、フレンドでなくても同じインスタンスで遊べるようにするためのもの */
+export interface GroupConfig {
+  /** Group の名前（案内の文に出す） */
+  name: string;
+  /** Group のページの URL（https://vrc.group/XXXX.0000 など） */
+  url: string;
 }
 
 export interface Secrets {
@@ -81,6 +91,7 @@ interface ConfigFile {
   publish?: PublishConfig;
   member?: { roleId?: string; minDays?: number };
   links?: Record<string, unknown>;
+  vrcGroup?: { name?: string; url?: string };
 }
 
 export function resolveInstanceDir(): string {
@@ -188,6 +199,12 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     links[key] = value;
   }
 
+  let group: GroupConfig | null = null;
+  if (raw.vrcGroup?.url) {
+    if (typeof raw.vrcGroup.url !== "string" || !/^https:\/\/\S{1,200}$/.test(raw.vrcGroup.url)) throw new Error("vrcGroup.url は https の URL にしてください");
+    group = { name: raw.vrcGroup.name?.trim() || "VRChat Group", url: raw.vrcGroup.url };
+  }
+
   return {
     guildId,
     adminRoleIds: raw.discord?.adminRoleIds ?? [],
@@ -202,6 +219,7 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     publish,
     member,
     links,
+    group,
   };
 }
 

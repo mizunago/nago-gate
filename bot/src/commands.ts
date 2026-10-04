@@ -83,6 +83,12 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     )
     .addSubcommand((s) =>
       s
+        .setName("whois")
+        .setDescription("VRChat の表示名から、登録した Discord の人と状態を調べる（Group の参加申請の確認に使う）")
+        .addStringOption((o) => o.setName("name").setDescription("VRChat の表示名").setRequired(true)),
+    )
+    .addSubcommand((s) =>
+      s
         .setName("setname")
         .setDescription("クールダウンを無視して DisplayName を設定する")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true))
@@ -263,6 +269,26 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
     if (sub === "lookup") {
       const user = interaction.options.getUser("user", true);
       await interaction.reply({ content: `<@${user.id}>\n${describe(config, store.get(user.id), "ja")}`, ephemeral: true });
+      return;
+    }
+    if (sub === "whois") {
+      const name = interaction.options.getString("name", true).trim();
+      const rec = store.findByNormalizedName(normalizeName(name), normalizeName);
+      if (!rec) {
+        await interaction.reply({ content: `VRChat の表示名「${name}」は、登録されていません。Group の参加申請なら、承認せずに、登録してから申請し直してもらってください。`, ephemeral: true });
+        return;
+      }
+      const eligible = !rec.banned && (rec.effectiveRank > 0 || rec.memberActive);
+      const verdict = eligible
+        ? "承認してよい（支援者かメンバー）"
+        : rec.banned
+          ? "承認しない（BAN 中）"
+          : "承認しない（支援者でもメンバーでもない）";
+      const pressed = !config.group || rec.groupRequestedAt ? "" : "\n※ Discord の「グループ」のボタンは、まだ押されていません";
+      await interaction.reply({
+        content: `VRChat の表示名「**${rec.vrcName}**」は、<@${rec.discordId}>（${rec.discordTag ?? "-"}）です。\n${describe(config, rec, "ja")}\nGroup への参加: ${verdict}${pressed}`,
+        ephemeral: true,
+      });
       return;
     }
     if (sub === "setname") {
