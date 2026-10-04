@@ -118,6 +118,7 @@ Bot のメンバー登録（[discord-setup.md](discord-setup.md) の 6b）を使
 - ティアの呼び名は、文言の表の `credits.tier.<ティアの id>` から引きます。無ければリストの label を使います
 - `InfoPanel` は、ボードの `Info Text` につながっています。前の版で作ったシーンには、`Tools > SupporterGate > Add Info Panel (existing scene)` で足せます（ボードの左隣に出るので、好きな場所へ動かす）
 - `InfoPanel` が無いシーンでは、本人の状態は名前の一覧の題の下に、案内は一番下に出ます
+- メンバー向けの物が無いワールド（公開ワールドで、支援者の特典だけがある場合など）では、ボードの `Show Member Status` を OFF にします。本人がメンバーでも「メンバー」とは出さず、登録が無い人には「支援者の登録は見つかりません」、案内は「支援の方法は、Discord で案内しています」になります。既定は ON です
 
 ### 表示の色
 

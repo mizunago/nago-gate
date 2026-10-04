@@ -587,6 +587,13 @@
     "zh-CN": "支持与成员登记的方法，\n请见 Discord",
     "zh-TW": "支持與成員登記的方法，\n請見 Discord"
   },
+  "info.guide.supporter": {
+    "ja": "支援の方法は、\nDiscord で案内しています",
+    "en": "How to support\nis explained on our Discord",
+    "ko": "후원 방법은\nDiscord에서 안내합니다",
+    "zh-CN": "支持的方法，\n请见 Discord",
+    "zh-TW": "支持的方法，\n請見 Discord"
+  },
   "gate.you.member": {
     "ja": "メンバー",
     "en": "Member",

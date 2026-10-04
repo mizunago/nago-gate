@@ -120,6 +120,13 @@ SCENARIOS = [
         "t=9  && allowed=False inside=False && This area is for members only.",
         "t=19  && pos=(0.0, -44.0, 0.0) && allowed=False",
     ]),
+    ("nomember/GuestLocal（メンバー向けの物が無い公開ワールド。本人はメンバーだが、メンバーに触れない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1"}, [
+        "info(ja)= && 支援者の登録は見つかりません && 支援の方法は、/Discord で案内しています && <b>discord.gg/testInvite</b>",
+        "info(en)= && No supporter registration found && How to support/is explained on our Discord",
+    ], [], ["info(ja)= && メンバー", "info(en)= && ember"]),
+    ("nomember/Paula（メンバー向けの物が無い公開ワールド。本人はプラチナかつメンバー。支援者の状態だけ出る）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1", "SG_SMOKE_NAME": "Paula"}, [
+        "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>です && 支援の方法は、/Discord で案内しています",
+    ], [], ["info(ja)= && メンバー"]),
     ("joinleave/on（入退室の通知。既定を ON にしたワールド。入室と退室が出る）", {"SG_SMOKE_JL": "on"}, [
         "[NoticeJoinLeave] && OwnerDummy && が入室しました",
         "[NoticeJoinLeave] && OwnerDummy && が退室しました",

@@ -2,6 +2,7 @@
 // クレジット表示に同意した支援者の名前をティアごとに並べる。
 // 公開ワールドにも置ける（ゲート不要）。
 // 見ている本人の状態（支援のティア・メンバーかどうか）と、Discord の案内は、別のパネル（infoText）に出す。
+// メンバー向けの物が無いワールドでは、showMemberStatus を OFF にすると、メンバーに触れる表示をやめる。
 // 別のパネルが無いシーンでは、本人の状態を題の下に、案内を一番下に出す。
 // メンバーの名前は一覧に出さない（リストにも名前は載っていない）。
 // 文言は texts（NoticeTable）から今の言語で引く。texts が無ければ日本語の既定の文を使う。
@@ -29,6 +30,8 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
     [SerializeField] private SupporterGate gate;
     [Tooltip("任意。入れると、本人の状態と案内（Discord の招待 URL）を、名前の一覧とは別のパネルに出す")]
     [SerializeField] private TextMeshProUGUI infoText;
+    [Tooltip("本人の状態と案内で、メンバーに触れるか。メンバー向けの物が無いワールドでは OFF にする（支援者のことだけを出す）")]
+    [SerializeField] private bool showMemberStatus = true;
 
     [Header("Texts (optional)")]
     [Tooltip("文言の表（多言語の JSON）。未設定なら日本語の既定の文を使う")]
@@ -187,7 +190,7 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
             // 名前の一覧の見出しと同じ、ティアの色を付ける
             who = "<color=" + registry._GetTierColorHex(rank) + "><b>" + EscapeRichText(name) + "</b></color>";
         }
-        if (registry._IsLocalMember())
+        if (showMemberStatus && registry._IsLocalMember())
         {
             string m = "<color=" + SupporterRegistry.ColorMember + "><b>" + EscapeRichText(T("credits.you.member", "メンバー")) + "</b></color>";
             who = who.Length > 0 ? who + T("credits.you.sep", "・") + m : m;
@@ -219,7 +222,7 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
         string s = "";
         string who = LocalStatus();
         if (who.Length > 0) s = T("credits.you.is", "あなたは{0}です").Replace("{0}", who);
-        else if (showNone) s = "<size=85%><color=" + SupporterRegistry.ColorDim + ">" + (registry._HasMemberList() ? T("info.none", "支援者・メンバーの登録は見つかりません") : T("info.noneSupporter", "支援者の登録は見つかりません")) + "</color></size>";
+        else if (showNone) s = "<size=85%><color=" + SupporterRegistry.ColorDim + ">" + (showMemberStatus && registry._HasMemberList() ? T("info.none", "支援者・メンバーの登録は見つかりません") : T("info.noneSupporter", "支援者の登録は見つかりません")) + "</color></size>";
         if (gate != null && !gate._IsLocalAllowed())
         {
             if (s.Length > 0) s += "\n";
@@ -238,7 +241,8 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
         string invite = registry._GetLink("discord");
         if (invite.Length == 0) return "";
         // 打ち込む URL は、説明の文より大きく、太く出す
-        return "<size=80%>" + T("info.guide", "支援とメンバー登録の方法は、\nDiscord で案内しています") + "</size>\n<size=115%><b>" + EscapeRichText(ShortUrl(invite)) + "</b></size>";
+        string how = showMemberStatus ? T("info.guide", "支援とメンバー登録の方法は、\nDiscord で案内しています") : T("info.guide.supporter", "支援の方法は、\nDiscord で案内しています");
+        return "<size=80%>" + how + "</size>\n<size=115%><b>" + EscapeRichText(ShortUrl(invite)) + "</b></size>";
     }
 
     private string ShortUrl(string url)

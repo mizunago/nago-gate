@@ -38,6 +38,7 @@ Unity をバッチモードで動かし、次を確かめます。Unity の場�
 | keyed/migrate-nokey・migrate-key・migrate-otherkey | 鍵なしから移る間（鍵なしの部分も残したリスト）、鍵の無いワールドも、鍵を入れたワールドも動く |
 | convert/GuestLocal | `Convert Existing World` で、スポーン地点の引き継ぎ・入口の部屋・リスポーンの高さが正しく設定され、メンバーが入場できる |
 | convert/Dave | 変換したワールドで、入れない人が入口の部屋に戻る |
+| nomember/GuestLocal・nomember/Paula | ボードの `Show Member Status` を OFF にしたワールドで、メンバーに触れる表示が出ない（支援者の状態と、支援の案内だけ） |
 | joinleave/on・joinleave/off | 入退室の通知が、ON のときだけ出る（入室と退室。状態の表示も切り替わる） |
 | joinleave/toggle・joinleave/restore | OFF から ON に切り替えると、そのあとの退室から通知が出て、設定が保存される。次に来たときに引き継ぐ（restore は、直前の toggle の保存を使うので単独では通らない） |
 

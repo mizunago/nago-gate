@@ -176,7 +176,17 @@ public static class PlaySmoke
             if (t.name == "Status") driver.gateStatus = t;
             if (t.name == "Message") driver.gateMessage = t;
         }
-        driver.creditsText = Object.FindObjectOfType<SupporterCreditsBoard>(true).GetComponentInChildren<TextMeshProUGUI>(true);
+        SupporterCreditsBoard board = Object.FindObjectOfType<SupporterCreditsBoard>(true);
+        // SG_SMOKE_NOMEMBER=1: a world with nothing for members. The board must not mention members
+        if (Env("SG_SMOKE_NOMEMBER") == "1")
+        {
+            SerializedObject bso = new SerializedObject(board);
+            bso.FindProperty("showMemberStatus").boolValue = false;
+            bso.ApplyModifiedPropertiesWithoutUndo();
+            UdonSharpEditorUtility.CopyProxyToUdon(board);
+            File.AppendAllText(LogPath, "[EDITOR] board showMemberStatus=False\n");
+        }
+        driver.creditsText = board.GetComponentInChildren<TextMeshProUGUI>(true);
         foreach (Canvas c in Object.FindObjectsOfType<Canvas>(true))
         {
             if (c.name == "InfoPanel") driver.infoText = c.GetComponentInChildren<TextMeshProUGUI>(true);
