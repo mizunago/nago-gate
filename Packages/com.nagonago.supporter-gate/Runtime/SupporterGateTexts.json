@@ -517,6 +517,13 @@
     "zh-CN": "支持者",
     "zh-TW": "支持者"
   },
+  "credits.you.member": {
+    "ja": "メンバー",
+    "en": "Member",
+    "ko": "멤버",
+    "zh-CN": "成员",
+    "zh-TW": "成員"
+  },
   "credits.you.noAccess": {
     "ja": "あなたはこのワールドにアクセスする権限を持っていません",
     "en": "You do not have access to this world",

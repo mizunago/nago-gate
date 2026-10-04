@@ -9,7 +9,8 @@ sien/
 ├─ Packages/  Unity 側の VPM パッケージ（UdonSharp）
 │   ├─ com.nagonago.supporter-gate   支援者ゲート
 │   └─ com.nagonago.notice           共通の通知（ゲート以外のワールドでも使える）
-├─ tools/     VPM の一覧と zip を作るスクリプト
+├─ unity-test/  パッケージを実際に動かして確かめる Unity プロジェクト（SDK は含まない）
+├─ tools/     VPM の一覧と zip を作る、動作を確かめる、各プロジェクトとのずれを調べるスクリプト
 ├─ docs/      セットアップガイド
 └─ private/   非公開メモ（.gitignore 済み）
 ```
@@ -86,8 +87,11 @@ un.bat をダブルクリックでも可 / サーバーは docker compose up -d 
 
 ## パッケージを公開する（保守する人向け）
 
+パッケージを直すのは、このリポジトリだけです。各ワールドのプロジェクトに入っている物は直接直しません。直し方・確かめ方・ずれの調べ方は [docs/development.md](docs/development.md) にあります。
+
 1. `Packages/<名前>/package.json` の `version` を上げる
-2. gh-pages ブランチの作業ツリーを用意して、一覧と zip を作る
+2. `python tools/run_unity_tests.py` で、検証用の Unity プロジェクトを通す
+3. gh-pages ブランチの作業ツリーを用意して、一覧と zip を作る
 
 ```bash
 git worktree add ../nago-gate-pages gh-pages

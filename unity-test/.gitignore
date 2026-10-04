@@ -1,0 +1,23 @@
+# Unity が作る物
+/Library/
+/Logs/
+/Temp/
+/obj/
+/UserSettings/
+/preview/
+/*.log
+/*-result.txt
+/smoke-*.txt
+/Packages/packages-lock.json
+/Assets/SerializedUdonPrograms/
+/Assets/SerializedUdonPrograms.meta
+/Assets/UdonSharp/
+/Assets/UdonSharp.meta
+/Assets/TextMesh Pro/
+/Assets/TextMesh Pro.meta
+/Assets/Test/Smoke.unity
+/Assets/Test/Smoke.unity.meta
+
+# VRChat の SDK など、取り込む物（VCC でこのプロジェクトを開くと入る。ここには置かない）
+/Packages/com.vrchat.*/
+/Packages/net.narazaka.*/

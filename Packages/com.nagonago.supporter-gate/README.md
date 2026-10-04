@@ -24,6 +24,7 @@
 
 ## 版の履歴
 
+- 0.4.1: ボードの「メンバー」の呼び名が、日本語以外でも日本語のまま出ていたのを修正（文言の表に `credits.you.member` が抜けていた）
 - 0.4.0: `Convert Existing World` を追加。ゲートの無いワールドに、入口の部屋（何もない四角い部屋）とゲート一式を足す。今のスポーン地点は「入場したあとに出る場所」として引き継ぐ
 - 0.3.0: リストの `members`（メンバー）と `links`（案内用のリンク）に対応。Gate に `Use Member List`、Registry に `_IsMember` `_IsLocalMember` `_HasMemberList` `_GetLink` `_GetTierId` を追加。クレジットのボードに、本人の状態と Discord の招待 URL を表示。上げたあとに `Wire Notices (existing scene)` をもう一度実行すると、ボードに「入れないとき」の表示が出るようになる
 - 0.2.0: VPM パッケージ化、共通の通知、理由の通知とカウントダウン、多言語
