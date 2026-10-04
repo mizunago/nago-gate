@@ -179,6 +179,32 @@ public static class PackageBatch
         foreach (Button b in UnityEngine.Object.FindObjectsOfType<Button>(true)) { total++; if (b.onClick.GetPersistentEventCount() > 0) wired++; }
         Log("buttons: " + total + ", wired: " + wired);
         Log("VERIFY_GATE_DONE");
+        VerifyBoardOnly();
+    }
+
+    /// <summary>A scene without a gate (a public world with only the registry and the board): the upgrade path must still wire the board.</summary>
+    private static void VerifyBoardOnly()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+        SupporterGateSetup.CreateSceneSetup();
+        // remove everything that belongs to the gate, and the notice wiring, so that only the registry and the board remain
+        foreach (SupporterContentZone z in UnityEngine.Object.FindObjectsOfType<SupporterContentZone>(true)) UnityEngine.Object.DestroyImmediate(z.gameObject);
+        foreach (SupporterApprovalPanel p in UnityEngine.Object.FindObjectsOfType<SupporterApprovalPanel>(true)) UnityEngine.Object.DestroyImmediate(p.gameObject);
+        foreach (SupporterGate g in UnityEngine.Object.FindObjectsOfType<SupporterGate>(true)) UnityEngine.Object.DestroyImmediate(g.gameObject);
+        foreach (NoticeTable t in UnityEngine.Object.FindObjectsOfType<NoticeTable>(true)) UnityEngine.Object.DestroyImmediate(t.gameObject);
+        foreach (NoticeHub h in UnityEngine.Object.FindObjectsOfType<NoticeHub>(true)) UnityEngine.Object.DestroyImmediate(h.gameObject);
+        SupporterCreditsBoard credits = UnityEngine.Object.FindObjectOfType<SupporterCreditsBoard>(true);
+        if (credits == null) { Log("VERIFY_BOARD_ONLY_FAIL board missing"); return; }
+        UdonSharpEditorUtility.CopyUdonToProxy(credits);
+        Log("board only, before: gates=" + UnityEngine.Object.FindObjectsOfType<SupporterGate>(true).Length + " credits.texts = " + Var(credits, "texts") + " | credits.notice = " + Var(credits, "notice"));
+
+        SupporterGateSetup.UpgradeScene();
+        SupporterGateSetup.UpgradeScene();
+        string texts = Var(credits, "texts"), notice = Var(credits, "notice");
+        int hubs = UnityEngine.Object.FindObjectsOfType<NoticeHub>(true).Length, tables = UnityEngine.Object.FindObjectsOfType<NoticeTable>(true).Length;
+        Log("board only, after upgrade x2: credits.texts = " + texts + " | credits.notice = " + notice + " | hubs=" + hubs + " tables=" + tables);
+        bool ok = texts.Contains("UdonBehaviour") && notice.Contains("UdonBehaviour") && hubs == 1 && tables == 1;
+        Log(ok ? "VERIFY_BOARD_ONLY_OK" : "VERIFY_BOARD_ONLY_FAIL");
     }
 
     // ------------------------------------------------------------------

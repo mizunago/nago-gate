@@ -160,7 +160,7 @@ def main() -> int:
         print("== コンパイルと配線の確認 ==")
         run_unity("PackageBatch.BuildAll", "unity-build.log", {}, True)
         result = (PROJECT / "batch-result.txt").read_text(encoding="utf-8", errors="replace") if (PROJECT / "batch-result.txt").exists() else ""
-        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result
+        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result
         print("  " + ("ok" if build_ok else "FAIL（unity-test/batch-result.txt と unity-build.log を見る）"))
         if not build_ok:
             return 1

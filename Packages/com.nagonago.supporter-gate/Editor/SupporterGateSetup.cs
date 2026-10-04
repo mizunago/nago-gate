@@ -7,6 +7,7 @@
 //   Tools > SupporterGate > Wire Notices (existing scene)   既にあるシーンに、通知と文言の表を足して配線する
 
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using NagoNotice;
 using NagoNotice.EditorTools;
 using TMPro;
@@ -156,18 +157,31 @@ public static class SupporterGateSetup
     [MenuItem("Tools/SupporterGate/Wire Notices (existing scene)", false, 20)]
     public static void UpgradeScene()
     {
-        SupporterGate[] gates = Object.FindObjectsOfType<SupporterGate>(true);
-        if (gates.Length == 0)
+        List<GameObject> roots = new List<GameObject>();
+        foreach (SupporterGate gate in Object.FindObjectsOfType<SupporterGate>(true))
         {
-            EditorUtility.DisplayDialog("SupporterGate", "シーンに SupporterGate がありません。", "OK");
+            GameObject root = gate.transform.parent != null ? gate.transform.parent.gameObject : gate.gameObject;
+            if (!roots.Contains(root)) roots.Add(root);
+        }
+        int gateRoots = roots.Count;
+        // ゲートの無いシーン（公開のワールドに、Registry とボードだけを置いた場合）でも、ボードの配線は行う
+        foreach (SupporterCreditsBoard credits in Object.FindObjectsOfType<SupporterCreditsBoard>(true))
+        {
+            bool covered = false;
+            foreach (GameObject root in roots)
+            {
+                if (credits.transform.IsChildOf(root.transform)) { covered = true; break; }
+            }
+            if (covered) continue;   // ゲートの一式の中にあるボードは、その一式でまとめて配線される
+            roots.Add(credits.transform.parent != null ? credits.transform.parent.gameObject : credits.gameObject);
+        }
+        if (roots.Count == 0)
+        {
+            EditorUtility.DisplayDialog("SupporterGate", "シーンに SupporterGate も SupporterCreditsBoard もありません。", "OK");
             return;
         }
-        foreach (SupporterGate gate in gates)
-        {
-            GameObject systemRoot = gate.transform.parent != null ? gate.transform.parent.gameObject : gate.gameObject;
-            WireNotices(systemRoot);
-        }
-        Debug.Log("[SupporterGate] 通知と文言の表を配線しました（" + gates.Length + " 個のゲート）");
+        foreach (GameObject root in roots) WireNotices(root);
+        Debug.Log("[SupporterGate] 通知と文言の表を配線しました（ゲートの一式 " + gateRoots + " 個、ボードだけの場所 " + (roots.Count - gateRoots) + " 個）");
     }
 
     // ===================== 既存のワールドへの後付け =====================
