@@ -1,6 +1,6 @@
 // 登録処理の本体。スラッシュコマンド / ボタン+フォーム / テキスト投稿の 3 経路から共通で呼ぶ。
 import type { AppConfig } from "./config.js";
-import { normalizeName } from "./hash.js";
+import { hasUnsafeNameChars, normalizeName } from "./hash.js";
 import { t, type Lang } from "./i18n.js";
 import type { MemberRecord, Store } from "./store.js";
 import { tierByRank } from "./config.js";
@@ -28,6 +28,7 @@ export function fmtDate(iso: string | null): string {
 
 /** メンバー登録の状態を 1 行で表す */
 export function memberState(config: AppConfig, rec: MemberRecord, lang: Lang): string {
+  if (rec.banned) return t(lang, "member.state.none");
   if (rec.memberManual) return t(lang, rec.memberActive ? "member.state.manual" : "member.state.manualNeedName");
   if (!rec.memberConsentAt) return t(lang, "member.state.none");
   if (rec.memberActive) return t(lang, "member.state.active");
@@ -45,6 +46,7 @@ export function describe(config: AppConfig, rec: MemberRecord | null, lang: Lang
     `${t(lang, "status.credit")}: ${t(lang, rec.showCredit ? "on" : "off")}`,
   ];
   if (config.member) lines.push(`${t(lang, "member.label")}: ${memberState(config, rec, lang)}`);
+  if (rec.banned) lines.push(`BAN: ${fmtDate(rec.bannedAt)}${rec.banReason ? ` (${rec.banReason})` : ""}`);
   if (rec.graceUntil) lines.push(`${t(lang, "status.grace")}: ${fmtDate(rec.graceUntil)}`);
   if (rec.manualRank > 0) {
     const v = rec.manualUntil
@@ -63,7 +65,7 @@ export function validateName(config: AppConfig, raw: string, lang: Lang): { ok: 
   const name = raw.trim();
   if (name.length === 0) return { ok: false, reason: t(lang, "err.name.empty") };
   if (name.length > config.maxNameLength) return { ok: false, reason: t(lang, "err.name.tooLong", { max: config.maxNameLength }) };
-  if (/[\r\n\t]/.test(name)) return { ok: false, reason: t(lang, "err.name.badChars") };
+  if (hasUnsafeNameChars(name)) return { ok: false, reason: t(lang, "err.name.badChars") };
   return { ok: true, name };
 }
 
@@ -74,6 +76,12 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   if (!v.ok) {
     log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): ${v.reason} name=${JSON.stringify(input.name)}`);
     return { ok: false, changed: false, message: t(lang, "err.cannotRegister", { reason: v.reason }) };
+  }
+
+  // BAN 中の人は登録できない（Discord 側の BAN だけが解かれて、入り直した場合）
+  if (store.get(input.discordId)?.banned) {
+    log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): BAN 中 name=${JSON.stringify(input.name)}`);
+    return { ok: false, changed: false, message: t(lang, "err.banned") };
   }
 
   const rec = store.getOrCreate(input.discordId);

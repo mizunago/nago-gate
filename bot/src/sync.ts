@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Guild, GuildMember } from "discord.js";
 import type { AppConfig, TierConfig } from "./config.js";
-import { hashName } from "./hash.js";
+import { displaySafeName, hashName } from "./hash.js";
 import { publishJson } from "./publish.js";
 import type { MemberRecord, Store } from "./store.js";
 
@@ -111,7 +111,7 @@ export function memberEligibleFrom(config: AppConfig, rec: MemberRecord): Date |
  * 通常は、同意・名前の登録・在籍日数。管理者が手動で認定した人は、名前の登録とサーバーへの在籍だけでよい
  */
 export function isMemberEligible(config: AppConfig, rec: MemberRecord, now: Date): boolean {
-  if (!config.member || !rec.vrcName) return false;
+  if (!config.member || !rec.vrcName || rec.banned) return false;
   if (rec.memberManual) return rec.joinedAt !== null;
   if (!rec.memberConsentAt) return false;
   const from = memberEligibleFrom(config, rec);
@@ -169,9 +169,12 @@ export function buildSupportersJson(config: AppConfig, store: Store): Supporters
   const access: Record<string, number> = {};
   const credits: { n: string; r: number }[] = [];
   for (const rec of store.all()) {
-    if (rec.effectiveRank <= 0 || !rec.vrcName) continue;
+    // BAN 中の人は、支援が続いていても載せない
+    if (rec.effectiveRank <= 0 || !rec.vrcName || rec.banned) continue;
+    // 判定用のハッシュは、登録された名前そのままで作る。表示用の名前だけ、表示を乱す文字を落とす
     access[hashName(rec.vrcName)] = rec.effectiveRank;
-    if (rec.showCredit) credits.push({ n: rec.vrcName, r: rec.effectiveRank });
+    const shown = displaySafeName(rec.vrcName);
+    if (rec.showCredit && shown) credits.push({ n: shown, r: rec.effectiveRank });
   }
   credits.sort((a, b) => b.r - a.r || a.n.localeCompare(b.n, "ja"));
 
@@ -242,7 +245,7 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
       stateChanged = true;
       ctx.log(`状態変化 ${member.user.tag} (${member.id}): active ${before.active}->${rec.activeRank}, effective ${before.effective}->${rec.effectiveRank}, grace ${before.grace ?? "-"}->${rec.graceUntil ?? "-"}`);
     }
-    if (rec.effectiveRank > 0) result.active++;
+    if (rec.effectiveRank > 0 && !rec.banned) result.active++;
     if (rec.graceUntil) result.inGrace++;
 
     // メンバーは支援と別の軸。在籍日数は、今サーバーにいる期間で数える
@@ -255,7 +258,8 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
     }
     if (rec.memberActive) result.members++;
 
-    await applyRoles(ctx.config, member, rec.effectiveRank, rec.memberActive, result, ctx.log);
+    // BAN 中の人がサーバーにいる場合（Discord 側の BAN だけ解かれた等）は、ロールを付けない
+    await applyRoles(ctx.config, member, rec.banned ? 0 : rec.effectiveRank, rec.memberActive, result, ctx.log);
   }
 
   // サーバーを抜けた（支援サイト Bot にキックされた等）メンバー: ロール操作は不可、猶予だけ進める
@@ -267,7 +271,7 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
       stateChanged = true;
       ctx.log(`退出済みメンバー ${rec.discordTag ?? rec.discordId}: effective ${beforeEff}->${rec.effectiveRank}`);
     }
-    if (rec.effectiveRank > 0) result.active++;
+    if (rec.effectiveRank > 0 && !rec.banned) result.active++;
     if (rec.graceUntil) result.inGrace++;
     // サーバーを抜けたらメンバーではなくなる。入り直したときは、在籍日数を数え直す
     if (rec.memberActive) {

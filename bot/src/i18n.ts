@@ -93,11 +93,18 @@ const M = {
     ko: "이름이 너무 깁니다 (최대 {max}자).",
   },
   "err.name.badChars": {
-    ja: "改行やタブは使えません",
-    en: "Line breaks and tabs are not allowed.",
-    "zh-CN": "不能包含换行或制表符。",
-    "zh-TW": "不能包含換行或 Tab。",
-    ko: "줄바꿈이나 탭은 사용할 수 없습니다.",
+    ja: "改行やタブなど、表示できない文字は使えません",
+    en: "Line breaks, tabs and other control characters are not allowed.",
+    "zh-CN": "不能包含换行、制表符等控制字符。",
+    "zh-TW": "不能包含換行、Tab 等控制字元。",
+    ko: "줄바꿈, 탭 등 제어 문자는 사용할 수 없습니다.",
+  },
+  "err.banned": {
+    ja: "このアカウントでは登録できません。心当たりがなければ管理者に連絡してください。",
+    en: "This account cannot register. Contact an admin if this is unexpected.",
+    "zh-CN": "此账号无法注册。如有疑问请联系管理员。",
+    "zh-TW": "此帳號無法註冊。如有疑問請聯絡管理員。",
+    ko: "이 계정으로는 등록할 수 없습니다. 짚이는 바가 없다면 관리자에게 문의하세요.",
   },
   "err.cannotRegister": {
     ja: "登録できません: {reason}",

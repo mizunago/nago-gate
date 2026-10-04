@@ -9,7 +9,7 @@
 1. https://discord.com/developers/applications で New Application
 2. Bot → Reset Token でトークン取得（`instance/.env` の `DISCORD_TOKEN`）
 3. Bot → Privileged Gateway Intents で **SERVER MEMBERS INTENT** を ON（必須）。登録チャンネルの自動処理を使うなら **MESSAGE CONTENT INTENT** も ON
-4. OAuth2 → URL Generator: scope `bot` + `applications.commands`、権限 `Manage Roles` + `Manage Channels` + `Manage Messages` + `Send Messages` + `View Channels`
+4. OAuth2 → URL Generator: scope `bot` + `applications.commands`、権限 `Manage Roles` + `Manage Channels` + `Manage Messages` + `Send Messages` + `View Channels`。`/vrc-admin ban` を使うなら `Ban Members` も（あとから足すときは、サーバー設定 → ロール → Bot のロールで「メンバーを BAN」を ON）
 5. 生成 URL でサーバーに招待し、サーバー設定 → ロールで **Bot のロールを一番上へ** 移動（Bot は自分より下のロールしか作成・付与できない）
 
 ## 3. 公開先の準備（GitHub Pages、同じリポジトリの gh-pages ブランチ）
@@ -109,6 +109,10 @@ npm start
 | `/vrc-admin setname user:@x name:<表示名>` | クールダウン無視で名前を設定 |
 | `/vrc-admin grant user:@x rank:<n> [days:<n>]` | 手動でランク付与（支援サイトを使わない特例など） |
 | `/vrc-admin revoke user:@x` | 手動付与の取り消し |
+| `/vrc-admin member-grant user:@x` | メンバーに手動で認定する。在籍日数と同意を待たない（表示名の登録は必要） |
+| `/vrc-admin member-revoke user:@x` | メンバーの手動の認定を取り消す（本人のメンバー登録も取り消す） |
+| `/vrc-admin ban user:@x [reason:<理由>]` | サーバーから BAN し、支援者・メンバーのリストから外す（下の「BAN」を参照） |
+| `/vrc-admin unban user:@x` | ban を解除する（サーバーの BAN も解く） |
 | `/vrc-admin hash name:<表示名>` | ハッシュ値の確認（Udon 側デバッグ用） |
 
 ## 6b. メンバー登録（任意）
@@ -132,12 +136,17 @@ npm start
 
 - ボタンを押した時点で日数が足りていれば、その場でロールが付く。足りなければ、日数がたったあとの定期の同期で自動的に付く
 - 同じボタンから、登録の取り消しもできる
+- 管理者は `/vrc-admin member-grant` で、在籍日数と同意を待たずにメンバーに認定できる（表示名の登録は必要）
 - サーバーを抜けるとメンバーではなくなる
 - メンバーは、支援者と同じリストの `members` に載る（名前は載せず、ハッシュだけ）。ワールド側の使い方は [unity-setup.md](unity-setup.md) を参照
 
 ### ワールドの中に Discord の招待 URL を出す
 
 `config.jsonc` に `"links": { "discord": "https://discord.gg/xxxxxxxx" }` を足すと、リストに URL が入り、各ワールドのクレジットのボードに表示されます。URL を変えたいときは、ここを直して Bot を再起動するだけです。招待リンクは、期限なし・回数無制限で作ってください。
+
+### コマンドの一覧を管理用のチャンネルに出しておく
+
+`config.jsonc` の `discord.commandsChannelId` に、管理者だけが見えるチャンネルの ID を入れると、使えるコマンドの一覧がそこに出ます。Bot が起動するたびに、今の内容へ書き換えます（コマンドの定義から作るので、手で直す必要はありません）。
 
 ## 7. 登録チャンネルの運用
 
@@ -165,3 +174,18 @@ npm start
 - 支援サイトのロールが外れた時点から 31 日は有効ランクを維持します
 - Ci-en の公式 Bot は退会翌月にサーバーからキックすることがあります。キックされても Bot 側の記録で猶予は続きます（再参加すれば共通ロールも戻ります）
 - 猶予が切れると JSON から外れ、ワールド側は次回の再取得（既定 10 分）で反映します
+
+## BAN
+
+メンバーの認定を取り消すだけだと、本人が登録し直せば戻れます。戻れないようにするには `/vrc-admin ban` を使います。
+
+- サーバーから BAN する（Bot に「メンバーを BAN」の権限が必要。無いときは、リストから外すところまでを行い、その旨を返す）
+- 支援が続いていても、支援者・メンバーのどのリストにも載せない。メンバー登録と手動の付与は取り消す
+- 登録していた表示名は記録に残すので、別の Discord アカウントで同じ表示名を登録し直すこともできない
+- ワールドへの反映は、公開と再取得を合わせて、遅くとも 20 分ほど
+- 支援サイトでの支援は止まらない。必要なら、支援サイト側でもブロックする
+- `/vrc-admin lookup` に BAN の日付と理由が出る。解除は `/vrc-admin unban`（本人がサーバーに入り直して登録し直せば、通常の条件で戻れる）
+
+## 登録できる名前
+
+改行・タブなどの制御文字と、文字の向きを変える指定（表示を乱す文字）を含む名前は登録できません。それより前に登録された名前は、クレジットに出すときにだけ、その文字を落とします（判定用のハッシュは登録された名前のまま）。`<` などの記号は登録でき、ワールド側で装飾として解釈されないようにして表示します。

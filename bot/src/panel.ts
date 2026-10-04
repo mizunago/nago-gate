@@ -96,6 +96,10 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
     return;
   }
   const rec = store.get(interaction.user.id);
+  if (rec?.banned) {
+    await interaction.reply({ content: t(lang, "err.banned"), ephemeral: true });
+    return;
+  }
   if (!rec || !rec.vrcName) {
     // ゲートは表示名で判定するので、名前の登録が先
     await interaction.reply({ content: t(lang, "member.needName"), ephemeral: true });

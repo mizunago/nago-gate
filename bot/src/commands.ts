@@ -115,6 +115,19 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     )
     .addSubcommand((s) =>
       s
+        .setName("ban")
+        .setDescription("サーバーから BAN し、支援者・メンバーのリストから外す（同じ表示名での登録し直しも防ぐ）")
+        .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true))
+        .addStringOption((o) => o.setName("reason").setDescription("理由（管理用のメモ。本人には送らない）")),
+    )
+    .addSubcommand((s) =>
+      s
+        .setName("unban")
+        .setDescription("ban を解除する（サーバーの BAN も解く。本人が入り直して登録し直せば、通常の条件で戻れる）")
+        .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
+    )
+    .addSubcommand((s) =>
+      s
         .setName("hash")
         .setDescription("名前のハッシュを表示する（Udon 側の動作確認用）")
         .addStringOption((o) => o.setName("name").setDescription("DisplayName").setRequired(true)),
@@ -282,6 +295,10 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         return;
       }
       const rec = store.getOrCreate(user.id);
+      if (rec.banned) {
+        await interaction.reply({ content: `<@${user.id}> は BAN 中です。先に \`/vrc-admin unban\` で解除してください`, ephemeral: true });
+        return;
+      }
       const now = new Date();
       rec.manualRank = rank;
       rec.manualUntil = days ? new Date(now.getTime() + days * 86_400_000).toISOString() : null;
@@ -326,6 +343,10 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         await interaction.reply({ content: "登録情報がありません", ephemeral: true });
         return;
       }
+      if (grant && rec.banned) {
+        await interaction.reply({ content: `<@${user.id}> は BAN 中です。先に \`/vrc-admin unban\` で解除してください`, ephemeral: true });
+        return;
+      }
       const now = new Date();
       rec.discordTag = user.tag;
       rec.joinedAt = target?.joinedAt ? target.joinedAt.toISOString() : null;
@@ -345,6 +366,75 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       else if (rec.memberActive) msg = `<@${user.id}> をメンバーに認定しました。数分後からメンバー限定のワールドに入れます。`;
       else msg = `<@${user.id}> をメンバーに認定しましたが、VRChat の表示名がまだ登録されていません。本人が登録するか、\`/vrc-admin setname\` で設定すると有効になります。`;
       await interaction.reply({ content: msg, ephemeral: true });
+      return;
+    }
+    if (sub === "ban" || sub === "unban") {
+      const user = interaction.options.getUser("user", true);
+      const ban = sub === "ban";
+      if (ban && (user.id === member.id || user.bot)) {
+        await interaction.reply({ content: "自分自身と Bot は BAN できません", ephemeral: true });
+        return;
+      }
+      await interaction.deferReply({ ephemeral: true });
+      const now = new Date();
+
+      if (!ban) {
+        // Discord 側で既に解かれている（BAN が見つからない）場合は、そのまま進める
+        const failed = await interaction.guild.bans
+          .remove(user.id, `SupporterGate unban by ${member.user.tag}`)
+          .then(() => null)
+          .catch((err) => (String(err).includes("Unknown Ban") ? null : String(err)));
+        const rec = store.get(user.id);
+        if (rec?.banned) {
+          rec.banned = false;
+          rec.bannedAt = null;
+          rec.banReason = null;
+          rec.updatedAt = now.toISOString();
+          store.save();
+        }
+        log.info(`管理者 unban ${user.tag} (${user.id}) by ${member.user.tag}${failed ? ` Discord 側の解除に失敗: ${failed}` : ""}`);
+        await interaction.editReply(
+          failed
+            ? `<@${user.id}> の登録の停止は解きましたが、サーバーの BAN の解除に失敗しました: ${failed}\nDiscord の「サーバー設定 → BAN」から解除してください。`
+            : `<@${user.id}> の BAN を解除しました。本人がサーバーに入り直して登録し直せば、通常の条件で戻れます。`,
+        );
+        return;
+      }
+
+      const reason = (interaction.options.getString("reason") ?? "").trim();
+      const target = await interaction.guild.members.fetch(user.id).catch(() => null);
+      const rec = store.getOrCreate(user.id);
+      rec.discordTag = user.tag;
+      rec.banned = true;
+      rec.bannedAt = now.toISOString();
+      rec.banReason = reason || null;
+      rec.memberConsentAt = null;
+      rec.memberManual = false;
+      rec.memberActive = false;
+      rec.manualRank = 0;
+      rec.manualUntil = null;
+      rec.updatedAt = now.toISOString();
+      store.save();
+      deps.requestPublish();
+
+      const failed = await interaction.guild.members
+        .ban(user.id, { reason: `SupporterGate ban by ${member.user.tag}${reason ? `: ${reason}` : ""}`.slice(0, 500) })
+        .then(() => null)
+        .catch((err) => String(err));
+      if (failed && target) {
+        // サーバーに残っている間も、ロールは外しておく
+        const managed = [...config.tiers.map((tier) => tier.roleId), ...(config.member ? [config.member.roleId] : [])].filter((id) => target.roles.cache.has(id));
+        if (managed.length > 0) await target.roles.remove(managed, "SupporterGate ban").catch((err) => log.warn(`BAN のロール剥奪に失敗 ${user.tag}: ${String(err)}`));
+      }
+      log.info(`管理者 ban ${user.tag} (${user.id}) name=${rec.vrcName ?? "-"} reason=${reason || "-"} by ${member.user.tag}${failed ? ` Discord 側の BAN に失敗: ${failed}` : ""}`);
+      const nameNote = rec.vrcName ? `登録していた表示名（**${rec.vrcName}**）は、ほかのアカウントでも登録できません。` : "表示名は登録されていませんでした。";
+      await interaction.editReply(
+        (failed
+          ? `<@${user.id}> を支援者・メンバーのリストから外しましたが、サーバーからの BAN に失敗しました: ${failed}\nBot のロールに「メンバーを BAN」の権限を付けてやり直すか、Discord の画面から BAN してください。\n`
+          : `<@${user.id}> をサーバーから BAN し、支援者・メンバーのリストから外しました。\n`) +
+          `${nameNote}\nワールドへの反映は、遅くとも 20 分ほどです（今いるインスタンスからは、リストの読み直しのあとに出されます）。\n` +
+          "支援サイトでの支援は止まりません。必要なら、支援サイト側でもブロックしてください。解除は `/vrc-admin unban` です。",
+      );
       return;
     }
     if (sub === "hash") {
