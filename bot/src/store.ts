@@ -27,7 +27,9 @@ export interface MemberRecord {
   discordTag: string | null;
   /** メンバー登録（18 歳以上の確認と注意への同意）をした日時。未登録は null */
   memberConsentAt: string | null;
-  /** メンバーの条件（同意・名前の登録・在籍日数）を満たしているか。同期のたびに更新 */
+  /** 管理者が手動でメンバーと認定したか（在籍日数と同意を問わない。名前の登録とサーバーへの在籍は必要） */
+  memberManual: boolean;
+  /** メンバーの条件（同意・名前の登録・在籍日数、または手動の認定）を満たしているか。同期のたびに更新 */
   memberActive: boolean;
   /** サーバーに参加した日時（在籍日数の計算用）。サーバーにいないときは null */
   joinedAt: string | null;
@@ -58,6 +60,7 @@ export class Store {
     for (const rec of Object.values(parsed.members)) {
       rec.memberConsentAt ??= null;
       rec.memberActive ??= false;
+      rec.memberManual ??= false;
       rec.joinedAt ??= null;
     }
     return parsed;
@@ -93,6 +96,7 @@ export class Store {
       discordTag: null,
       memberConsentAt: null,
       memberActive: false,
+      memberManual: false,
       joinedAt: null,
       updatedAt: now,
     };

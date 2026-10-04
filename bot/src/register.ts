@@ -28,6 +28,7 @@ export function fmtDate(iso: string | null): string {
 
 /** メンバー登録の状態を 1 行で表す */
 export function memberState(config: AppConfig, rec: MemberRecord, lang: Lang): string {
+  if (rec.memberManual) return t(lang, rec.memberActive ? "member.state.manual" : "member.state.manualNeedName");
   if (!rec.memberConsentAt) return t(lang, "member.state.none");
   if (rec.memberActive) return t(lang, "member.state.active");
   const from = memberEligibleFrom(config, rec);

@@ -106,9 +106,14 @@ export function memberEligibleFrom(config: AppConfig, rec: MemberRecord): Date |
   return addDays(new Date(rec.joinedAt), config.member.minDays);
 }
 
-/** メンバーの条件（同意・名前の登録・在籍日数）を満たしているか。支援の有無は見ない */
+/**
+ * メンバーの条件を満たしているか。支援の有無は見ない。
+ * 通常は、同意・名前の登録・在籍日数。管理者が手動で認定した人は、名前の登録とサーバーへの在籍だけでよい
+ */
 export function isMemberEligible(config: AppConfig, rec: MemberRecord, now: Date): boolean {
-  if (!config.member || !rec.memberConsentAt || !rec.vrcName) return false;
+  if (!config.member || !rec.vrcName) return false;
+  if (rec.memberManual) return rec.joinedAt !== null;
+  if (!rec.memberConsentAt) return false;
   const from = memberEligibleFrom(config, rec);
   return from !== null && from <= now;
 }

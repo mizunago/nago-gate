@@ -12,7 +12,7 @@ import { log } from "./log.js";
 import { buildPanelMessage, IDS } from "./panel.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
-import { publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
+import { isMemberEligible, publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
 
 export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
   const vrc = new SlashCommandBuilder()
@@ -99,6 +99,18 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
       s
         .setName("revoke")
         .setDescription("手動付与を取り消す")
+        .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
+    )
+    .addSubcommand((s) =>
+      s
+        .setName("member-grant")
+        .setDescription("メンバーに手動で認定する（在籍日数と同意を待たない。表示名の登録は必要）")
+        .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
+    )
+    .addSubcommand((s) =>
+      s
+        .setName("member-revoke")
+        .setDescription("メンバーの手動の認定を取り消す（本人のメンバー登録も取り消す）")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
     .addSubcommand((s) =>
@@ -294,6 +306,45 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       log.info(`管理者 revoke ${user.tag} (${user.id}) by ${member.user.tag}`);
       deps.requestPublish();
       await interaction.reply({ content: `<@${user.id}> の手動付与を取り消しました`, ephemeral: true });
+      return;
+    }
+    if (sub === "member-grant" || sub === "member-revoke") {
+      const mc = config.member;
+      if (!mc) {
+        await interaction.reply({ content: "メンバー登録が設定されていません（config.jsonc の member）", ephemeral: true });
+        return;
+      }
+      const user = interaction.options.getUser("user", true);
+      const target = await interaction.guild.members.fetch(user.id).catch(() => null);
+      const grant = sub === "member-grant";
+      if (grant && !target) {
+        await interaction.reply({ content: `<@${user.id}> はこのサーバーにいません`, ephemeral: true });
+        return;
+      }
+      const rec = grant ? store.getOrCreate(user.id) : store.get(user.id);
+      if (!rec) {
+        await interaction.reply({ content: "登録情報がありません", ephemeral: true });
+        return;
+      }
+      const now = new Date();
+      rec.discordTag = user.tag;
+      rec.joinedAt = target?.joinedAt ? target.joinedAt.toISOString() : null;
+      rec.memberManual = grant;
+      if (!grant) rec.memberConsentAt = null;
+      rec.memberActive = isMemberEligible(config, rec, now);
+      rec.updatedAt = now.toISOString();
+      store.save();
+      log.info(`管理者 ${sub} ${user.tag} (${user.id}) 有効=${rec.memberActive} by ${member.user.tag}`);
+      if (target) {
+        const op = rec.memberActive ? target.roles.add(mc.roleId, "SupporterGate member (manual)") : target.roles.remove(mc.roleId, "SupporterGate member (manual)");
+        await op.catch((err) => log.warn(`メンバーのロール更新に失敗 ${user.tag}: ${String(err)}`));
+      }
+      deps.requestPublish();
+      let msg: string;
+      if (!grant) msg = `<@${user.id}> のメンバーの認定を取り消しました。本人が登録し直せば、通常の条件（在籍 ${mc.minDays} 日と同意）でメンバーになれます。`;
+      else if (rec.memberActive) msg = `<@${user.id}> をメンバーに認定しました。数分後からメンバー限定のワールドに入れます。`;
+      else msg = `<@${user.id}> をメンバーに認定しましたが、VRChat の表示名がまだ登録されていません。本人が登録するか、\`/vrc-admin setname\` で設定すると有効になります。`;
+      await interaction.reply({ content: msg, ephemeral: true });
       return;
     }
     if (sub === "hash") {

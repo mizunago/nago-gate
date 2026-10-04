@@ -235,6 +235,14 @@ const M = {
     "zh-TW": "已登記（{date} 起生效）",
     ko: "등록 완료 ({date}부터 유효)",
   },
+  "member.state.manual": { ja: "有効（管理者が認定）", en: "active (granted by an admin)", "zh-CN": "有效（由管理员认定）", "zh-TW": "有效（由管理員認定）", ko: "유효 (관리자 인정)" },
+  "member.state.manualNeedName": {
+    ja: "管理者が認定済み（VRChat の表示名を登録すると有効になります）",
+    en: "granted by an admin (becomes active once you register your VRChat display name)",
+    "zh-CN": "已由管理员认定（注册 VRChat 显示名称后生效）",
+    "zh-TW": "已由管理員認定（註冊 VRChat 顯示名稱後生效）",
+    ko: "관리자 인정 완료 (VRChat 표시 이름을 등록하면 유효해집니다)",
+  },
   "member.state.none": { ja: "未登録", en: "not applied", "zh-CN": "未登记", "zh-TW": "未登記", ko: "미등록" },
   "member.unavailable": {
     ja: "この機能は今は使えません。",

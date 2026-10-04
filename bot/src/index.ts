@@ -5,6 +5,7 @@ import { handleButton, handleModal, handleRegisterChannelMessage } from "./panel
 import { loadInstance } from "./config.js";
 import { initLog, log as L } from "./log.js";
 import { attachDiscordLog } from "./discordlog.js";
+import { updateCommandBoard } from "./helpboard.js";
 import { Store } from "./store.js";
 import { publishIfChanged, runSync, type SyncContext } from "./sync.js";
 
@@ -99,6 +100,7 @@ async function main(): Promise<void> {
         body: buildCommands(),
       });
       log("スラッシュコマンドを登録しました");
+      await updateCommandBoard(c, config).catch((err) => L.warn(`コマンド一覧の更新に失敗: ${String(err)}`));
     } catch (err) {
       L.error(`スラッシュコマンド登録に失敗: ${String(err)}`);
       return;

@@ -107,7 +107,7 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
   const id = interaction.customId;
 
   if (id === IDS.member) {
-    if (!rec.memberConsentAt) {
+    if (!rec.memberConsentAt && !rec.memberManual) {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, "member.agree")).setStyle(ButtonStyle.Success),
       );
@@ -146,6 +146,7 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
   // 取り消し
   const wasActive = rec.memberActive;
   rec.memberConsentAt = null;
+  rec.memberManual = false;
   rec.memberActive = false;
   rec.updatedAt = now.toISOString();
   store.save();
