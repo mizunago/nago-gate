@@ -150,7 +150,13 @@ async function ensureChannel(guild: Guild, cat: CategoryChannel, spec: ChannelSp
   if (existing) {
     if (spec.sync) await existing.lockPermissions();
     else if (spec.overwrites && "permissionOverwrites" in existing) await existing.permissionOverwrites.set(spec.overwrites, "SupporterGate setup");
-    log.info(`setup: 既存チャンネル再利用・権限更新 ${cat.name}/${spec.name} (${existing.id})${spec.sync ? " カテゴリと同期" : ""}`);
+    // 年齢制限は、付ける方向にだけ揃える（nsfw を付け忘れて再実行しても、既に付いている制限は外さない）
+    let nsfwNote = "";
+    if (spec.nsfw && "nsfw" in existing && !existing.nsfw) {
+      await existing.edit({ nsfw: true, reason: "SupporterGate setup" });
+      nsfwNote = " 年齢制限を付与";
+    }
+    log.info(`setup: 既存チャンネル再利用・権限更新 ${cat.name}/${spec.name} (${existing.id})${spec.sync ? " カテゴリと同期" : ""}${nsfwNote}`);
     return { ch: existing, created: false };
   }
   const overwrites = spec.sync ? undefined : spec.overwrites;
