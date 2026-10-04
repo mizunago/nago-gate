@@ -1,6 +1,6 @@
 {
  "v": 1,
- "generatedAt": "2026-10-04T00:05:06.293Z",
+ "generatedAt": "2026-10-04T00:36:47.259Z",
  "tiers": [
   {
    "id": "supporter",
@@ -17,6 +17,7 @@
  ],
  "access": {},
  "credits": [],
+ "members": {},
  "links": {
   "discord": "https://discord.gg/ENg5sh23J5"
  }
