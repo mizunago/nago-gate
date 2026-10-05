@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonInteraction,
   ButtonStyle,
+  GuildMember,
   Message,
   MessageFlags,
   ModalBuilder,
@@ -17,7 +18,7 @@ import { tierByRank, type AppConfig, type MemberConfig } from "./config.js";
 import { langOf, t, type Lang } from "./i18n.js";
 import { log } from "./log.js";
 import { describe, fmtDate, memberState, parseTextRegister, registerName } from "./register.js";
-import type { MemberRecord } from "./store.js";
+import type { MemberRecord, Store } from "./store.js";
 import { isMemberEligible, memberEligibleFrom, type SyncContext } from "./sync.js";
 import { bringIntoGroup, type VrcProfile } from "./vrchat.js";
 
@@ -105,6 +106,27 @@ export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
   if (config.group) second.push(new ButtonBuilder().setCustomId(IDS.group).setLabel("グループ / Group").setStyle(ButtonStyle.Secondary).setEmoji("👥"));
   if (second.length > 0) rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...second));
   return { content: lines.join("\n"), components: rows };
+}
+
+/**
+ * 表示名を登録した直後に、メンバーの条件が揃った人へロールを付ける。
+ * 管理者が先に認定していた人（/vrc-admin member-grant）は、表示名の登録で条件が揃う。定期の同期まで待たせない
+ */
+export async function activateMemberIfReady(config: AppConfig, store: Store, member: GuildMember | null): Promise<boolean> {
+  const mc = config.member;
+  if (!mc || !member) return false;
+  const rec = store.get(member.id);
+  if (!rec || rec.memberActive) return false;
+  if (member.joinedAt) rec.joinedAt = member.joinedAt.toISOString();
+  const now = new Date();
+  if (!isMemberEligible(config, rec, now)) return false;
+  rec.memberActive = true;
+  rec.updatedAt = now.toISOString();
+  store.save();
+  const who = `${member.user.tag} (${member.id})`;
+  await member.roles.add(mc.roleId, "SupporterGate member").catch((err) => log.warn(`メンバーのロール付与に失敗 ${who}: ${String(err)}`));
+  log.info(`メンバーが有効になりました ${who}: 表示名の登録で、条件が揃いました`);
+  return true;
 }
 
 /** 見送りのあと、次に申請できる日時。見送られていなければ null */
@@ -531,6 +553,7 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
     credit: null,
     lang,
   });
+  if (r.ok && (await activateMemberIfReady(config, store, interaction.member))) deps.requestPublish();
   if (r.changed) deps.requestPublish();
   await interaction.reply({ content: r.message, ephemeral: true });
 }
@@ -555,6 +578,7 @@ export async function handleRegisterChannelMessage(deps: PanelDeps, msg: Message
     const ja = registerName(config, store, {
       discordId: msg.author.id, discordTag: msg.author.tag, name: parsed.name, credit: parsed.credit, lang: "ja",
     });
+    if (ja.ok && (await activateMemberIfReady(config, store, msg.member))) deps.requestPublish();
     if (ja.changed) deps.requestPublish();
     const enMsg = ja.ok
       ? t("en", "registered")

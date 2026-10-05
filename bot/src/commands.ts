@@ -9,7 +9,7 @@ import { tierByRank, type AppConfig } from "./config.js";
 import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
-import { buildPanelMessage, IDS } from "./panel.js";
+import { activateMemberIfReady, buildPanelMessage, IDS } from "./panel.js";
 import { keyedHashName } from "./protect.js";
 import { diagnose } from "./diagnose.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
@@ -168,6 +168,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         credit: interaction.options.getBoolean("credit"),
         lang,
       });
+      if (r.ok && (await activateMemberIfReady(config, store, member))) deps.requestPublish();
       if (r.changed) deps.requestPublish();
       await interaction.reply({ content: r.message, ephemeral: true });
       return;
