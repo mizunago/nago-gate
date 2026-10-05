@@ -42,55 +42,58 @@ export interface PanelDeps extends SyncContext {
   requestPublish: () => void;
 }
 
-/** /vrc-admin panel で投稿する固定メッセージ（共有メッセージなので多言語併記） */
+/**
+ * /vrc-admin panel で投稿する固定メッセージ。全員が読む場所なので 4 言語を載せる。
+ * 文は、言語ごとの節に分ける（話題ごとに 4 言語を並べると、1 行ごとに言語が入れ替わって読みにくい）。
+ * ボタンのラベルは日本語と英語の併記なので、中国語と韓国語の節では、英語のラベルでボタンを指す
+ */
 export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
-  const lines = [
-    "## VRChat 支援者登録 / Supporter Registration / 支持者注册",
-    "",
-    "🇯🇵 **登録** ボタンを押して、VRChat の表示名（プロフィールに出ている名前）を入力してください。",
-    "　　表示名を変えたら再度登録してください（30 日に 1 回）。",
-    "🇬🇧 Press **Register** and enter your VRChat display name (the name shown on your profile).",
-    "　　Register again if you change your display name (once every 30 days).",
-    "🇨🇳 点击 **注册**，输入你的 VRChat 显示名称（个人资料上显示的名字）。更改名称后请重新注册（每 30 天一次）。",
-    "🇰🇷 **등록** 버튼을 누르고 VRChat 표시 이름(프로필에 표시되는 이름)을 입력하세요. 이름을 바꾸면 다시 등록하세요(30일에 1회).",
-  ];
-  if (config.member?.mode === "apply") {
-    lines.push(
-      "",
-      "🇯🇵 **メンバー** ボタン: メンバーの申請ができます。確認があります（18 歳以上の方のみ）。",
-      "🇬🇧 **Membership** button: apply for membership here. Applications are reviewed (18+ only).",
-      "🇨🇳 **成员** 按钮：可在此申请成为成员，需经确认（仅限 18 岁以上）。",
-      "🇰🇷 **멤버** 버튼: 멤버 신청을 할 수 있습니다. 확인 절차가 있습니다 (18세 이상).",
-    );
-  } else if (config.member) {
-    const d = config.member.minDays;
-    lines.push(
-      "",
-      `🇯🇵 **メンバー** ボタン: サーバーに参加して ${d} 日以上の方は、支援の有無に関係なく、メンバー限定の案内を見られます（18 歳以上の方のみ）。`,
-      `🇬🇧 **Membership** button: after ${d} days on this server, you can see the member-only area, whether or not you are a supporter (18+ only).`,
-      `🇨🇳 **成员** 按钮：加入本服务器满 ${d} 天后，无论是否支持，都可以查看成员限定区域（仅限 18 岁以上）。`,
-      `🇰🇷 **멤버** 버튼: 서버 참가 후 ${d}일이 지나면 후원 여부와 관계없이 멤버 전용 안내를 볼 수 있습니다 (18세 이상).`,
-    );
-  }
-  if (config.group) {
-    lines.push(
-      "",
-      "👥 **グループ / Group** ボタン: 支援者とメンバーの方は、VRChat の Group に参加できます。フレンドでなくても、Group のインスタンスで一緒に遊べます。 / Supporters and members can join our VRChat Group and play together without being friends.",
-    );
-  }
+  const mc = config.member;
+  const apply = mc?.mode === "apply";
+  const d = mc?.minDays ?? 0;
+  const group = config.group !== null;
   // 共有のお願いは、支援者にもメンバーにも共通。全員が読む場所なので、ここにも出す
-  lines.push(
-    "",
-    "🇯🇵 **共有のお願い**: スクリーンショットや動画の投稿はかまいませんが、**ワールドを特定できる情報（ワールド名・リンク・ID・招待リンク）は載せないでください**。知り合いに見せるときも、ワールドの情報は別に伝えてください。**限定のワールドへのポータルを、パブリックのワールドで出さないでください**。",
-    "🇬🇧 **Sharing**: you may post screenshots and videos, but **never include anything that identifies the world (name, link, ID, or invite link)**. Even with people you know, give the world information separately. **Never drop a portal to the private worlds in a public world.**",
-    "🇨🇳 **分享**：可以发布截图和视频，但**请勿包含能识别世界的信息（名称、链接、ID、邀请链接）**。即使分享给认识的人，也请另行告知世界信息。**请勿在公开世界放置通往限定世界的传送门**。",
-    "🇰🇷 **공유**: 스크린샷과 영상은 올려도 되지만, **월드를 특정할 수 있는 정보(이름, 링크, ID, 초대 링크)는 포함하지 마세요**. 아는 사람에게도 월드 정보는 따로 전달해 주세요. **공개 월드에서 한정 월드로 가는 포털을 열지 마세요.**",
-  );
-  lines.push(
-    "",
-    "-# スラッシュコマンド `/vrc register` も使えますが、コピペでは動きません。入力欄で `/` を打って候補から選んでください。",
-    "-# `/vrc register` also works, but only when picked from the popup after typing `/` (pasting the text does nothing).",
-  );
+  const sections: (string | null)[][] = [
+    [
+      "### 🇯🇵 日本語",
+      "- **登録**: VRChat の表示名（プロフィールに出ている名前）を入力してください。表示名を変えたら、登録し直してください（30 日に 1 回）",
+      !mc ? null : apply
+        ? "- **メンバー**: メンバーの申請ができます。確認があります（18 歳以上の方のみ）"
+        : `- **メンバー**: サーバーに参加して ${d} 日以上の方は、支援の有無に関係なく、メンバー限定の案内を見られます（18 歳以上の方のみ）`,
+      group ? "- **グループ**: 支援者とメンバーの方は、VRChat の Group に参加できます。フレンドでなくても、Group のインスタンスで一緒に遊べます" : null,
+      "- **共有のお願い**: スクリーンショットや動画の投稿はかまいませんが、**ワールドを特定できる情報（ワールド名・リンク・ID・招待リンク）は載せないでください**。知り合いに見せるときも、ワールドの情報は別に伝えてください。**限定のワールドへのポータルを、パブリックのワールドで出さないでください**",
+      "-# スラッシュコマンド `/vrc register` も使えますが、コピペでは動きません。入力欄で `/` を打って候補から選んでください",
+    ],
+    [
+      "### 🇬🇧 English",
+      "- **Register**: enter your VRChat display name (the name shown on your profile). Register again if you change it (once every 30 days)",
+      !mc ? null : apply
+        ? "- **Membership**: apply for membership here. Applications are reviewed (18+ only)"
+        : `- **Membership**: after ${d} days on this server, you can see the member-only area, whether or not you are a supporter (18+ only)`,
+      group ? "- **Group**: supporters and members can join our VRChat Group and play together without being friends" : null,
+      "- **Sharing**: you may post screenshots and videos, but **never include anything that identifies the world (name, link, ID, or invite link)**. Even with people you know, give the world information separately. **Never drop a portal to the private worlds in a public world**",
+      "-# `/vrc register` also works, but only when picked from the popup after typing `/` (pasting the text does nothing)",
+    ],
+    [
+      "### 🇨🇳 中文",
+      "- **Register**：输入你的 VRChat 显示名称（个人资料上显示的名字）。更改名称后请重新注册（每 30 天一次）",
+      !mc ? null : apply
+        ? "- **Membership**：可在此申请成为成员，需经确认（仅限 18 岁以上）"
+        : `- **Membership**：加入本服务器满 ${d} 天后，无论是否支持，都可以查看成员限定区域（仅限 18 岁以上）`,
+      group ? "- **Group**：支持者和成员可以加入 VRChat Group。即使不是好友，也可以在 Group 实例中一起游玩" : null,
+      "- **分享**：可以发布截图和视频，但**请勿包含能识别世界的信息（名称、链接、ID、邀请链接）**。即使分享给认识的人，也请另行告知世界信息。**请勿在公开世界放置通往限定世界的传送门**",
+    ],
+    [
+      "### 🇰🇷 한국어",
+      "- **Register**: VRChat 표시 이름(프로필에 표시되는 이름)을 입력하세요. 이름을 바꾸면 다시 등록하세요(30일에 1회)",
+      !mc ? null : apply
+        ? "- **Membership**: 멤버 신청을 할 수 있습니다. 확인 절차가 있습니다 (18세 이상)"
+        : `- **Membership**: 서버 참가 후 ${d}일이 지나면 후원 여부와 관계없이 멤버 전용 안내를 볼 수 있습니다 (18세 이상)`,
+      group ? "- **Group**: 후원자와 멤버는 VRChat Group에 참가할 수 있습니다. 친구가 아니어도 Group 인스턴스에서 함께 놀 수 있습니다" : null,
+      "- **공유**: 스크린샷과 영상은 올려도 되지만, **월드를 특정할 수 있는 정보(이름, 링크, ID, 초대 링크)는 포함하지 마세요**. 아는 사람에게도 월드 정보는 따로 전달해 주세요. **공개 월드에서 한정 월드로 가는 포털을 열지 마세요**",
+    ],
+  ];
+  const lines = ["## VRChat 支援者登録 / Supporter Registration", ...sections.flatMap((sec) => sec.filter((l): l is string => l !== null))];
 
   const rows = [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
