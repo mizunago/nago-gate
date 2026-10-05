@@ -11,6 +11,7 @@ import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
 import { buildPanelMessage, IDS } from "./panel.js";
 import { keyedHashName } from "./protect.js";
+import { diagnose } from "./diagnose.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
 import { isMemberEligible, publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
@@ -78,7 +79,7 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .addSubcommand((s) =>
       s
         .setName("lookup")
-        .setDescription("メンバーの登録状態を表示する")
+        .setDescription("メンバーの登録状態と、入場までのどこで止まっているかを表示する")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
     .addSubcommand((s) =>
@@ -268,7 +269,16 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
     }
     if (sub === "lookup") {
       const user = interaction.options.getUser("user", true);
-      await interaction.reply({ content: `<@${user.id}>\n${describe(config, store.get(user.id), "ja")}`, ephemeral: true });
+      const rec = store.get(user.id);
+      // 記録だけでなく、サーバーで今付いているロールも見て、どの段で止まっているかを出す
+      const target = await interaction.guild.members.fetch(user.id).catch(() => null);
+      const live = target
+        ? { roleIds: [...target.roles.cache.keys()], roleName: (id: string) => interaction.guild.roles.cache.get(id)?.name ?? id }
+        : null;
+      await interaction.reply({
+        content: `<@${user.id}>\n${describe(config, rec, "ja")}\n\n${diagnose(config, rec, live, new Date())}`,
+        ephemeral: true,
+      });
       return;
     }
     if (sub === "whois") {
