@@ -29,7 +29,7 @@ export function diagnose(config: AppConfig, rec: MemberRecord | null, live: Live
   // 1. サーバーにいるか
   if (!live) {
     lines.push(`${NG} 1. サーバーにいません`);
-    stop("本人に、Patreon の設定の「接続中のアプリ（Apps）」で Discord をつなぎ、「参加可能なサーバー」のボタンを押してもらう。入れなければ招待リンクから入ってもらう");
+    stop("本人に、Patreon の設定の「接続中のアプリ（Apps）」で Discord をつなぎ、「サーバーに参加する」を押してもらう。入れなければ招待リンクから入ってもらう");
     lines.push(`${SKIP} 2〜5. サーバーに入ってから確かめます`);
     return lines.join("\n") + `\n**次にやること**: ${next}`;
   }
@@ -49,7 +49,7 @@ export function diagnose(config: AppConfig, rec: MemberRecord | null, live: Live
   } else {
     lines.push(`${NG} 2. 支援サイトのロールがありません（Patreon や Ci-en の Bot が、まだ付けていません）`);
     stop(
-      "支援サイトの側を確かめる。(a) 本人が Discord をつないで、サーバーに参加するボタンを押したか。(b) Patreon の Audience で、その人の支払いが確定しているか。(c) Patreon の設定の Apps > Discord に赤字のエラーが無いか。あれば Update を押し直し、本人にもう一度ボタンを押してもらう",
+      "支援サイトの側を確かめる。(a) Patreon の Audience で、その人が入会していて、支払いが確定しているか。(b) Patreon の設定の Apps > Discord に赤字のエラーが無いか。あれば Update を押し直す。(c) そのうえで本人に、Patreon の「接続中のアプリ」で「サーバーを離れる」を押してから「サーバーに参加する」を押し直してもらう",
     );
   }
 
