@@ -14,6 +14,7 @@ Unity の場所は、環境変数 UNITY_EXE で変えられる。支援者リス
 import functools
 import http.server
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -29,40 +30,45 @@ NOISE = ("ClientSimPlayerController", "NullReferenceException: Object reference 
 
 # 場面: (名前, 環境変数, 期待する文字列のリスト[, 出てよいエラーの目印のリスト[, 出てはいけない文字列のリスト]])。"A && B" は「A と B を両方含む行がある」
 SCENARIOS = [
-    ("presence/GuestLocal（支援者が在室の間だけ開く。本人はメンバー）", {}, [
+    ("presence/GuestLocal（支援者が在室の間だけ開く。本人は住人）", {}, [
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
-        "info(ja)= && <color=#C9B8FF><b>あなたの状態</b></color> && あなたは<color=#9BE7A8><b>メンバー</b></color>です && <color=#C9B8FF><b>ご案内</b></color> && Discord で案内しています && <b>discord.gg/testInvite</b>",
+        "info(ja)= && <color=#C9B8FF><b>あなたの状態</b></color> && あなたは<color=#9BE7A8><b>住人</b></color>です && <color=#C9B8FF><b>ご案内</b></color> && Discord で案内しています && <b>discord.gg/testInvite</b>",
         "支援者が退出しました。 && でロビーに戻ります",
         "t=19  && allowed=False && 支援者の退出から時間が経ち",
         "info(late)= && <color=#FF8A80>あなたはこのワールドにアクセスする権限を持っていません</color>",
+        "invite(ja) button=True before=False open=True url=https://discord.gg/testInvite/ field=https://discord.gg/testInvite/ qr=True help=<b>PC でコピーする</b> && <b>スマホで開く</b>/右の QR を読み取る && 「サーバーに参加」を押して貼る",
+        "invite closed open=False field=https://discord.gg/testInvite/",
     ]),
-    ("member/Paula（メンバー限定。本人はプラチナかつメンバー）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula"}, [
-        "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>・<color=#9BE7A8><b>メンバー</b></color>です",
-        "info(en)= && Your status && You are: <color=#8FD3FF><b>Platinum Supporter</b></color> / <color=#9BE7A8><b>Member</b></color>",
+    ("invite/oldqr（QR を作ったあとに招待 URL を変えた。古い QR は出さず、コピーの欄だけ出す）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_QRURL": "https://discord.gg/oldInvite"}, [
+        "invite(ja) button=True before=False open=True url=https://discord.gg/testInvite/ field=https://discord.gg/testInvite/ qr=False help=<b>PC でコピーする</b>",
+    ], [], ["invite(ja) && スマホで開く"]),
+    ("member/Paula（住人限定。本人はプラチナかつ住人）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula"}, [
+        "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>・<color=#9BE7A8><b>住人</b></color>です",
+        "info(en)= && Your status && You are: <color=#8FD3FF><b>Platinum Supporter</b></color> / <color=#9BE7A8><b>Resident</b></color>",
         "t=19  && allowed=True inside=True",
-        "status(late)=<color=#AEB4BE>モード:</color> <b>メンバー限定</b>/<color=#AEB4BE>在室メンバー:</color> <b>1</b>/<color=#AEB4BE>あなた:</color> <color=#9BE7A8><b>メンバー</b></color>/<color=#AEB4BE>入場:</color> <color=#7CFC9A><b>可</b></color>",
+        "status(late)=<color=#AEB4BE>モード:</color> <b>住人限定</b>/<color=#AEB4BE>在室の住人:</color> <b>1</b>/<color=#AEB4BE>あなた:</color> <color=#9BE7A8><b>住人</b></color>/<color=#AEB4BE>入場:</color> <color=#7CFC9A><b>可</b></color>",
     ]),
-    ("member/Dave（メンバー限定。本人は支援者だがメンバーではない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave"}, [
+    ("member/Dave（住人限定。本人は支援者だが住人ではない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave"}, [
         "info(ja)= && あなたは<color=#F5C542><b>サポーター</b></color>です && あなたはこのワールドにアクセスする権限を持っていません",
-        "t=9  && allowed=False inside=False && This area is for members only.",
-        "status(late)=<color=#AEB4BE>モード:</color> <b>メンバー限定</b>/<color=#AEB4BE>在室メンバー:</color> <b>0</b>/<color=#AEB4BE>あなた:</color> <b>一般</b>/<color=#AEB4BE>入場:</color> <color=#FF8A80><b>不可</b></color>",
+        "t=9  && allowed=False inside=False && This area is for residents only.",
+        "status(late)=<color=#AEB4BE>モード:</color> <b>住人限定</b>/<color=#AEB4BE>在室の住人:</color> <b>0</b>/<color=#AEB4BE>あなた:</color> <b>一般</b>/<color=#AEB4BE>入場:</color> <color=#FF8A80><b>不可</b></color>",
     ]),
     ("many/Nobody（支援者が 130 人。名前の一覧をページに分けて切り替える）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NAME": "Nobody", "SG_SMOKE_REMOTE": "none", "SG_SMOKE_LIST": "supporters-130.json"}, [
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && <nobr> && / 5</color></size>",
         "credits(late)=<size=125%><b>Special Thanks</b></size>// && / 5</color></size>",
-        "info(ja)= && <color=#AEB4BE>支援者・メンバーの登録は見つかりません</color>",
+        "info(ja)= && <color=#AEB4BE>支援者・住人の登録は見つかりません</color>",
     ]),
-    ("keyed/Paula（鍵つきのリスト。メンバー限定。本人はプラチナかつメンバー）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed.json", "SG_SMOKE_KEY": "TestListKey-0123"}, [
+    ("keyed/Paula（鍵つきのリスト。住人限定。本人はプラチナかつ住人）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_LIST": "supporters-keyed.json", "SG_SMOKE_KEY": "TestListKey-0123"}, [
         "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
         "credits decrypted count=2",
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
-        "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>・<color=#9BE7A8><b>メンバー</b></color>です",
+        "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>・<color=#9BE7A8><b>住人</b></color>です",
         "t=19  && allowed=True inside=True",
     ]),
     ("keyed/many（鍵つきのリスト。支援者が 130 人）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NAME": "Nobody", "SG_SMOKE_REMOTE": "none", "SG_SMOKE_LIST": "supporters-130-keyed.json", "SG_SMOKE_KEY": "TestListKey-0123"}, [
         "credits decrypted count=130",
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && <nobr>なごなご && / 5</color></size>",
-        "info(ja)= && 支援者・メンバーの登録は見つかりません",
+        "info(ja)= && 支援者・住人の登録は見つかりません",
     ]),
     ("keyed/plain（鍵を入れたワールドが、鍵なしのリストを読む。切り替える前の状態）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula", "SG_SMOKE_KEY": "TestListKey-0123"}, [
         "loaded=True hasMembers=True localRank=2 localMember=True rank(Paula)=2 rank(Alice)=0",
@@ -108,25 +114,25 @@ SCENARIOS = [
         "credits(ja)=<size=125%><b>Special Thanks</b></size>// && Paula && Dave",
         "t=19  && allowed=True inside=True",
     ]),
-    ("convert/GuestLocal（ゲートの無いワールドを変換。本人はメンバー）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member"}, [
-        "convert report: 入口の部屋とゲートを足しました。入れるのは、メンバーだけです。",
+    ("convert/GuestLocal（ゲートの無いワールドを変換。本人は住人）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member"}, [
+        "convert report: 入口の部屋とゲートを足しました。入れるのは、住人だけです。",
         "convert again: このシーンには既に SupporterGate があります",
         "convert result: spawns=1 spawn0=LobbySpawn && parent=LobbyRoom && respawnY=-64 && contentSpawn=(3.00, 0.00, -4.00) rotY=90 && approvalActive=False",
         "gate mode=1 useMemberList=True",
         "t=2  && pos=(0.0, -43.4, 0.0)",
         "t=9  && pos=(3.0, 0.0, -4.0) && allowed=True inside=True",
     ]),
-    ("convert/Dave（ゲートの無いワールドを変換。本人はメンバーではない）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave"}, [
-        "t=9  && allowed=False inside=False && This area is for members only.",
+    ("convert/Dave（ゲートの無いワールドを変換。本人は住人ではない）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave"}, [
+        "t=9  && allowed=False inside=False && This area is for residents only.",
         "t=19  && pos=(0.0, -44.0, 0.0) && allowed=False",
     ]),
-    ("nomember/GuestLocal（メンバー向けの物が無い公開ワールド。本人はメンバーだが、メンバーに触れない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1"}, [
+    ("nomember/GuestLocal（住人向けの物が無い公開ワールド。本人は住人だが、住人に触れない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1"}, [
         "info(ja)= && 支援者の登録は見つかりません && 支援の方法は、/Discord で案内しています && <b>discord.gg/testInvite</b>",
         "info(en)= && No supporter registration found && How to support/is explained on our Discord",
-    ], [], ["info(ja)= && メンバー", "info(en)= && ember"]),
-    ("nomember/Paula（メンバー向けの物が無い公開ワールド。本人はプラチナかつメンバー。支援者の状態だけ出る）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1", "SG_SMOKE_NAME": "Paula"}, [
+    ], [], ["info(ja)= && 住人", "info(en)= && esident"]),
+    ("nomember/Paula（住人向けの物が無い公開ワールド。本人はプラチナかつ住人。支援者の状態だけ出る）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1", "SG_SMOKE_NAME": "Paula"}, [
         "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>です && 支援の方法は、/Discord で案内しています",
-    ], [], ["info(ja)= && メンバー"]),
+    ], [], ["info(ja)= && 住人"]),
     ("joinleave/on（入退室の通知。既定を ON にしたワールド。入室と退室が出る）", {"SG_SMOKE_JL": "on"}, [
         "[NoticeJoinLeave] && OwnerDummy && が入室しました",
         "[NoticeJoinLeave] && OwnerDummy && が退室しました",
@@ -186,10 +192,20 @@ def main() -> int:
         print("== コンパイルと配線の確認 ==")
         run_unity("PackageBatch.BuildAll", "unity-build.log", {}, True)
         result = (PROJECT / "batch-result.txt").read_text(encoding="utf-8", errors="replace") if (PROJECT / "batch-result.txt").exists() else ""
-        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result
+        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result and "VERIFY_INVITE_OK" in result and "VERIFY_ADD_INVITE_OK" in result
         print("  " + ("ok" if build_ok else "FAIL（unity-test/batch-result.txt と unity-build.log を見る）"))
         if not build_ok:
             return 1
+        # Unity で作った QR の画像を、OpenCV で読み取る（uv が使えるときだけ）
+        qr_png = PROJECT / "qr-check.png"
+        if qr_png.exists() and shutil.which("uv"):
+            code = "import cv2,sys; t,_,_=cv2.QRCodeDetector().detectAndDecode(cv2.imread(sys.argv[1])); print(t)"
+            out = subprocess.run(["uv", "run", "--quiet", "--with", "opencv-python-headless", "python", "-c", code, str(qr_png)], capture_output=True, text=True)
+            decoded = out.stdout.strip()
+            qr_ok = decoded == "https://discord.gg/ENg5sh23J5"
+            print("  QR の読み取り: " + ("ok " if qr_ok else "FAIL ") + repr(decoded))
+            if not qr_ok:
+                return 1
 
         for scenario in SCENARIOS:
             name, env, expectations = scenario[:3]

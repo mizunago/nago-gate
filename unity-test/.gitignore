@@ -23,3 +23,8 @@
 /Packages/net.narazaka.*/
 /screenshots/
 /ClientSimStorage/
+
+# Discord のコピー欄の検査で作る QR（毎回作り直す）
+/Assets/NagoSupporterGate/
+/Assets/NagoSupporterGate.meta
+/qr-check.png

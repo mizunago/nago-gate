@@ -44,7 +44,7 @@ SupporterGate System
 |---|---|
 | Mode | `Open` 公開 / `SupportersOnly` 支援者のみ / `SupporterApproval` 支援者＋許可した人 / `SupporterPresence` 支援者在室中は誰でも |
 | Required Rank | この値以上を支援者扱い（プラチナ限定なら 2 など） |
-| Use Member List | ON にすると、支援のランクではなくメンバーで判定する（下の「メンバーだけが入れるワールド」） |
+| Use Member List | ON にすると、支援のランクではなく住人で判定する（下の「住人だけが入れるワールド」） |
 | Require Supporter Activation | ON にすると、支援者が「エリアを有効化」を押すまで非支援者は入れない |
 | No Supporter Grace Seconds | 支援者が全員いなくなってから非支援者を戻すまでの秒数 |
 | Fail Open When Registry Unavailable | リスト取得失敗時に非支援者を通すか。限定ワールドでは OFF |
@@ -72,7 +72,7 @@ SupporterGate System
 
 | メニュー | 入れる人 | ゲートの設定 |
 |---|---|---|
-| メンバーだけが入れるワールドにする | メンバー | Mode: SupportersOnly、Use Member List: ON |
+| 住人だけが入れるワールドにする | 住人 | Mode: SupportersOnly、Use Member List: ON |
 | 支援者だけが入れるワールドにする | 支援者 | Mode: SupportersOnly |
 | 支援者と、許可した人が入れるワールドにする | 支援者と、在室の支援者が許可した人 | Mode: SupporterApproval |
 
@@ -94,14 +94,16 @@ SupporterGate System
 
 元に戻すときは Undo（Ctrl+Z）を使います。既にゲートがあるシーンでは実行できません。
 
-## メンバーだけが入れるワールド
+## 住人だけが入れるワールド
 
-Bot のメンバー登録（[discord-setup.md](discord-setup.md) の 6b）を使うと、支援とは別に「登録を済ませた人だけ」が入れるワールドを作れます。メンバーは、支援者と同じリストの `members` に載ります（名前は載らず、ハッシュだけ）。
+表の呼び名は「住人 / Resident」です。設定とリストの中の名前は member のままです（0.6.0 より前の版では「住人」と出していました）。
+
+Bot の住人の機能（[discord-setup.md](discord-setup.md) の 6b）を使うと、支援とは別に「申請して認定された人だけ」が入れるワールドを作れます。住人は、支援者と同じリストの `members` に載ります（名前は載らず、ハッシュだけ）。
 
 1. `Registry` の **Data Url** は、ほかのワールドと同じ支援者リストの URL のままにする
 2. `Gate` の **Use Member List** を ON、Mode を `SupportersOnly` にする
 
-これで、メンバーだけが入れます。支援者でも、メンバーでなければ入れません。持ち主の特別枠は、このモードでも通ります。ゲートの表示は「支援者」が「メンバー」に置き換わります（文言の表の、キーの末尾に `.member` が付いた文）。
+これで、住人だけが入れます。支援者でも、住人でなければ入れません。持ち主の特別枠は、このモードでも通ります。ゲートの表示は「支援者」が「住人」に置き換わります（文言の表の、キーの末尾に `.member` が付いた文）。
 
 ## クレジットのボードと、案内のパネル
 
@@ -109,16 +111,32 @@ Bot のメンバー登録（[discord-setup.md](discord-setup.md) の 6b）を使
 
 | パネル | 表示 | 出る条件 |
 |---|---|---|
-| `CreditsBoard` | 支援者の名前の一覧（ティアごと） | クレジット表示に同意した支援者。メンバーの名前は出ない |
-| `InfoPanel` | 「あなたは ○○ です」 | 見ている本人が支援者かメンバーのとき。役割の名前に色が付く（支援者はティアの色、メンバーは緑） |
-| `InfoPanel` | 「支援者・メンバーの登録は見つかりません」 | どちらでもないとき |
+| `CreditsBoard` | 支援者の名前の一覧（ティアごと） | クレジット表示に同意した支援者。住人の名前は出ない |
+| `InfoPanel` | 「あなたは ○○ です」 | 見ている本人が支援者か住人のとき。役割の名前に色が付く（支援者はティアの色、住人は緑） |
+| `InfoPanel` | 「支援者・住人の登録は見つかりません」 | どちらでもないとき |
 | `InfoPanel` | 「あなたはこのワールドにアクセスする権限を持っていません」 | ボードの `Gate` にゲートが入っていて、本人が入れないとき |
-| `InfoPanel` | 「支援とメンバー登録の方法は、Discord で案内しています」と招待 URL | Bot の設定の `links.discord` に URL があるとき。変えれば全ワールドの表示が変わる |
+| `InfoPanel` | 「支援と住人の申請の方法は、Discord で案内しています」と招待 URL | Bot の設定の `links.discord` に URL があるとき。変えれば全ワールドの表示が変わる |
+| `InfoPanel` の下 | 「URL をコピー・QR」のボタン | 同上。押すと、招待 URL の入力欄・QR コード・Discord での開き方が、案内のパネルの上に重なって出る（下の「Discord のコピー欄と QR」） |
 
 - ティアの呼び名は、文言の表の `credits.tier.<ティアの id>` から引きます。無ければリストの label を使います
 - `InfoPanel` は、ボードの `Info Text` につながっています。前の版で作ったシーンには、`Tools > SupporterGate > Add Info Panel (existing scene)` で足せます（ボードの左隣に出るので、好きな場所へ動かす）
 - `InfoPanel` が無いシーンでは、本人の状態は名前の一覧の題の下に、案内は一番下に出ます
-- メンバー向けの物が無いワールド（公開ワールドで、支援者の特典だけがある場合など）では、ボードの `Show Member Status` を OFF にします。本人がメンバーでも「メンバー」とは出さず、登録が無い人には「支援者の登録は見つかりません」、案内は「支援の方法は、Discord で案内しています」になります。既定は ON です
+- 住人向けの物が無いワールド（公開ワールドで、支援者の特典だけがある場合など）では、ボードの `Show Member Status` を OFF にします。本人が住人でも「住人」とは出さず、登録が無い人には「支援者の登録は見つかりません」、案内は「支援の方法は、Discord で案内しています」になります。既定は ON です
+
+### Discord のコピー欄と QR
+
+VRChat の中ではリンクを開けないので、招待 URL を見て打ち込むのは大変です。案内のパネルの「URL をコピー・QR」を押すと、次が出ます。
+
+| 出るもの | 使い方 |
+|---|---|
+| 招待 URL の入力欄 | PC では、欄を押して Ctrl+A、Ctrl+C でコピーできる。書き換えても、次に見るときは URL に戻る |
+| QR コード | スマホのカメラで読む |
+| Discord での開き方 | ブラウザのアドレス欄に貼る。アプリなら、左の「＋」を押し、「もう招待されていますか？」の下の「サーバーに参加」を押して貼る |
+
+- 新しく作る一式には付きます。前の版で作ったシーンには、`Tools > SupporterGate > Add Discord Copy Panel (existing scene)` で足せます。案内の文は、ボタンの分だけ上に詰めます。2 回実行しても増えません
+- QR の画像は、エディタが `Registry` の Data Url のリストを読み、`links.discord` から作ります（`Assets/NagoSupporterGate/DiscordInviteQR.png`）。リストを読めないときは、`DiscordInvite` の `SupporterInviteLink` の **Qr Url** に入れた URL で作ります
+- 招待 URL を変えたら、`Tools > SupporterGate > Update Discord QR` で QR を作り直して、ワールドを上げ直します。リストの URL と QR の URL が違う間は、古い招待を読ませないよう QR を出しません（入力欄と説明は出ます）
+- リストに招待 URL が無いときは、ボタンも出ません
 
 ### 表示の色
 
@@ -131,7 +149,7 @@ Bot のメンバー登録（[discord-setup.md](discord-setup.md) の 6b）を使
 | 緑 `#7CFC9A` | 入場できる、許可済み |
 | 赤 `#FF8A80` | 入場できない、リストを取得できない、このワールドに入る権限が無い |
 | ティアの色（リストの `tiers[].color`） | 支援者の呼び名（「サポーター」「プラチナサポーター」）と、名前の一覧のティアの見出し |
-| 薄い緑 `#9BE7A8` | メンバーの呼び名 |
+| 薄い緑 `#9BE7A8` | 住人の呼び名 |
 
 打ち込んでもらう招待 URL は、説明の文より大きく太く出します。色は、文字に埋め込むタグで付けているので、前の版で作ったシーンでも、パッケージを更新するだけで変わります。
 
@@ -185,7 +203,7 @@ public void _OnRegistryUpdated()
 ```
 
 - `_GetRank(VRCPlayerApi)` で他プレイヤーのランクも取れます
-- `_IsMember(VRCPlayerApi)` / `_IsLocalMember()` でメンバーかどうか、`_GetLink("discord")` で招待 URL が取れます
+- `_IsMember(VRCPlayerApi)` / `_IsLocalMember()` で住人かどうか、`_GetLink("discord")` で招待 URL が取れます
 - クレジットの名前を自分で並べるときは、`_AreCreditsReady()` が true になってから `_GetCreditCount()` / `_GetCreditName(i)` / `_GetCreditRank(i)` を読みます（鍵つきのリストでは、読み込みの少しあとに揃う。揃ったときにも `_OnRegistryUpdated` が呼ばれる）
 - `SupporterGate._IsLocalAllowed()` で入場可否を参照できます
 - 通知を自分のギミックから出す方法は Nago Notice の README を参照

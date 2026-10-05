@@ -1,10 +1,10 @@
 // SupporterCreditsBoard.cs
 // クレジット表示に同意した支援者の名前をティアごとに並べる。
 // 公開ワールドにも置ける（ゲート不要）。
-// 見ている本人の状態（支援のティア・メンバーかどうか）と、Discord の案内は、別のパネル（infoText）に出す。
-// メンバー向けの物が無いワールドでは、showMemberStatus を OFF にすると、メンバーに触れる表示をやめる。
+// 見ている本人の状態（支援のティア・住人かどうか）と、Discord の案内は、別のパネル（infoText）に出す。
+// 住人（表の呼び名。リストやコードの中の名前は member）向けの物が無いワールドでは、showMemberStatus を OFF にすると、住人に触れる表示をやめる。
 // 別のパネルが無いシーンでは、本人の状態を題の下に、案内を一番下に出す。
-// メンバーの名前は一覧に出さない（リストにも名前は載っていない）。
+// 住人の名前は一覧に出さない（リストにも名前は載っていない）。
 // 文言は texts（NoticeTable）から今の言語で引く。texts が無ければ日本語の既定の文を使う。
 
 using UdonSharp;
@@ -30,7 +30,7 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
     [SerializeField] private SupporterGate gate;
     [Tooltip("任意。入れると、本人の状態と案内（Discord の招待 URL）を、名前の一覧とは別のパネルに出す")]
     [SerializeField] private TextMeshProUGUI infoText;
-    [Tooltip("本人の状態と案内で、メンバーに触れるか。メンバー向けの物が無いワールドでは OFF にする（支援者のことだけを出す）")]
+    [Tooltip("本人の状態と案内で、住人に触れるか。住人向けの物が無いワールドでは OFF にする（支援者のことだけを出す）")]
     [SerializeField] private bool showMemberStatus = true;
 
     [Header("Texts (optional)")]
@@ -175,7 +175,7 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
         return fallback;
     }
 
-    /// <summary>本人の状態（例: "プラチナサポーター・メンバー"）。色のタグつき。支援者でもメンバーでもなければ空文字</summary>
+    /// <summary>本人の状態（例: "プラチナサポーター・住人"）。色のタグつき。支援者でもメンバーでもなければ空文字</summary>
     private string LocalStatus()
     {
         string who = "";
@@ -192,7 +192,7 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
         }
         if (showMemberStatus && registry._IsLocalMember())
         {
-            string m = "<color=" + SupporterRegistry.ColorMember + "><b>" + EscapeRichText(T("credits.you.member", "メンバー")) + "</b></color>";
+            string m = "<color=" + SupporterRegistry.ColorMember + "><b>" + EscapeRichText(T("credits.you.member", "住人")) + "</b></color>";
             who = who.Length > 0 ? who + T("credits.you.sep", "・") + m : m;
         }
         return who;
@@ -216,13 +216,13 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
         return "<size=80%><color=" + colorHex + ">" + s + "</color></size>";
     }
 
-    /// <summary>本人の状態の行。showNone が true なら、支援者でもメンバーでもないときに、その旨を出す</summary>
+    /// <summary>本人の状態の行。showNone が true なら、支援者でも住人でもないときに、その旨を出す</summary>
     private string StatusLines(bool showNone)
     {
         string s = "";
         string who = LocalStatus();
         if (who.Length > 0) s = T("credits.you.is", "あなたは{0}です").Replace("{0}", who);
-        else if (showNone) s = "<size=85%><color=" + SupporterRegistry.ColorDim + ">" + (showMemberStatus && registry._HasMemberList() ? T("info.none", "支援者・メンバーの登録は見つかりません") : T("info.noneSupporter", "支援者の登録は見つかりません")) + "</color></size>";
+        else if (showNone) s = "<size=85%><color=" + SupporterRegistry.ColorDim + ">" + (showMemberStatus && registry._HasMemberList() ? T("info.none", "支援者・住人の登録は見つかりません") : T("info.noneSupporter", "支援者の登録は見つかりません")) + "</color></size>";
         if (gate != null && !gate._IsLocalAllowed())
         {
             if (s.Length > 0) s += "\n";
@@ -241,7 +241,7 @@ public class SupporterCreditsBoard : UdonSharpBehaviour
         string invite = registry._GetLink("discord");
         if (invite.Length == 0) return "";
         // 打ち込む URL は、説明の文より大きく、太く出す
-        string how = showMemberStatus ? T("info.guide", "支援とメンバー登録の方法は、\nDiscord で案内しています") : T("info.guide.supporter", "支援の方法は、\nDiscord で案内しています");
+        string how = showMemberStatus ? T("info.guide", "支援と住人の申請の方法は、\nDiscord で案内しています") : T("info.guide.supporter", "支援の方法は、\nDiscord で案内しています");
         return "<size=80%>" + how + "</size>\n<size=115%><b>" + EscapeRichText(ShortUrl(invite)) + "</b></size>";
     }
 

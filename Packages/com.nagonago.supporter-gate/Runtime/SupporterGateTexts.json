@@ -7,11 +7,11 @@
     "zh-TW": "正在讀取支持者名單"
   },
   "gate.deny.loading.member": {
-    "ja": "メンバーリストを読み込み中です",
-    "en": "Loading the member list.",
-    "ko": "멤버 목록을 불러오는 중입니다",
-    "zh-CN": "正在读取成员名单",
-    "zh-TW": "正在讀取成員名單"
+    "ja": "住人のリストを読み込み中です",
+    "en": "Loading the resident list.",
+    "ko": "주민 목록을 불러오는 중입니다",
+    "zh-CN": "正在读取居民名单",
+    "zh-TW": "正在讀取居民名單"
   },
   "gate.deny.listError": {
     "ja": "支援者リストを\n取得できませんでした",
@@ -21,11 +21,11 @@
     "zh-TW": "無法讀取支持者名單"
   },
   "gate.deny.listError.member": {
-    "ja": "メンバーリストを\n取得できませんでした",
-    "en": "Could not load the member list.",
-    "ko": "멤버 목록을 불러오지 못했습니다",
-    "zh-CN": "无法读取成员名单",
-    "zh-TW": "無法讀取成員名單"
+    "ja": "住人のリストを\n取得できませんでした",
+    "en": "Could not load the resident list.",
+    "ko": "주민 목록을 불러오지 못했습니다",
+    "zh-CN": "无法读取居民名单",
+    "zh-TW": "無法讀取居民名單"
   },
   "gate.deny.supportersOnly": {
     "ja": "支援者限定エリアです",
@@ -35,11 +35,11 @@
     "zh-TW": "此區域僅限支持者"
   },
   "gate.deny.supportersOnly.member": {
-    "ja": "メンバー限定エリアです",
-    "en": "This area is for members only.",
-    "ko": "멤버 전용 구역입니다",
-    "zh-CN": "此区域仅限成员",
-    "zh-TW": "此區域僅限成員"
+    "ja": "住人限定エリアです",
+    "en": "This area is for residents only.",
+    "ko": "주민 전용 구역입니다",
+    "zh-CN": "此区域仅限居民",
+    "zh-TW": "此區域僅限居民"
   },
   "gate.deny.noSupporter": {
     "ja": "支援者が在室していないため、\n入場できません",
@@ -49,11 +49,11 @@
     "zh-TW": "目前房間內沒有支持者，無法進入"
   },
   "gate.deny.noSupporter.member": {
-    "ja": "メンバーが在室していないため、\n入場できません",
-    "en": "You can't enter because no member is in this instance.",
-    "ko": "이 인스턴스에 멤버가 없어 입장할 수 없습니다",
-    "zh-CN": "当前房间内没有成员，无法进入",
-    "zh-TW": "目前房間內沒有成員，無法進入"
+    "ja": "住人が在室していないため、\n入場できません",
+    "en": "You can't enter because no resident is in this instance.",
+    "ko": "이 인스턴스에 주민이 없어 입장할 수 없습니다",
+    "zh-CN": "当前房间内没有居民，无法进入",
+    "zh-TW": "目前房間內沒有居民，無法進入"
   },
   "gate.deny.notActivated": {
     "ja": "支援者がエリアを開くまで\nお待ちください",
@@ -63,11 +63,11 @@
     "zh-TW": "請等待支持者開放此區域"
   },
   "gate.deny.notActivated.member": {
-    "ja": "メンバーがエリアを開くまで\nお待ちください",
-    "en": "Please wait until a member opens the area.",
-    "ko": "멤버가 구역을 열 때까지 기다려 주세요",
-    "zh-CN": "请等待成员开放此区域",
-    "zh-TW": "請等待成員開放此區域"
+    "ja": "住人がエリアを開くまで\nお待ちください",
+    "en": "Please wait until a resident opens the area.",
+    "ko": "주민이 구역을 열 때까지 기다려 주세요",
+    "zh-CN": "请等待居民开放此区域",
+    "zh-TW": "請等待居民開放此區域"
   },
   "gate.deny.notApproved": {
     "ja": "在室中の支援者の許可が必要です",
@@ -77,11 +77,11 @@
     "zh-TW": "需要房間內的支持者許可"
   },
   "gate.deny.notApproved.member": {
-    "ja": "在室中のメンバーの許可が必要です",
-    "en": "You need approval from a member in this instance.",
-    "ko": "이 인스턴스에 있는 멤버의 허가가 필요합니다",
-    "zh-CN": "需要房间内的成员许可",
-    "zh-TW": "需要房間內的成員許可"
+    "ja": "在室中の住人の許可が必要です",
+    "en": "You need approval from a resident in this instance.",
+    "ko": "이 인스턴스에 있는 주민의 허가가 필요합니다",
+    "zh-CN": "需要房间内的居民许可",
+    "zh-TW": "需要房間內的居民許可"
   },
   "gate.deny.other": {
     "ja": "入場できません",
@@ -98,11 +98,11 @@
     "zh-TW": "支持者已離開且等待時間已過，\n已返回大廳"
   },
   "gate.return.noSupporter.member": {
-    "ja": "メンバーの退出から時間が経ち、\nロビーに戻りました",
-    "en": "You were returned to the lobby because the member left and the grace time ran out.",
-    "ko": "멤버가 퇴장한 뒤 시간이 지나 로비로 돌아왔습니다",
-    "zh-CN": "成员已离开且等待时间已过，\n已返回大厅",
-    "zh-TW": "成員已離開且等待時間已過，\n已返回大廳"
+    "ja": "住人の退出から時間が経ち、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the resident left and the grace time ran out.",
+    "ko": "주민이 퇴장한 뒤 시간이 지나 로비로 돌아왔습니다",
+    "zh-CN": "居民已离开且等待时间已过，\n已返回大厅",
+    "zh-TW": "居民已離開且等待時間已過，\n已返回大廳"
   },
   "gate.return.revoked": {
     "ja": "支援者が許可を取り消したため、\nロビーに戻りました",
@@ -112,11 +112,11 @@
     "zh-TW": "支持者取消了你的進入許可，\n已返回大廳"
   },
   "gate.return.revoked.member": {
-    "ja": "メンバーが許可を取り消したため、\nロビーに戻りました",
-    "en": "You were returned to the lobby because the member revoked your access.",
-    "ko": "멤버가 입장 허가를 취소하여 로비로 돌아왔습니다",
-    "zh-CN": "成员取消了你的进入许可，\n已返回大厅",
-    "zh-TW": "成員取消了你的進入許可，\n已返回大廳"
+    "ja": "住人が許可を取り消したため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the resident revoked your access.",
+    "ko": "주민이 입장 허가를 취소하여 로비로 돌아왔습니다",
+    "zh-CN": "居民取消了你的进入许可，\n已返回大厅",
+    "zh-TW": "居民取消了你的進入許可，\n已返回大廳"
   },
   "gate.return.notApproved": {
     "ja": "入場の許可が無くなったため、\nロビーに戻りました",
@@ -133,11 +133,11 @@
     "zh-TW": "支持者關閉了此區域，已返回大廳"
   },
   "gate.return.deactivated.member": {
-    "ja": "メンバーがエリアを閉じたため、\nロビーに戻りました",
-    "en": "You were returned to the lobby because the member closed the area.",
-    "ko": "멤버가 구역을 닫아 로비로 돌아왔습니다",
-    "zh-CN": "成员关闭了此区域，已返回大厅",
-    "zh-TW": "成員關閉了此區域，已返回大廳"
+    "ja": "住人がエリアを閉じたため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the resident closed the area.",
+    "ko": "주민이 구역을 닫아 로비로 돌아왔습니다",
+    "zh-CN": "居民关闭了此区域，已返回大厅",
+    "zh-TW": "居民關閉了此區域，已返回大廳"
   },
   "gate.return.supportersOnly": {
     "ja": "支援者限定エリアのため、\nロビーに戻りました",
@@ -147,11 +147,11 @@
     "zh-TW": "此區域僅限支持者，已返回大廳"
   },
   "gate.return.supportersOnly.member": {
-    "ja": "メンバー限定エリアのため、\nロビーに戻りました",
-    "en": "You were returned to the lobby because this area is for members only.",
-    "ko": "멤버 전용 구역이라 로비로 돌아왔습니다",
-    "zh-CN": "此区域仅限成员，已返回大厅",
-    "zh-TW": "此區域僅限成員，已返回大廳"
+    "ja": "住人限定エリアのため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because this area is for residents only.",
+    "ko": "주민 전용 구역이라 로비로 돌아왔습니다",
+    "zh-CN": "此区域仅限居民，已返回大厅",
+    "zh-TW": "此區域僅限居民，已返回大廳"
   },
   "gate.return.listUnavailable": {
     "ja": "支援者リストを確認できず、\nロビーに戻りました",
@@ -161,11 +161,11 @@
     "zh-TW": "無法確認支持者名單，已返回大廳"
   },
   "gate.return.listUnavailable.member": {
-    "ja": "メンバーリストを確認できず、\nロビーに戻りました",
-    "en": "You were returned to the lobby because the member list could not be checked.",
-    "ko": "멤버 목록을 확인할 수 없어 로비로 돌아왔습니다",
-    "zh-CN": "无法确认成员名单，已返回大厅",
-    "zh-TW": "無法確認成員名單，已返回大廳"
+    "ja": "住人のリストを確認できず、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the resident list could not be checked.",
+    "ko": "주민 목록을 확인할 수 없어 로비로 돌아왔습니다",
+    "zh-CN": "无法确认居民名单，已返回大厅",
+    "zh-TW": "無法確認居民名單，已返回大廳"
   },
   "gate.return.other": {
     "ja": "入場できなくなったため、\nロビーに戻りました",
@@ -182,11 +182,11 @@
     "zh-TW": "支持者已離開。\n{0} 後將返回大廳"
   },
   "gate.countdown.member": {
-    "ja": "メンバーが退出しました。\nあと {0} でロビーに戻ります",
-    "en": "The member has left.\nReturning to the lobby in {0}",
-    "ko": "멤버가 퇴장했습니다.\n{0} 후 로비로 돌아갑니다",
-    "zh-CN": "成员已离开。\n{0} 后将返回大厅",
-    "zh-TW": "成員已離開。\n{0} 後將返回大廳"
+    "ja": "住人が退出しました。\nあと {0} でロビーに戻ります",
+    "en": "The resident has left.\nReturning to the lobby in {0}",
+    "ko": "주민이 퇴장했습니다.\n{0} 후 로비로 돌아갑니다",
+    "zh-CN": "居民已离开。\n{0} 后将返回大厅",
+    "zh-TW": "居民已離開。\n{0} 後將返回大廳"
   },
   "gate.supporterBack": {
     "ja": "支援者が戻りました。\nこのまま利用できます",
@@ -196,11 +196,11 @@
     "zh-TW": "支持者已回來，可以繼續使用"
   },
   "gate.supporterBack.member": {
-    "ja": "メンバーが戻りました。\nこのまま利用できます",
-    "en": "The member is back. You can stay.",
-    "ko": "멤버가 돌아왔습니다. 계속 이용할 수 있습니다",
-    "zh-CN": "成员已回来，可以继续使用",
-    "zh-TW": "成員已回來，可以繼續使用"
+    "ja": "住人が戻りました。\nこのまま利用できます",
+    "en": "The resident is back. You can stay.",
+    "ko": "주민이 돌아왔습니다. 계속 이용할 수 있습니다",
+    "zh-CN": "居民已回来，可以继续使用",
+    "zh-TW": "居民已回來，可以繼續使用"
   },
   "gate.approved": {
     "ja": "入場が許可されました",
@@ -211,7 +211,7 @@
   },
   "gate.approved.member": {
     "ja": "入場が許可されました",
-    "en": "A member approved your access.",
+    "en": "A resident approved your access.",
     "ko": "입장이 허가되었습니다",
     "zh-CN": "已获得进入许可",
     "zh-TW": "已獲得進入許可"
@@ -252,11 +252,11 @@
     "zh-TW": "在場支持者"
   },
   "gate.status.supporters.member": {
-    "ja": "在室メンバー",
-    "en": "Members here",
-    "ko": "현재 멤버",
-    "zh-CN": "在场成员",
-    "zh-TW": "在場成員"
+    "ja": "在室の住人",
+    "en": "Residents here",
+    "ko": "현재 주민",
+    "zh-CN": "在场居民",
+    "zh-TW": "在場居民"
   },
   "gate.status.you": {
     "ja": "あなた",
@@ -287,11 +287,11 @@
     "zh-TW": "僅限支持者"
   },
   "gate.mode.supportersOnly.member": {
-    "ja": "メンバー限定",
-    "en": "Members only",
-    "ko": "멤버 전용",
-    "zh-CN": "仅限成员",
-    "zh-TW": "僅限成員"
+    "ja": "住人限定",
+    "en": "Residents only",
+    "ko": "주민 전용",
+    "zh-CN": "仅限居民",
+    "zh-TW": "僅限居民"
   },
   "gate.mode.approval": {
     "ja": "支援者＋許可制",
@@ -301,11 +301,11 @@
     "zh-TW": "支持者＋許可制"
   },
   "gate.mode.approval.member": {
-    "ja": "メンバー＋許可制",
-    "en": "Members + approved guests",
-    "ko": "멤버 + 허가제",
-    "zh-CN": "成员＋许可制",
-    "zh-TW": "成員＋許可制"
+    "ja": "住人＋許可制",
+    "en": "Residents + approved guests",
+    "ko": "주민 + 허가제",
+    "zh-CN": "居民＋许可制",
+    "zh-TW": "居民＋許可制"
   },
   "gate.mode.presence": {
     "ja": "支援者在室中は開放",
@@ -315,11 +315,11 @@
     "zh-TW": "支持者在場時開放"
   },
   "gate.mode.presence.member": {
-    "ja": "メンバー在室中は開放",
-    "en": "Open while a member is here",
-    "ko": "멤버가 있는 동안 개방",
-    "zh-CN": "成员在场时开放",
-    "zh-TW": "成員在場時開放"
+    "ja": "住人在室中は開放",
+    "en": "Open while a resident is here",
+    "ko": "주민이 있는 동안 개방",
+    "zh-CN": "居民在场时开放",
+    "zh-TW": "居民在場時開放"
   },
   "gate.you.checking": {
     "ja": "確認中",
@@ -385,11 +385,11 @@
     "zh-TW": "此面板僅限支持者使用"
   },
   "panel.denied.member": {
-    "ja": "このパネルはメンバー専用です",
-    "en": "This panel is for members only.",
-    "ko": "이 패널은 멤버 전용입니다",
-    "zh-CN": "此面板仅限成员使用",
-    "zh-TW": "此面板僅限成員使用"
+    "ja": "このパネルは住人専用です",
+    "en": "This panel is for residents only.",
+    "ko": "이 패널은 주민 전용입니다",
+    "zh-CN": "此面板仅限居民使用",
+    "zh-TW": "此面板僅限居民使用"
   },
   "panel.activate": {
     "ja": "エリアを有効化",
@@ -441,11 +441,11 @@
     "zh-TW": "進入許可（非支持者 {0} 人）"
   },
   "panel.header.approval.member": {
-    "ja": "入場許可（非メンバー {0} 人）",
-    "en": "Approve guests ({0} non-members)",
-    "ko": "입장 허가 (비멤버 {0}명)",
-    "zh-CN": "进入许可（非成员 {0} 人）",
-    "zh-TW": "進入許可（非成員 {0} 人）"
+    "ja": "入場許可（住人以外 {0} 人）",
+    "en": "Approve guests ({0} non-residents)",
+    "ko": "입장 허가 (주민 외 {0}명)",
+    "zh-CN": "进入许可（非居民 {0} 人）",
+    "zh-TW": "進入許可（非居民 {0} 人）"
   },
   "panel.header.presence": {
     "ja": "支援者在室中は開放（非支援者 {0} 人）",
@@ -455,11 +455,11 @@
     "zh-TW": "支持者在場時開放（非支持者 {0} 人）"
   },
   "panel.header.presence.member": {
-    "ja": "メンバー在室中は開放（非メンバー {0} 人）",
-    "en": "Open while a member is here ({0} non-members)",
-    "ko": "멤버가 있는 동안 개방 (비멤버 {0}명)",
-    "zh-CN": "成员在场时开放（非成员 {0} 人）",
-    "zh-TW": "成員在場時開放（非成員 {0} 人）"
+    "ja": "住人在室中は開放（住人以外 {0} 人）",
+    "en": "Open while a resident is here ({0} non-residents)",
+    "ko": "주민이 있는 동안 개방 (주민 외 {0}명)",
+    "zh-CN": "居民在场时开放（非居民 {0} 人）",
+    "zh-TW": "居民在場時開放（非居民 {0} 人）"
   },
   "panel.header.supportersOnly": {
     "ja": "支援者限定モード",
@@ -469,11 +469,11 @@
     "zh-TW": "僅限支持者模式"
   },
   "panel.header.supportersOnly.member": {
-    "ja": "メンバー限定モード",
-    "en": "Members only",
-    "ko": "멤버 전용 모드",
-    "zh-CN": "仅限成员模式",
-    "zh-TW": "僅限成員模式"
+    "ja": "住人限定モード",
+    "en": "Residents only",
+    "ko": "주민 전용 모드",
+    "zh-CN": "仅限居民模式",
+    "zh-TW": "僅限居民模式"
   },
   "panel.header.open": {
     "ja": "公開モード",
@@ -539,11 +539,11 @@
     "zh-TW": "支持者"
   },
   "credits.you.member": {
-    "ja": "メンバー",
-    "en": "Member",
-    "ko": "멤버",
-    "zh-CN": "成员",
-    "zh-TW": "成員"
+    "ja": "住人",
+    "en": "Resident",
+    "ko": "주민",
+    "zh-CN": "居民",
+    "zh-TW": "居民"
   },
   "credits.you.noAccess": {
     "ja": "あなたはこのワールドにアクセスする権限を持っていません",
@@ -560,11 +560,11 @@
     "zh-TW": "你的狀態"
   },
   "info.none": {
-    "ja": "支援者・メンバーの登録は見つかりません",
-    "en": "No supporter or member registration found",
-    "ko": "후원자·멤버 등록을 찾을 수 없습니다",
-    "zh-CN": "未找到支持者或成员登记",
-    "zh-TW": "未找到支持者或成員登記"
+    "ja": "支援者・住人の登録は見つかりません",
+    "en": "No supporter or resident registration found",
+    "ko": "후원자·주민 등록을 찾을 수 없습니다",
+    "zh-CN": "未找到支持者或居民登记",
+    "zh-TW": "未找到支持者或居民登記"
   },
   "info.noneSupporter": {
     "ja": "支援者の登録は見つかりません",
@@ -581,11 +581,11 @@
     "zh-TW": "說明"
   },
   "info.guide": {
-    "ja": "支援とメンバー登録の方法は、\nDiscord で案内しています",
-    "en": "How to support and how to become a member\nis explained on our Discord",
-    "ko": "후원 및 멤버 등록 방법은\nDiscord에서 안내합니다",
-    "zh-CN": "支持与成员登记的方法，\n请见 Discord",
-    "zh-TW": "支持與成員登記的方法，\n請見 Discord"
+    "ja": "支援と住人の申請の方法は、\nDiscord で案内しています",
+    "en": "How to support and how to become a resident\nis explained on our Discord",
+    "ko": "후원 및 주민 신청 방법은\nDiscord에서 안내합니다",
+    "zh-CN": "支持与居民申请的方法，\n请见 Discord",
+    "zh-TW": "支持與居民申請的方法，\n請見 Discord"
   },
   "info.guide.supporter": {
     "ja": "支援の方法は、\nDiscord で案内しています",
@@ -595,11 +595,11 @@
     "zh-TW": "支持的方法，\n請見 Discord"
   },
   "gate.you.member": {
-    "ja": "メンバー",
-    "en": "Member",
-    "ko": "멤버",
-    "zh-CN": "成员",
-    "zh-TW": "成員"
+    "ja": "住人",
+    "en": "Resident",
+    "ko": "주민",
+    "zh-CN": "居民",
+    "zh-TW": "居民"
   },
   "gate.button.enter": {
     "ja": "入場する",
@@ -614,5 +614,33 @@
     "ko": "로비로 돌아가기",
     "zh-CN": "返回大厅",
     "zh-TW": "返回大廳"
+  },
+  "info.copy.open": {
+    "ja": "URL をコピー・QR",
+    "en": "Copy URL / QR code",
+    "ko": "URL 복사・QR",
+    "zh-CN": "复制网址・二维码",
+    "zh-TW": "複製網址・QR 碼"
+  },
+  "info.copy.close": {
+    "ja": "閉じる",
+    "en": "Close",
+    "ko": "닫기",
+    "zh-CN": "关闭",
+    "zh-TW": "關閉"
+  },
+  "info.copy.help": {
+    "ja": "<b>PC でコピーする</b>\n上の欄を押して、Ctrl+A のあと Ctrl+C\n\n<b>スマホで開く</b>\n右の QR を読み取る\n\n<b>Discord で開く</b>\n・ブラウザのアドレス欄に貼る\n・アプリなら、左の「＋」を押し、「もう招待されていますか？」の下の「サーバーに参加」を押して貼る",
+    "en": "<b>Copy on PC</b>\nClick the box above, then Ctrl+A and Ctrl+C\n\n<b>Open on your phone</b>\nScan the QR code on the right\n\n<b>Open it in Discord</b>\n- Paste it into your browser's address bar\n- In the app, press + on the left, then \"Join a Server\" under \"Have an invite already?\", and paste it",
+    "ko": "<b>PC에서 복사</b>\n위의 칸을 누르고 Ctrl+A, Ctrl+C\n\n<b>휴대폰에서 열기</b>\n오른쪽 QR 코드를 스캔\n\n<b>Discord에서 열기</b>\n・브라우저 주소창에 붙여 넣기\n・앱에서는 왼쪽의 「+」를 누르고, 「이미 초대를 받으셨나요?」 아래의 「서버 참가하기」를 눌러 붙여 넣기",
+    "zh-CN": "<b>在电脑上复制</b>\n点击上方的输入框，按 Ctrl+A 再按 Ctrl+C\n\n<b>在手机上打开</b>\n扫描右侧的二维码\n\n<b>在 Discord 中打开</b>\n・粘贴到浏览器的地址栏\n・在应用中，点击左侧的「+」，再点「已经有邀请了？」下方的「加入服务器」，然后粘贴",
+    "zh-TW": "<b>在電腦上複製</b>\n點擊上方的輸入框，按 Ctrl+A 再按 Ctrl+C\n\n<b>在手機上開啟</b>\n掃描右側的 QR 碼\n\n<b>在 Discord 中開啟</b>\n・貼到瀏覽器的網址列\n・在應用程式中，點擊左側的「+」，再點「已經有邀請了？」下方的「加入伺服器」，然後貼上"
+  },
+  "info.copy.helpNoQr": {
+    "ja": "<b>PC でコピーする</b>\n上の欄を押して、Ctrl+A のあと Ctrl+C\n\n<b>Discord で開く</b>\n・ブラウザのアドレス欄に貼る\n・アプリなら、左の「＋」を押し、「もう招待されていますか？」の下の「サーバーに参加」を押して貼る",
+    "en": "<b>Copy on PC</b>\nClick the box above, then Ctrl+A and Ctrl+C\n\n<b>Open it in Discord</b>\n- Paste it into your browser's address bar\n- In the app, press + on the left, then \"Join a Server\" under \"Have an invite already?\", and paste it",
+    "ko": "<b>PC에서 복사</b>\n위의 칸을 누르고 Ctrl+A, Ctrl+C\n\n<b>Discord에서 열기</b>\n・브라우저 주소창에 붙여 넣기\n・앱에서는 왼쪽의 「+」를 누르고, 「이미 초대를 받으셨나요?」 아래의 「서버 참가하기」를 눌러 붙여 넣기",
+    "zh-CN": "<b>在电脑上复制</b>\n点击上方的输入框，按 Ctrl+A 再按 Ctrl+C\n\n<b>在 Discord 中打开</b>\n・粘贴到浏览器的地址栏\n・在应用中，点击左侧的「+」，再点「已经有邀请了？」下方的「加入服务器」，然后粘贴",
+    "zh-TW": "<b>在電腦上複製</b>\n點擊上方的輸入框，按 Ctrl+A 再按 Ctrl+C\n\n<b>在 Discord 中開啟</b>\n・貼到瀏覽器的網址列\n・在應用程式中，點擊左側的「+」，再點「已經有邀請了？」下方的「加入伺服器」，然後貼上"
   }
 }

@@ -179,7 +179,61 @@ public static class PackageBatch
         foreach (Button b in UnityEngine.Object.FindObjectsOfType<Button>(true)) { total++; if (b.onClick.GetPersistentEventCount() > 0) wired++; }
         Log("buttons: " + total + ", wired: " + wired);
         Log("VERIFY_GATE_DONE");
+        VerifyInvite(credits);
         VerifyBoardOnly();
+    }
+
+    /// <summary>Discord のコピー欄: 一式の生成で付き、配線され、QR が作れて、案内の文がボタンの分だけ上に詰まっている</summary>
+    private static void VerifyInvite(SupporterCreditsBoard credits)
+    {
+        SupporterInviteLink invite = UnityEngine.Object.FindObjectOfType<SupporterInviteLink>(true);
+        if (invite == null) { Log("VERIFY_INVITE_FAIL missing"); return; }
+        const string url = "https://discord.gg/ENg5sh23J5";
+        string qrMsg = SupporterGateSetup.UpdateDiscordQr(url);
+        Log("qr: " + qrMsg.Replace("\n", " / "));
+        UdonSharpEditorUtility.CopyUdonToProxy(invite);
+        string[] refs = { "registry", "openButton", "openLabel", "copyPanel", "urlField", "helpText", "closeLabel", "qrRoot", "texts", "notice" };
+        bool ok = true;
+        foreach (string r in refs)
+        {
+            string v = Var(invite, r);
+            Log("invite." + r + " = " + v);
+            if (v == "null" || v == "(unset)") ok = false;
+        }
+        string qrUrl = Var(invite, "qrUrl");
+        RawImage image = invite.transform.Find("CopyPanel/QR").GetComponent<RawImage>();
+        string texPath = image.texture != null ? AssetDatabase.GetAssetPath(image.texture) : "";
+        TextMeshProUGUI infoText = new SerializedObject(credits).FindProperty("infoText").objectReferenceValue as TextMeshProUGUI;
+        float infoY = infoText != null ? infoText.rectTransform.anchoredPosition.y : -1f;
+        Button open = invite.transform.Find("OpenButton").GetComponent<Button>();
+        TMP_InputField field = invite.transform.Find("CopyPanel/UrlField").GetComponent<TMP_InputField>();
+        Log("invite qrUrl=" + qrUrl + " texture=" + texPath + " (" + (image.texture != null ? image.texture.width + "px" : "-") + ") infoTextY=" + infoY
+            + " openWired=" + open.onClick.GetPersistentEventCount() + " fieldEndEdit=" + field.onEndEdit.GetPersistentEventCount()
+            + " copyPanelActive=" + invite.transform.Find("CopyPanel").gameObject.activeSelf + " openActive=" + open.gameObject.activeSelf);
+        if (texPath != "") File.Copy(Path.GetFullPath(texPath), Path.Combine(Directory.GetCurrentDirectory(), "qr-check.png"), true);
+        ok = ok && qrUrl == url && texPath != "" && Mathf.Approximately(infoY, 96f) && open.onClick.GetPersistentEventCount() == 1
+            && field.onEndEdit.GetPersistentEventCount() == 1 && !invite.transform.Find("CopyPanel").gameObject.activeSelf;
+        Log(ok ? "VERIFY_INVITE_OK" : "VERIFY_INVITE_FAIL");
+        VerifyAddInvite();
+    }
+
+    /// <summary>前の版で作ったシーン（コピー欄の無い案内のパネル）に、メニューから足す。2 回流しても増えない</summary>
+    private static void VerifyAddInvite()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+        SupporterGateSetup.CreateSceneSetup();
+        foreach (SupporterInviteLink l in UnityEngine.Object.FindObjectsOfType<SupporterInviteLink>(true)) UnityEngine.Object.DestroyImmediate(l.gameObject);
+        SupporterCreditsBoard credits = UnityEngine.Object.FindObjectOfType<SupporterCreditsBoard>(true);
+        TextMeshProUGUI infoText = new SerializedObject(credits).FindProperty("infoText").objectReferenceValue as TextMeshProUGUI;
+        infoText.rectTransform.anchoredPosition = new Vector2(20f, 20f);   // 前の版の大きさに戻す
+        infoText.rectTransform.sizeDelta = new Vector2(860f, 560f);
+        SupporterGateSetup.AddDiscordCopyPanels();
+        SupporterGateSetup.AddDiscordCopyPanels();
+        SupporterInviteLink[] links = UnityEngine.Object.FindObjectsOfType<SupporterInviteLink>(true);
+        string texts = links.Length > 0 ? Var(links[0], "texts") : "-";
+        Log("add invite x2: links=" + links.Length + " texts=" + texts + " infoText=" + infoText.rectTransform.anchoredPosition + " " + infoText.rectTransform.sizeDelta);
+        bool ok = links.Length == 1 && texts.Contains("UdonBehaviour") && Mathf.Approximately(infoText.rectTransform.anchoredPosition.y, 96f) && Mathf.Approximately(infoText.rectTransform.sizeDelta.y, 484f);
+        Log(ok ? "VERIFY_ADD_INVITE_OK" : "VERIFY_ADD_INVITE_FAIL");
     }
 
     /// <summary>A scene without a gate (a public world with only the registry and the board): the upgrade path must still wire the board.</summary>
@@ -264,6 +318,93 @@ public static class PackageBatch
             "후원자가 퇴장했습니다. 1:42 후 로비로 돌아갑니다",
             "<noparse><b>Name</b></noparse> さんが来ました。承認パネルで入場を許可できます",
         }, new[] { 2, 2, 0 });
+    }
+
+    /// <summary>
+    /// Discord のコピー欄の見た目を確かめる: 案内のパネルを、閉じた状態と開いた状態で撮って preview/ に書き出す。
+    /// 編集中は Udon が動かないので、ワールドで出る文を、文言の表から読んで入れておく
+    /// </summary>
+    public static void PreviewInvite()
+    {
+        File.WriteAllText(ResultPath, "");
+        try
+        {
+            string outDir = Path.Combine(Directory.GetCurrentDirectory(), "preview");
+            Directory.CreateDirectory(outDir);
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            SupporterGateSetup.CreateSceneSetup();
+            Log("qr: " + SupporterGateSetup.UpdateDiscordQr("https://discord.gg/ENg5sh23J5").Replace("\n", " / "));
+            SupporterInviteLink invite = UnityEngine.Object.FindObjectOfType<SupporterInviteLink>(true);
+            Transform info = invite.transform.parent;
+            string json = AssetDatabase.LoadAssetAtPath<TextAsset>("Packages/com.nagonago.supporter-gate/Runtime/SupporterGateTexts.json").text;
+            foreach (string lang in new[] { "ja", "en" })
+            {
+                TextMeshProUGUI infoText = info.Find("Text").GetComponent<TextMeshProUGUI>();
+                infoText.text = "<size=80%><color=#C9B8FF><b>" + (lang == "ja" ? "あなたの状態" : "Your status") + "</b></color></size>\n<size=110%>"
+                    + (lang == "ja" ? "あなたは<color=#9BE7A8><b>住人</b></color>です" : "You are: <color=#9BE7A8><b>Resident</b></color>") + "</size>\n\n<size=80%><color=#C9B8FF><b>"
+                    + (lang == "ja" ? "ご案内" : "Information") + "</b></color></size>\n<size=80%>" + JsonText(json, "info.guide", lang) + "</size>\n<size=115%><b>discord.gg/ENg5sh23J5</b></size>";
+                invite.transform.Find("OpenButton").gameObject.SetActive(true);
+                invite.transform.Find("OpenButton").GetComponentInChildren<TextMeshProUGUI>().text = JsonText(json, "info.copy.open", lang);
+                Transform panel = invite.transform.Find("CopyPanel");
+                panel.gameObject.SetActive(false);
+                RenderPanel(outDir, "invite-closed-" + lang, info);
+                panel.gameObject.SetActive(true);
+                panel.Find("UrlField").GetComponent<TMP_InputField>().text = "https://discord.gg/ENg5sh23J5";
+                panel.Find("Help").GetComponent<TextMeshProUGUI>().text = JsonText(json, "info.copy.help", lang);
+                panel.Find("CloseButton").GetComponentInChildren<TextMeshProUGUI>().text = JsonText(json, "info.copy.close", lang);
+                RenderPanel(outDir, "invite-open-" + lang, info);
+            }
+            Log("PREVIEW_INVITE_DONE");
+        }
+        catch (Exception ex) { Log("EXCEPTION: " + ex); }
+    }
+
+    /// <summary>文言の表（JSON）から 1 つの文を取り出す（\n と \" だけ戻す）</summary>
+    private static string JsonText(string json, string key, string lang)
+    {
+        int k = json.IndexOf("\"" + key + "\"", StringComparison.Ordinal);
+        int l = json.IndexOf("\"" + lang + "\"", k, StringComparison.Ordinal);
+        int start = json.IndexOf('"', json.IndexOf(':', l) + 1) + 1;
+        var sb = new System.Text.StringBuilder();
+        for (int i = start; i < json.Length; i++)
+        {
+            char c = json[i];
+            if (c == '\\') { char n = json[++i]; sb.Append(n == 'n' ? '\n' : n); continue; }
+            if (c == '"') break;
+            sb.Append(c);
+        }
+        return sb.ToString();
+    }
+
+    private static void RenderPanel(string outDir, string name, Transform canvas)
+    {
+        Camera cam = UnityEngine.Object.FindObjectOfType<Camera>();
+        if (cam == null)
+        {
+            cam = new GameObject("PreviewCam").AddComponent<Camera>();
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.55f, 0.62f, 0.70f);
+            cam.nearClipPlane = 0.05f;
+            cam.fieldOfView = 50f;
+        }
+        cam.transform.position = canvas.position - canvas.forward * 1.15f;
+        cam.transform.rotation = Quaternion.LookRotation(canvas.forward, Vector3.up);
+        Canvas.ForceUpdateCanvases();
+        foreach (TextMeshProUGUI t in canvas.GetComponentsInChildren<TextMeshProUGUI>(true)) t.ForceMeshUpdate();
+        Canvas.ForceUpdateCanvases();
+        const int W = 1200, H = 820;
+        RenderTexture rtx = new RenderTexture(W, H, 24, RenderTextureFormat.ARGB32);
+        rtx.antiAliasing = 4;
+        cam.targetTexture = rtx;
+        cam.Render();
+        RenderTexture.active = rtx;
+        Texture2D tex = new Texture2D(W, H, TextureFormat.RGB24, false);
+        tex.ReadPixels(new Rect(0, 0, W, H), 0, 0);
+        tex.Apply();
+        File.WriteAllBytes(Path.Combine(outDir, name + ".png"), tex.EncodeToPNG());
+        RenderTexture.active = null;
+        cam.targetTexture = null;
+        Log("rendered " + name);
     }
 
     private static void RenderCase(string outDir, string name, string[] texts, int[] levels)

@@ -25,6 +25,10 @@ public class NoticeSmoke : UdonSharpBehaviour
     public NoticeJoinLeave joinLeave;
     public TextMeshProUGUI joinLeaveLabel;
     public bool joinLeaveToggle;
+    public SupporterInviteLink invite;
+    public TMP_InputField inviteField;
+    public TextMeshProUGUI inviteHelp;
+    public GameObject inviteOpenButton;
 
     private int _tick;
 
@@ -109,6 +113,18 @@ public class NoticeSmoke : UdonSharpBehaviour
             + " rank(Paula)=" + registry._GetRankOfName("Paula") + " rank(Alice)=" + registry._GetRankOfName("Alice"));
         if (creditsText != null) Debug.Log("[SMOKE] credits(ja)=" + creditsText.text.Replace("\n", "/"));
         if (infoText != null) Debug.Log("[SMOKE] info(ja)=" + infoText.text.Replace("\n", "/"));
+        if (invite != null)
+        {
+            // 「URL をコピー・QR」を押した状態を見る。押す前は閉じている
+            bool before = invite._IsOpen();
+            invite._Toggle();
+            Debug.Log("[SMOKE] invite(ja) button=" + inviteOpenButton.activeSelf + " before=" + before + " open=" + invite._IsOpen() + " url=" + invite._GetUrl()
+                + " field=" + inviteField.text + " qr=" + invite._IsQrShown() + " help=" + inviteHelp.text.Replace("\n", "/"));
+            inviteField.text = "changed";
+            invite._ResetField();
+            invite._Close();
+            Debug.Log("[SMOKE] invite closed open=" + invite._IsOpen() + " field=" + inviteField.text);
+        }
         if (!skipLangSwitch)
         {
             hub._SetLanguageOverride("en");

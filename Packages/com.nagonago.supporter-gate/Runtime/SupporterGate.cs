@@ -608,7 +608,7 @@ public class SupporterGate : UdonSharpBehaviour
         if (localRank == SupporterRegistry.RankUnknown) you = Tint(SupporterRegistry.ColorDim, T("gate.you.checking", "確認中"));
         else if (localRank >= requiredRank)
         {
-            if (useMemberList) you = T("gate.you.member", "メンバー");
+            if (useMemberList) you = T("gate.you.member", "住人");
             else
             {
                 // 呼び名は、案内のパネルと同じ（文言の表の credits.tier.<ティアの id>。無ければリストの label）

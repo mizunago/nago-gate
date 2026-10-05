@@ -21,7 +21,7 @@ using UnityEngine.UI;
 using VRC.SDK3.Components;
 using VRC.Udon;
 
-public static class SupporterGateSetup
+public static partial class SupporterGateSetup
 {
     private const string PackageRoot = "Packages/com.nagonago.supporter-gate";
     private const string TextsPath = PackageRoot + "/Runtime/SupporterGateTexts.json";
@@ -143,6 +143,8 @@ public static class SupporterGateSetup
         TextMeshProUGUI infoText = CreateText(infoCanvas, "Text", "", 34, new Vector2(20f, 20f), new Vector2(860f, 560f), TextAlignmentOptions.Center);
         FitText(infoText, 20f);
         SetRef(credits, "infoText", infoText);
+        // Discord の招待 URL のコピー欄と QR（QR は、リストの URL が決まってから Update Discord QR で作る）
+        AddInviteLink(credits, infoText);
 
         // ---- 文言の表と共通の通知 ----
         WireNotices(root);
@@ -194,7 +196,7 @@ public static class SupporterGateSetup
     private const float LobbyHeight = 3.2f;
     private const float LobbyWall = 0.2f;
 
-    [MenuItem("Tools/SupporterGate/Convert Existing World/メンバーだけが入れるワールドにする", false, 40)]
+    [MenuItem("Tools/SupporterGate/Convert Existing World/住人だけが入れるワールドにする", false, 40)]
     public static void ConvertMembersOnly() { ConvertWithDialog(SupporterGateMode.SupportersOnly, true); }
 
     [MenuItem("Tools/SupporterGate/Convert Existing World/支援者だけが入れるワールドにする", false, 41)]
@@ -310,7 +312,7 @@ public static class SupporterGateSetup
         Selection.activeGameObject = room;
         EditorSceneManager.MarkSceneDirty(root.scene);
 
-        string who = useMemberList ? "メンバーだけ" : (mode == SupporterGateMode.SupporterApproval ? "支援者と、支援者が許可した人" : "支援者だけ");
+        string who = useMemberList ? "住人だけ" : (mode == SupporterGateMode.SupporterApproval ? "支援者と、支援者が許可した人" : "支援者だけ");
         string report =
             "入口の部屋とゲートを足しました。入れるのは、" + who + "です。\n\n" +
             "やったこと\n" +
@@ -472,6 +474,16 @@ public static class SupporterGateSetup
             // 同じ一式のゲートを渡す（本人がこのワールドに入れないときの表示用）
             if (boardGate != null) SetRef(credits, "gate", boardGate);
         }
+        foreach (SupporterInviteLink link in systemRoot.GetComponentsInChildren<SupporterInviteLink>(true))
+        {
+            SetRef(link, "notice", hub);
+            SetRef(link, "texts", table);
+            if (new SerializedObject(link).FindProperty("registry").objectReferenceValue == null)
+            {
+                SupporterRegistry registry = Object.FindObjectOfType<SupporterRegistry>(true);
+                if (registry != null) SetRef(link, "registry", registry);
+            }
+        }
         if (!Application.isPlaying) EditorSceneManager.MarkSceneDirty(systemRoot.scene);
     }
 
@@ -550,6 +562,7 @@ public static class SupporterGateSetup
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterApprovalRow)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterContentZone)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterCreditsBoard)) != null
+            && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterInviteLink)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(NoticeTable)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(NoticeHub)) != null;
     }

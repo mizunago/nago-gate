@@ -193,6 +193,22 @@ public static class PlaySmoke
         }
         driver.registry = registry;
 
+        // Discord のコピー欄。QR の URL は SG_SMOKE_QRURL（既定は、テスト用のリストの URL から最後の / を除いたもの）
+        SupporterInviteLink invite = Object.FindObjectOfType<SupporterInviteLink>(true);
+        if (invite != null)
+        {
+            string qrUrl = Env("SG_SMOKE_QRURL") == "" ? "https://discord.gg/testInvite" : Env("SG_SMOKE_QRURL");
+            File.AppendAllText(LogPath, "[EDITOR] qr: " + SupporterGateSetup.UpdateDiscordQr(qrUrl).Replace("\n", " / ") + "\n");
+            SerializedObject iso = new SerializedObject(invite);
+            iso.FindProperty("debugLog").boolValue = true;
+            iso.ApplyModifiedPropertiesWithoutUndo();
+            UdonSharpEditorUtility.CopyProxyToUdon(invite);
+            driver.invite = invite;
+            driver.inviteField = invite.transform.Find("CopyPanel/UrlField").GetComponent<TMP_InputField>();
+            driver.inviteHelp = invite.transform.Find("CopyPanel/Help").GetComponent<TextMeshProUGUI>();
+            driver.inviteOpenButton = invite.transform.Find("OpenButton").gameObject;
+        }
+
         // SG_SMOKE_JL: join/leave notice. on = default ON / off = default OFF / toggle = default OFF, switched on at t=5
         string jlMode = Env("SG_SMOKE_JL");
         if (jlMode != "")
