@@ -35,6 +35,8 @@ export interface VrcProfile {
   trust: string;
   /** 年齢確認の表示（18+ / verified / hidden）。取れなければ空 */
   ageVerification: string;
+  /** VRC+ の会員か。分からなければ null */
+  vrcPlus: boolean | null;
 }
 
 /** タグからトラストランクの名前を引く。タグが無ければ空 */
@@ -117,6 +119,7 @@ export class VrcClient {
       dateJoined: typeof u?.date_joined === "string" ? u.date_joined : "",
       trust: trustRank(u?.tags),
       ageVerification: typeof u?.ageVerificationStatus === "string" ? u.ageVerificationStatus : "",
+      vrcPlus: Array.isArray(u?.tags) ? u.tags.includes("system_supporter") : null,
     };
   }
 

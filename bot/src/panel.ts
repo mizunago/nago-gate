@@ -139,6 +139,7 @@ function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, pr
     const facts = [
       profile.dateJoined ? `VRChat の登録日 ${profile.dateJoined}` : "",
       profile.trust ? `ランク ${profile.trust}` : "",
+      profile.vrcPlus === null ? "" : profile.vrcPlus ? "VRC+ の会員" : "VRC+ ではない",
       profile.ageVerification ? `年齢確認 ${profile.ageVerification}` : "",
     ].filter((f) => f.length > 0);
     if (facts.length > 0) lines.push(facts.join(" / "));
@@ -148,6 +149,7 @@ function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, pr
     lines.push(`VRChat のプロフィール: ${profileNote}`);
   }
   lines.push(`支援: ${tier ? tier.label : "なし"}`);
+  lines.push("本人確認: していません。登録した表示名が、申請した本人の VRChat アカウントかどうかは、必要なら直接たずねて確かめてください。");
   lines.push("プロフィールを見て、下のボタンで決めてください。認定すると、すぐにメンバーのロールが付きます。");
   return lines.join("\n");
 }
