@@ -307,7 +307,8 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   log.info(`メンバーの申請を認定 ${who} by ${by} 有効=${rec.memberActive}`);
 
   // 本人に知らせる。DM を受け取らない設定なら届かないが、「状態」のボタンで分かる。DM には、内容の説明は書かない
-  const dmText = (["ja", "en"] as Lang[]).map((l) => t(l, "member.approvedDm")).join("\n\n");
+  const where = (l: Lang): string => (config.registerChannelId ? `<#${config.registerChannelId}>` : l === "ja" ? "登録のチャンネル" : "the register channel");
+  const dmText = (["ja", "en"] as Lang[]).map((l) => t(l, "member.approvedDm", { channel: where(l) })).join("\n\n");
   let dmNote = "本人に DM で知らせました。";
   try {
     await target.send({ content: dmText });
@@ -316,6 +317,24 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   }
   const roleNote = rec.memberActive ? "メンバーのロールを付けました。" : "本人が、メンバーのボタンから案内に同意すると、メンバーのロールが付きます。";
   await close(`✅ 認定しました（${by}、${fmtDate(now.toISOString())}）。${roleNote}${dmNote}`);
+}
+
+/** 申請制で、認定は済んだが、本人の同意がまだの人か */
+function isAwaitingConsent(config: AppConfig, rec: MemberRecord): boolean {
+  return config.member?.mode === "apply" && !rec.banned && !rec.memberManual && rec.memberApprovedAt !== null && !rec.memberConsentAt;
+}
+
+/**
+ * 認定された人に見せる、くわしい案内（内容の注意と共有のお願い）と、同意のボタン。認定された人にだけ見せる。
+ * lead は、案内の前に置く一言
+ */
+function consentGuide(lang: Lang, lead: string | null): { content: string; components: ActionRowBuilder<ButtonBuilder>[] } {
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, "member.agree")).setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, "member.withdraw")).setStyle(ButtonStyle.Secondary),
+  );
+  const parts = [t(lang, "member.explainApproved"), t(lang, "share.notice"), t(lang, "member.confirm")];
+  return { content: (lead ? [lead, ...parts] : parts).join("\n\n"), components: [row] };
 }
 
 /** メンバーのボタン（説明を出す・同意する・取り消す）。申請制のときは、同意が申請になる */
@@ -344,19 +363,13 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
   const now = new Date();
 
   // 申請制で、認定は済んだが、本人の同意がまだの人
-  const awaitingConsent = apply && !rec.memberManual && rec.memberApprovedAt !== null && !rec.memberConsentAt;
+  const awaitingConsent = isAwaitingConsent(config, rec);
   // 申請制で、申請を出して確認を待っている人
   const pendingReview = apply && !rec.memberManual && rec.memberAppliedAt !== null && !rec.memberApprovedAt;
 
   if (id === IDS.member) {
     if (awaitingConsent) {
-      // くわしい案内（内容の注意と共有のお願い）は、認定された人にだけ見せる
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, "member.agree")).setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, "member.withdraw")).setStyle(ButtonStyle.Secondary),
-      );
-      const content = [t(lang, "member.explainApproved"), t(lang, "share.notice"), t(lang, "member.confirm")].join("\n\n");
-      await interaction.reply({ content, components: [row], ephemeral: true });
+      await interaction.reply({ ...consentGuide(lang, null), ephemeral: true });
     } else if (!rec.memberConsentAt && !rec.memberManual && !pendingReview) {
       if (apply) {
         const blocked = applyBlocked(config, rec, lang, now);
@@ -491,6 +504,14 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
   const id = interaction.customId;
 
   if (id === IDS.register) {
+    // 認定のあと、「メンバー」と間違えて「登録」を押す人がいる（先頭にある青いボタンなので）。
+    // 同意がまだの人には、表示名のフォームではなく、手続きの続き（くわしい案内と同意のボタン）を見せる
+    const current = store.get(interaction.user.id);
+    if (current && current.vrcName && isAwaitingConsent(config, current)) {
+      log.info(`UI 同意がまだの人が「登録」を押したので、メンバーの案内を見せます ${interaction.user.tag} (${interaction.user.id})`);
+      await interaction.reply({ ...consentGuide(lang, t(lang, "member.registerRedirect", { name: current.vrcName })), ephemeral: true });
+      return;
+    }
     const modal = new ModalBuilder().setCustomId(IDS.modal).setTitle(t(lang, "modal.title"));
     const input = new TextInputBuilder()
       .setCustomId(IDS.modalName)
@@ -559,7 +580,14 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
   });
   if (r.ok && (await activateMemberIfReady(config, store, interaction.member))) deps.requestPublish();
   if (r.changed) deps.requestPublish();
-  await interaction.reply({ content: r.message, ephemeral: true });
+  // 申請制で、まだ申請していない人には、次に押すボタンを一言足す（登録だけで申請が済んだと思って待つ人がいる）
+  let message = r.message;
+  if (r.ok && config.member?.mode === "apply") {
+    const rec = store.get(interaction.user.id);
+    const started = !rec || rec.memberActive || rec.memberManual || rec.memberConsentAt || rec.memberAppliedAt || rec.memberApprovedAt;
+    if (rec && !started && applyBlocked(config, rec, lang, new Date()) === null) message += `\n${t(lang, "member.nextApply")}`;
+  }
+  await interaction.reply({ content: message, ephemeral: true });
 }
 
 const HINT_TTL_MS = 90_000;

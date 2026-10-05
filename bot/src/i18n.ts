@@ -259,11 +259,11 @@ const M = {
     ko: "이 기능은 현재 사용할 수 없습니다.",
   },
   "member.needName": {
-    ja: "先に **登録** ボタンで VRChat の表示名を登録してください。",
-    en: "Please register your VRChat display name first with the **Register** button.",
-    "zh-CN": "请先点击 **注册** 按钮注册你的 VRChat 显示名称。",
-    "zh-TW": "請先點擊 **註冊** 按鈕註冊你的 VRChat 顯示名稱。",
-    ko: "먼저 **등록** 버튼으로 VRChat 표시 이름을 등록해 주세요.",
+    ja: "先に **登録** ボタンで VRChat の表示名を登録してください。登録が済んだら、もう一度 **🔑 メンバー** を押してください。",
+    en: "Please register your VRChat display name first with the **Register** button. Then press the **🔑 Membership** button again.",
+    "zh-CN": "请先点击 **Register** 按钮注册你的 VRChat 显示名称。注册完成后，请再次点击 **🔑 Membership** 按钮。",
+    "zh-TW": "請先點擊 **Register** 按鈕註冊你的 VRChat 顯示名稱。註冊完成後，請再次點擊 **🔑 Membership** 按鈕。",
+    ko: "먼저 **Register** 버튼으로 VRChat 표시 이름을 등록해 주세요. 등록이 끝나면 **🔑 Membership** 버튼을 다시 눌러 주세요.",
   },
   "member.explain": {
     ja: "**メンバー登録**\nサーバーに参加してから {days} 日以上たった方は、支援の有無に関係なく、メンバー限定のワールドの案内を見られます。\n・メンバー限定のワールドには、大人向けの表現や、刺激の強い演出があります\n・18 歳以上で、そうした内容に抵抗がない方だけ登録してください",
@@ -422,11 +422,11 @@ const M = {
     ko: "18세 이상입니다. 신청",
   },
   "member.applied": {
-    ja: "申請を受け付けました。確認が済んだら、DM でお知らせします。結果は **状態** のボタンでも見られます。",
-    en: "Your application has been received. We will let you know by DM when the review is done. You can also check the result with the **Status** button.",
-    "zh-CN": "已收到你的申请。确认完成后会通过私信通知你。结果也可通过 **Status** 按钮查看。",
-    "zh-TW": "已收到你的申請。確認完成後會透過私訊通知你。結果也可透過 **Status** 按鈕查看。",
-    ko: "신청을 접수했습니다. 확인이 끝나면 DM으로 알려 드립니다. 결과는 **Status** 버튼으로도 확인할 수 있습니다.",
+    ja: "申請を受け付けました。確認が済んだら、DM でお知らせします。そのあと、もう一度 **🔑 メンバー** を押して案内に同意すると、メンバーになります。結果は **状態** のボタンでも見られます。",
+    en: "Your application has been received. We will let you know by DM when the review is done. After that, press the **🔑 Membership** button once more and agree to the guide to become a member. You can also check the result with the **Status** button.",
+    "zh-CN": "已收到你的申请。确认完成后会通过私信通知你。之后请再次点击 **🔑 Membership** 按钮并同意说明，即可成为成员。结果也可通过 **Status** 按钮查看。",
+    "zh-TW": "已收到你的申請。確認完成後會透過私訊通知你。之後請再次點擊 **🔑 Membership** 按鈕並同意說明，即可成為成員。結果也可透過 **Status** 按鈕查看。",
+    ko: "신청을 접수했습니다. 확인이 끝나면 DM으로 알려 드립니다. 그 후 **🔑 Membership** 버튼을 한 번 더 눌러 안내에 동의하면 멤버가 됩니다. 결과는 **Status** 버튼으로도 확인할 수 있습니다.",
   },
   "member.explainApproved": {
     ja: "**メンバーの案内**\n申請の確認が済みました。メンバーになる前に、次の内容を読んで、同意してください。\n・メンバー限定のワールドには、大人向けの表現や、刺激の強い演出があります\n・18 歳以上で、そうした内容に抵抗がない方だけ進んでください",
@@ -467,11 +467,27 @@ const M = {
   "member.withdraw": { ja: "申請を取り下げる", en: "Withdraw application", "zh-CN": "撤回申请", "zh-TW": "撤回申請", ko: "신청 철회" },
   "member.withdrawn": { ja: "申請を取り下げました。", en: "Your application has been withdrawn.", "zh-CN": "已撤回申请。", "zh-TW": "已撤回申請。", ko: "신청을 철회했습니다." },
   "member.approvedDm": {
-    ja: "**メンバーの申請の確認が済みました。**\n登録のチャンネルで **メンバー** のボタンを押してください。案内を読んで同意すると、メンバーになります。",
-    en: "**Your membership application has been approved.**\nPlease press the **Membership** button in the register channel. Read the guide and agree, and you become a member.",
-    "zh-CN": "**你的成员申请已通过确认。**\n请在注册频道点击 **Membership** 按钮。阅读说明并同意后，即可成为成员。",
-    "zh-TW": "**你的成員申請已通過確認。**\n請在註冊頻道點擊 **Membership** 按鈕。閱讀說明並同意後，即可成為成員。",
-    ko: "**멤버 신청 확인이 끝났습니다.**\n등록 채널에서 **Membership** 버튼을 눌러 주세요. 안내를 읽고 동의하면 멤버가 됩니다.",
+    ja: "**メンバーの申請の確認が済みました。あと 1 つで完了です。**\n{channel} で **🔑 メンバー** のボタンを押してください（**登録** のボタンではありません）。案内を読んで同意すると、メンバーになります。",
+    en: "**Your membership application has been approved. One more step.**\nPress the **🔑 Membership** button in {channel} (not the **Register** button). Read the guide and agree, and you become a member.",
+    "zh-CN": "**你的成员申请已通过确认。还差一步。**\n请在 {channel} 点击 **🔑 Membership** 按钮（不是 **Register** 按钮）。阅读说明并同意后，即可成为成员。",
+    "zh-TW": "**你的成員申請已通過確認。還差一步。**\n請在 {channel} 點擊 **🔑 Membership** 按鈕（不是 **Register** 按鈕）。閱讀說明並同意後，即可成為成員。",
+    ko: "**멤버 신청 확인이 끝났습니다. 한 단계만 남았습니다.**\n{channel}에서 **🔑 Membership** 버튼을 눌러 주세요(**Register** 버튼이 아닙니다). 안내를 읽고 동의하면 멤버가 됩니다.",
+  },
+  // 認定のあと、「メンバー」と間違えて「登録」を押した人に、手続きの続きの前に見せる一言
+  "member.registerRedirect": {
+    ja: "表示名は登録済みです（**{name}**）。メンバーの手続きの続きは、こちらです。",
+    en: "Your display name is already registered (**{name}**). Here is the rest of the membership steps.",
+    "zh-CN": "显示名称已注册（**{name}**）。以下是成员手续的后续步骤。",
+    "zh-TW": "顯示名稱已註冊（**{name}**）。以下是成員手續的後續步驟。",
+    ko: "표시 이름은 이미 등록되어 있습니다(**{name}**). 멤버 절차의 다음 단계입니다.",
+  },
+  // 表示名を登録した直後（申請制で、まだ申請していない人）に足す一言
+  "member.nextApply": {
+    ja: "メンバーの申請をする方は、続けて **🔑 メンバー** のボタンを押してください。",
+    en: "To apply for membership, press the **🔑 Membership** button next.",
+    "zh-CN": "如需申请成为成员，请接着点击 **🔑 Membership** 按钮。",
+    "zh-TW": "如需申請成為成員，請接著點擊 **🔑 Membership** 按鈕。",
+    ko: "멤버 신청을 하려면 이어서 **🔑 Membership** 버튼을 눌러 주세요.",
   },
   "member.approvedDmGroup": {
     ja: "VRChat の Group に入りたい方は、登録のチャンネルの **グループ** のボタンを押してください。",
