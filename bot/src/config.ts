@@ -24,8 +24,9 @@ export type PublishConfig =
   | { type: "github"; owner: string; repo: string; branch?: string; path: string };
 
 /**
- * メンバー登録（支援とは別の軸）。在籍日数・名前の登録・18 歳以上の確認を満たした人に
- * ロールを付け、リストの members に載せる（名前は載せず、ハッシュだけ）
+ * 住人（設定やデータの中の名前は member）。支援とは別の軸。在籍日数・名前の登録・18 歳以上の確認を満たした人に
+ * ロールを付け、リストの members に載せる（名前は載せず、ハッシュだけ）。
+ * 表に出す呼び名は「住人 / Resident」（2026-10-06 に「メンバー」から変えた。Patreon のメンバーシップと紛れるため）
  */
 export interface MemberConfig {
   roleId: string;
@@ -45,6 +46,13 @@ export interface AppConfig {
   adminRoleIds: string[];
   /** 登録専用チャンネル。設定するとテキスト投稿を拾って案内/登録する */
   registerChannelId: string | null;
+  /**
+   * ボタンのパネルを分けて置くチャンネル（任意）。設定したものは、そのチャンネルに専用のパネルを置き、
+   * 登録のパネルからは外す。未設定なら、そのボタンは登録のパネルに並ぶ（前の版と同じ）
+   */
+  statusChannelId: string | null;
+  residentChannelId: string | null;
+  groupChannelId: string | null;
   /** Bot の操作ログを流すチャンネル（管理者専用） */
   logChannelId: string | null;
   /** 使えるコマンドの一覧を出しておくチャンネル（管理者専用）。起動のたびに書き換える */
@@ -96,7 +104,16 @@ export interface Instance {
 
 /** config.jsonc のファイル構造 */
 interface ConfigFile {
-  discord?: { guildId?: string; adminRoleIds?: string[]; registerChannelId?: string; logChannelId?: string; commandsChannelId?: string };
+  discord?: {
+    guildId?: string;
+    adminRoleIds?: string[];
+    registerChannelId?: string;
+    statusChannelId?: string;
+    residentChannelId?: string;
+    groupChannelId?: string;
+    logChannelId?: string;
+    commandsChannelId?: string;
+  };
   tiers?: Partial<TierConfig>[];
   rules?: { graceDays?: number; nameChangeCooldownDays?: number; maxNameLength?: number };
   sync?: { intervalMinutes?: number };
@@ -231,6 +248,9 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     guildId,
     adminRoleIds: raw.discord?.adminRoleIds ?? [],
     registerChannelId: raw.discord?.registerChannelId || null,
+    statusChannelId: raw.discord?.statusChannelId || null,
+    residentChannelId: raw.discord?.residentChannelId || null,
+    groupChannelId: raw.discord?.groupChannelId || null,
     logChannelId: raw.discord?.logChannelId || null,
     commandsChannelId: raw.discord?.commandsChannelId || null,
     graceDays: raw.rules?.graceDays ?? 31,

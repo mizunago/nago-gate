@@ -31,12 +31,14 @@ function permName(bit: bigint): string {
 export const ROLE_NAMES = {
   supporter: "Supporter",
   platinum: "Platinum",
-  member: "Member",
+  /** 住人のロール（2026-10-06 に Member から名前を変えた） */
+  member: "Resident",
+  memberOld: "Member",
   sources: ["src-patreon-supporter", "src-patreon-platinum", "src-cien-supporter", "src-cien-platinum"],
 } as const;
 
-async function ensureRole(guild: Guild, name: string, opts: { color?: number; hoist?: boolean }): Promise<{ role: Role; created: boolean }> {
-  const existing = guild.roles.cache.find((r) => r.name === name);
+async function ensureRole(guild: Guild, name: string, opts: { color?: number; hoist?: boolean; oldName?: string }): Promise<{ role: Role; created: boolean }> {
+  const existing = guild.roles.cache.find((r) => r.name === name) ?? (opts.oldName ? guild.roles.cache.find((r) => r.name === opts.oldName) : undefined);
   if (existing) {
     log.info(`setup-roles: 既存ロール再利用 ${name} (${existing.id})`);
     return { role: existing, created: false };
@@ -60,8 +62,8 @@ export async function setupRoles(guild: Guild): Promise<string> {
   const lines: string[] = [];
   const sup = await ensureRole(guild, ROLE_NAMES.supporter, { color: 0xf5c542, hoist: true });
   const pla = await ensureRole(guild, ROLE_NAMES.platinum, { color: 0x8fd3ff, hoist: true });
-  // メンバーは支援とは別の軸（在籍日数と登録で付く）。一覧では分けて見せない
-  const mem = await ensureRole(guild, ROLE_NAMES.member, {});
+  // 住人は支援とは別の軸（申請と認定で付く）。一覧では分けて見せない
+  const mem = await ensureRole(guild, ROLE_NAMES.member, { oldName: ROLE_NAMES.memberOld });
   const src: Record<string, Role> = {};
   for (const n of ROLE_NAMES.sources) {
     const r = await ensureRole(guild, n, {});
@@ -109,7 +111,7 @@ export async function setupRoles(guild: Guild): Promise<string> {
     `    "roleId": "${pla.role.id}",`,
     `    "sourceRoleIds": ["${src["src-patreon-platinum"].id}", "${src["src-cien-platinum"].id}"] }`,
     "],",
-    "// メンバー登録を使う場合だけ（支援とは別に、在籍日数と登録で付くロール）",
+    "// 住人を使う場合だけ（支援とは別に、申請と認定で付くロール）",
     `"member": { "roleId": "${mem.role.id}", "minDays": 7 }`,
     "```",
   ].join("\n");
@@ -216,6 +218,13 @@ export const START_HERE_CHANNELS: { lang: string; name: string; topic: string }[
 /** 前の版の、はじめにのチャンネルの名前（1 つだけだった）。あれば、日本語のチャンネルとして使い続ける */
 const OLD_START_HERE_NAME = "📖はじめに-start-here";
 
+/** ボタンだけを置くチャンネル（状態・住人・グループ）。設定の discord の項目名と、チャンネルの名前 */
+export const PANEL_CHANNELS: { key: "statusChannelId" | "residentChannelId" | "groupChannelId"; name: string; topic: string }[] = [
+  { key: "statusChannelId", name: "🔍状態-status", topic: "登録の状態の確認と、クレジットの ON / OFF / Check your status and turn credits on or off" },
+  { key: "residentChannelId", name: "🏠住人-resident", topic: "住人の申請。支援は要りません / Apply as a resident. No support needed" },
+  { key: "groupChannelId", name: "👥vrc-group", topic: "VRChat の Group への参加 / Join our VRChat Group" },
+];
+
 /** INFO カテゴリ（全員向け） */
 export async function setupInfo(guild: Guild, config: AppConfig): Promise<string> {
   log.info(`setup-info 開始 guild=${guild.name} (${guild.id})`);
@@ -241,20 +250,25 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
     {
       name: "🧾登録-register",
       type: ChannelType.GuildText,
-      topic: "VRChat 表示名の登録 / Register your VRChat display name",
+      topic: "Discord と VRChat をつなぐ（VRChat の表示名の登録） / Link Discord to VRChat (register your display name)",
       overwrites: [
         { id: everyone.id, allow: [P.SendMessages, P.UseApplicationCommands], deny: [P.CreatePublicThreads, P.CreatePrivateThreads, P.AttachFiles, P.EmbedLinks] },
         ...botOw,
       ],
     },
+    // ボタンだけのチャンネル。説明を分けて、1 つのパネルの文を短くする（2026-10-06）
+    ...PANEL_CHANNELS.map((c): ChannelSpec => ({ name: c.name, type: ChannelType.GuildText, topic: c.topic, overwrites: readOnly })),
   ];
   let registerId: string | null = null;
+  const panelIds: Record<string, string> = {};
   const ordered: GuildBasedChannel[] = [];
   for (const spec of specs) {
     const r = await ensureChannel(guild, cat, spec);
     ordered.push(r.ch);
     out.push(`${r.created ? "作成" : "既存"}: ${spec.name}`);
     if (spec.name === "🧾登録-register") registerId = r.ch.id;
+    const panel = PANEL_CHANNELS.find((c) => c.name === spec.name);
+    if (panel) panelIds[panel.key] = r.ch.id;
   }
   // 並びを揃える: はじめに（言語ごと）→ お知らせ → 登録
   await guild.channels
@@ -266,6 +280,12 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
     if (config.registerChannelId !== registerId) {
       out.push(`config.jsonc の discord.registerChannelId に \`${registerId}\` を設定して Bot を再起動し、そのチャンネルで /vrc-admin panel を実行してください。`);
     }
+  }
+  const unset = PANEL_CHANNELS.filter((c) => panelIds[c.key] && config[c.key] !== panelIds[c.key]);
+  if (unset.length > 0) {
+    out.push("");
+    out.push("config.jsonc の discord に、次を足して Bot を再起動し、/vrc-admin panel を実行してください（ボタンが、それぞれのチャンネルに分かれます）:");
+    for (const c of unset) out.push(`\`"${c.key}": "${panelIds[c.key]}"\``);
   }
   return out.join("\n");
 }
@@ -319,7 +339,10 @@ export async function setupWorld(
   if (visibility === "supporter") viewer = findRole(guild, config, 1, ROLE_NAMES.supporter);
   if (visibility === "platinum") viewer = findRole(guild, config, 2, ROLE_NAMES.platinum);
   if (visibility === "member") {
-    viewer = (config.member ? guild.roles.cache.get(config.member.roleId) : undefined) ?? guild.roles.cache.find((r) => r.name === ROLE_NAMES.member) ?? null;
+    viewer =
+      (config.member ? guild.roles.cache.get(config.member.roleId) : undefined) ??
+      guild.roles.cache.find((r) => r.name === ROLE_NAMES.member || r.name === ROLE_NAMES.memberOld) ??
+      null;
   }
   if (visibility !== "public" && !viewer) {
     log.warn(`setup-world: 閲覧ロールが見つからない visibility=${visibility}`);
@@ -354,7 +377,7 @@ export async function setupWorld(
 
   // 雑談は、公開ワールドでも限定ワールドでも同じ名前で作る（公開は全員、限定は閲覧ロールだけが書ける）
   const loungeTopic =
-    visibility === "public" ? `${jpName} の雑談 / ${enName} lounge` : visibility === "member" ? "メンバー雑談 / Members lounge" : "支援者雑談 / Supporter lounge";
+    visibility === "public" ? `${jpName} の雑談 / ${enName} lounge` : visibility === "member" ? "住人の雑談 / Residents lounge" : "支援者雑談 / Supporter lounge";
   // 前の版で作ったカテゴリ: 1 つだけだった案内のチャンネルを、日本語のチャンネルにする（投稿と権限はそのまま残る）
   const oldInfo = cat.children.cache.find((c) => c.name === OLD_WORLD_INFO_NAME && c.type === ChannelType.GuildText);
   if (oldInfo && !cat.children.cache.some((c) => c.name === WORLD_INFO_CHANNELS[0].name)) {

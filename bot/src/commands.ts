@@ -9,9 +9,9 @@ import { tierByRank, type AppConfig } from "./config.js";
 import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
-import { activateMemberIfReady, buildPanelMessage, IDS } from "./panel.js";
+import { activateMemberIfReady, buildPanelMessage, IDS, placePanels } from "./panel.js";
+import { personById, resolvedReport } from "./report.js";
 import { keyedHashName } from "./protect.js";
-import { diagnose } from "./diagnose.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
 import { isMemberEligible, publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
@@ -50,7 +50,7 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .setName("vrc-admin")
     .setDescription("支援者ゲート管理（管理者用）")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .addSubcommand((s) => s.setName("setup-roles").setDescription("Supporter / Platinum / Member / src-* ロールを作り、config 用の ID を表示する"))
+    .addSubcommand((s) => s.setName("setup-roles").setDescription("Supporter / Platinum / Resident（住人）/ src-* ロールを作り、config 用の ID を表示する"))
     .addSubcommand((s) => s.setName("setup-info").setDescription("INFO カテゴリ（はじめに・お知らせ・登録）を作る"))
     .addSubcommand((s) => s.setName("setup-community").setDescription("コミュニティカテゴリ（雑談 jp/en/zh/ko・sfw-photo・nsfw-photo）を作る"))
     .addSubcommand((s) =>
@@ -68,18 +68,18 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
               { name: "全員（公開ワールド）", value: "public" },
               { name: "Supporter 以上", value: "supporter" },
               { name: "Platinum のみ", value: "platinum" },
-              { name: "Member（登録メンバー。支援とは別）", value: "member" },
+              { name: "住人（Resident。支援とは別）", value: "member" },
             ),
         )
         .addBooleanOption((o) => o.setName("nsfw").setDescription("年齢制限チャンネルにする（既定: しない）")),
     )
-    .addSubcommand((s) => s.setName("panel").setDescription("このチャンネルに登録ボタン付きパネルを投稿する（既にあれば書き換える）"))
-    .addSubcommand((s) => s.setName("sync").setDescription("今すぐ全メンバーを同期して公開する"))
+    .addSubcommand((s) => s.setName("panel").setDescription("登録・状態・住人・グループのパネルを、それぞれのチャンネルに置く（既にあれば書き換える）"))
+    .addSubcommand((s) => s.setName("sync").setDescription("今すぐサーバーの全員を同期して公開する"))
     .addSubcommand((s) => s.setName("publish").setDescription("支援者リスト JSON を強制的に再公開する"))
     .addSubcommand((s) =>
       s
         .setName("lookup")
-        .setDescription("メンバーの登録状態と、入場までのどこで止まっているかを表示する")
+        .setDescription("その人の手続きが、どこまで済んでいて、何がまだかを表示する")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
     .addSubcommand((s) =>
@@ -112,19 +112,19 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
     .addSubcommand((s) =>
       s
         .setName("member-grant")
-        .setDescription("メンバーに手動で認定する（在籍日数と同意を待たない。表示名の登録は必要）")
+        .setDescription("住人に手動で認定する（申請と同意を待たない。表示名の登録は必要）")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
     .addSubcommand((s) =>
       s
         .setName("member-revoke")
-        .setDescription("メンバーの手動の認定を取り消す（本人のメンバー登録も取り消す）")
+        .setDescription("住人の認定を取り消す（本人の同意も取り消す）")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
     .addSubcommand((s) =>
       s
         .setName("ban")
-        .setDescription("支援者・メンバーのリストから外し、ロールを外す（登録し直しも防ぐ。サーバーからの BAN は Discord の画面で行う）")
+        .setDescription("支援者・住人のリストから外し、ロールを外す（登録し直しも防ぐ。サーバーからの BAN は Discord の画面で行う）")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true))
         .addStringOption((o) => o.setName("reason").setDescription("理由（管理用のメモ。本人には送らない）")),
     )
@@ -222,33 +222,29 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       return;
     }
     if (sub === "panel") {
-      const channel = interaction.channel;
-      if (!channel || !channel.isTextBased() || !("send" in channel)) {
-        await interaction.reply({ content: "このチャンネルには投稿できません", ephemeral: true });
-        return;
+      // 設定にあるチャンネルに、それぞれのパネルを置く。登録のチャンネルが未設定なら、このチャンネルに登録のパネルを置く（前の版と同じ）
+      await interaction.deferReply({ ephemeral: true });
+      let lines: string[];
+      if (config.registerChannelId) {
+        lines = await placePanels(interaction.guild, config, interaction.client.user.id);
+      } else {
+        const channel = interaction.channel;
+        if (!channel || !channel.isTextBased() || !("send" in channel)) {
+          await interaction.editReply("このチャンネルには投稿できません");
+          return;
+        }
+        await channel.send(buildPanelMessage(config));
+        lines = [`登録のパネルを、このチャンネルに置きました。テキスト投稿の自動処理を使うなら、config.jsonc の discord.registerChannelId に \`${interaction.channelId}\` を設定してください`];
       }
-      const panel = buildPanelMessage(config);
-      // このチャンネルに Bot のパネルが既にあれば、新しく投稿せずに書き換える（ピン留めがそのまま生きる）
-      const recent = "messages" in channel ? await channel.messages.fetch({ limit: 50 }).catch(() => null) : null;
-      const old = recent?.find(
-        (m) => m.author.id === interaction.client.user.id && m.components.some((row) => JSON.stringify(row.toJSON()).includes(IDS.register)),
-      );
-      if (old) await old.edit({ content: panel.content, components: panel.components });
-      else await channel.send(panel);
-      log.info(`パネル${old ? "書き換え" : "投稿"} channel=${interaction.channelId} by ${member.user.tag}`);
-      const hint = config.registerChannelId === interaction.channelId
-        ? "" : `\n（テキスト投稿の自動処理を有効にするには config.jsonc の discord.registerChannelId に \`${interaction.channelId}\` を設定）`;
-      await interaction.reply({
-        content: (old ? "既にあるパネルを書き換えました。" : "パネルを投稿しました。ピン留めしておくと見つけやすくなります。") + hint,
-        ephemeral: true,
-      });
+      log.info(`パネルを置く by ${member.user.tag}: ${lines.join(" / ")}`);
+      await interaction.editReply(lines.join("\n").slice(0, 1900));
       return;
     }
     if (sub === "sync") {
       await interaction.deferReply({ ephemeral: true });
       const r = await runSync(deps, interaction.guild, `manual by ${member.user.tag}`);
       await interaction.editReply(
-        `同期完了: 走査 ${r.scanned} / 有効 ${r.active} / 猶予中 ${r.inGrace} / メンバー ${r.members} / ロール +${r.rolesAdded} -${r.rolesRemoved} / 公開 ${r.published ? "あり" : "変更なし"}` +
+        `同期完了: 走査 ${r.scanned} / 有効 ${r.active} / 猶予中 ${r.inGrace} / 住人 ${r.members} / ロール +${r.rolesAdded} -${r.rolesRemoved} / 公開 ${r.published ? "あり" : "変更なし"}` +
           (r.publishUrl ? `\n${r.publishUrl}` : "") +
           (r.errors.length ? `\nエラー:\n${r.errors.slice(0, 5).join("\n")}` : ""),
       );
@@ -266,16 +262,9 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
     }
     if (sub === "lookup") {
       const user = interaction.options.getUser("user", true);
-      const rec = store.get(user.id);
-      // 記録だけでなく、サーバーで今付いているロールも見て、どの段で止まっているかを出す
-      const target = await interaction.guild.members.fetch(user.id).catch(() => null);
-      const live = target
-        ? { roleIds: [...target.roles.cache.keys()], roleName: (id: string) => interaction.guild.roles.cache.get(id)?.name ?? id }
-        : null;
-      await interaction.reply({
-        content: `<@${user.id}>\n${describe(config, rec, "ja")}\n\n${diagnose(config, rec, live, new Date())}`,
-        ephemeral: true,
-      });
+      // 記録だけでなく、サーバーで今付いているロールも見て、どこまで済んでいるかを出す
+      const people = await personById(interaction.guild, store, user.id);
+      await interaction.reply({ content: resolvedReport(config, interaction.guild, user.id, people, new Date()), ephemeral: true, allowedMentions: { parse: [] } });
       return;
     }
     if (sub === "whois") {
@@ -287,10 +276,10 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       }
       const eligible = !rec.banned && (rec.effectiveRank > 0 || rec.memberActive);
       const verdict = eligible
-        ? "承認してよい（支援者かメンバー）"
+        ? "承認してよい（支援者か住人）"
         : rec.banned
           ? "承認しない（BAN 中）"
-          : "承認しない（支援者でもメンバーでもない）";
+          : "承認しない（支援者でも住人でもない）";
       const pressed = !config.group || rec.groupRequestedAt ? "" : "\n※ Discord の「グループ」のボタンは、まだ押されていません";
       await interaction.reply({
         content: `VRChat の表示名「**${rec.vrcName}**」は、<@${rec.discordId}>（${rec.discordTag ?? "-"}）です。\n${describe(config, rec, "ja")}\nGroup への参加: ${verdict}${pressed}`,
@@ -362,7 +351,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
     if (sub === "member-grant" || sub === "member-revoke") {
       const mc = config.member;
       if (!mc) {
-        await interaction.reply({ content: "メンバー登録が設定されていません（config.jsonc の member）", ephemeral: true });
+        await interaction.reply({ content: "住人の機能が設定されていません（config.jsonc の member）", ephemeral: true });
         return;
       }
       const user = interaction.options.getUser("user", true);
@@ -396,13 +385,13 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       log.info(`管理者 ${sub} ${user.tag} (${user.id}) 有効=${rec.memberActive} by ${member.user.tag}`);
       if (target) {
         const op = rec.memberActive ? target.roles.add(mc.roleId, "SupporterGate member (manual)") : target.roles.remove(mc.roleId, "SupporterGate member (manual)");
-        await op.catch((err) => log.warn(`メンバーのロール更新に失敗 ${user.tag}: ${String(err)}`));
+        await op.catch((err) => log.warn(`住人のロール更新に失敗 ${user.tag}: ${String(err)}`));
       }
       deps.requestPublish();
       let msg: string;
-      if (!grant) msg = `<@${user.id}> のメンバーの認定を取り消しました。本人が登録し直せば、通常の条件（在籍 ${mc.minDays} 日と同意）でメンバーになれます。`;
-      else if (rec.memberActive) msg = `<@${user.id}> をメンバーに認定しました。数分後からメンバー限定のワールドに入れます。`;
-      else msg = `<@${user.id}> をメンバーに認定しましたが、VRChat の表示名がまだ登録されていません。本人が登録するか、\`/vrc-admin setname\` で設定すると有効になります。`;
+      if (!grant) msg = `<@${user.id}> の住人の認定を取り消しました。本人が申請し直せば、通常の手続きで住人になれます。`;
+      else if (rec.memberActive) msg = `<@${user.id}> を住人に認定しました。数分後から住人限定のワールドに入れます。`;
+      else msg = `<@${user.id}> を住人に認定しましたが、VRChat の表示名がまだ登録されていません。本人が登録するか、\`/vrc-admin setname\` で設定すると有効になります。`;
       await interaction.reply({ content: msg, ephemeral: true });
       return;
     }
@@ -432,7 +421,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         deps.requestPublish();
         log.info(`管理者 unban ${user.tag} (${user.id}) by ${member.user.tag}`);
         await interaction.editReply(
-          `<@${user.id}> の BAN を解除しました。支援中なら、次の同期で支援者に戻ります。メンバーは、本人が登録し直せば、通常の条件で戻れます。\n` +
+          `<@${user.id}> の BAN を解除しました。支援中なら、次の同期で支援者に戻ります。住人は、本人が申請し直せば、通常の手続きで戻れます。\n` +
             "サーバーから BAN していた場合は、Discord の「サーバー設定 → BAN」からも解除してください。",
         );
         return;
@@ -456,7 +445,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       store.save();
       deps.requestPublish();
 
-      // Bot が付けるロール（Member と、支援者のロール）を外す。失敗しても、次の同期が外し直す
+      // Bot が付けるロール（住人と、支援者のロール）を外す。失敗しても、次の同期が外し直す
       let roleNote = "サーバーにいないので、外すロールはありません。";
       if (target) {
         const managed = [...config.tiers.map((tier) => tier.roleId), ...(config.member ? [config.member.roleId] : [])].filter((id) => target.roles.cache.has(id));
@@ -472,8 +461,8 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       log.info(`管理者 ban ${user.tag} (${user.id}) name=${rec.vrcName ?? "-"} reason=${reason || "-"} by ${member.user.tag}`);
       const nameNote = rec.vrcName ? `登録していた表示名（**${rec.vrcName}**）は、ほかのアカウントでも登録できません。` : "表示名は登録されていませんでした。";
       await interaction.editReply(
-        `<@${user.id}> を支援者・メンバーのリストから外しました。${roleNote}\n` +
-          `${nameNote}本人も、登録とメンバー登録をやり直せません。\n` +
+        `<@${user.id}> を支援者・住人のリストから外しました。${roleNote}\n` +
+          `${nameNote}本人も、登録と住人の申請をやり直せません。\n` +
           "ワールドへの反映は、遅くとも 20 分ほどです（今いるインスタンスからは、リストの読み直しのあとに出されます）。\n" +
           "**サーバーからの BAN は行っていません。** 必要なら、Discord の画面から BAN してください。支援サイトでの支援も止まりません。\n" +
           "解除は `/vrc-admin unban` です。",

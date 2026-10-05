@@ -1,4 +1,5 @@
 // 登録処理の本体。スラッシュコマンド / ボタン+フォーム / テキスト投稿の 3 経路から共通で呼ぶ。
+import { channelRefs } from "./channels.js";
 import type { AppConfig } from "./config.js";
 import { hasUnsafeNameChars, normalizeName } from "./hash.js";
 import { t, type Lang } from "./i18n.js";
@@ -26,12 +27,12 @@ export function fmtDate(iso: string | null): string {
   return `<t:${Math.floor(new Date(iso).getTime() / 1000)}:D>`;
 }
 
-/** メンバー登録の状態を 1 行で表す */
+/** 住人の状態を 1 行で表す */
 export function memberState(config: AppConfig, rec: MemberRecord, lang: Lang): string {
   if (rec.banned) return t(lang, "member.state.none");
   if (rec.memberManual) return t(lang, rec.memberActive ? "member.state.manual" : "member.state.manualNeedName");
   if (config.member?.mode === "apply") {
-    if (rec.memberApprovedAt && !rec.memberConsentAt) return t(lang, "member.state.approved");
+    if (rec.memberApprovedAt && !rec.memberConsentAt) return t(lang, "member.state.approved", channelRefs(config, lang));
     if (rec.memberAppliedAt) return t(lang, "member.state.applied");
     if (rec.memberDeclinedAt && !rec.memberConsentAt) {
       const again = new Date(new Date(rec.memberDeclinedAt).getTime() + config.member.reapplyDays * 86_400_000);

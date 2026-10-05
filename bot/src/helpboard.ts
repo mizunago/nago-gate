@@ -1,9 +1,11 @@
 // 使えるコマンドの一覧を、管理用のチャンネルに 1 つのメッセージ（長ければ複数）として出しておく。
 // コマンドの定義（buildCommands）から作るので、Bot を更新して起動し直すたびに、今の内容に書き換わる。
-import type { Client, Message } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type Client, type Message } from "discord.js";
+import { hasOwnChannel, panelChannelId } from "./channels.js";
 import { buildCommands } from "./commands.js";
 import type { AppConfig } from "./config.js";
 import { log } from "./log.js";
+import { IDS } from "./panel.js";
 
 const HEADER = "## コマンド一覧";
 const CONTINUED = "-# コマンド一覧（続き）";
@@ -36,12 +38,22 @@ export function buildCommandHelpLines(config: AppConfig): string[] {
       lines.push(`\`/${cmd.name} ${sub.name}${args ? " " + args : ""}\` … ${describeOf(sub)}`);
     }
   }
-  lines.push("", "**登録チャンネルのパネルのボタン**");
-  lines.push("`登録` … VRChat の表示名を登録・変更する（30 日に 1 回）");
-  lines.push("`状態` … 自分の登録の状態を見る");
-  lines.push("`クレジット ON / OFF` … ワールドのクレジットに名前を載せるかを切り替える");
-  if (config.member) lines.push(`\`メンバー\` … メンバー登録（18 歳以上の確認と同意。在籍 ${config.member.minDays} 日で有効）と、その取り消し`);
-  if (config.group) lines.push("`グループ` … VRChat の Group への参加を希望する（支援者かメンバーの方。申請と承認は VRChat の側で行う）");
+  // ボタンの場所。専用のチャンネルが無いボタンは、登録のチャンネルに並ぶ
+  const at = (kind: "register" | "status" | "resident" | "group"): string => {
+    const id = panelChannelId(config, kind);
+    return id ? `<#${id}>` : "登録のチャンネル";
+  };
+  lines.push("", "**ボタンの場所と、することの中身**");
+  lines.push(`${at("register")}: \`登録\` … Discord と VRChat のアカウントをつなぐ（VRChat の表示名を入れる。30 日に 1 回まで変えられる）。支援者も、住人の申請をする人も、最初にこれ`);
+  lines.push(`${at("register")}${hasOwnChannel(config, "status") ? `・${at("status")}` : ""}: \`状態\` … 本人が、自分の登録・支援・住人の申請の状態を見る`);
+  lines.push(`${at("status")}: \`クレジット ON / OFF\` … ワールドの支援者のボードに、名前を出すかを選ぶ（支援者にだけ関係する）`);
+  if (config.member) {
+    const how = config.member.mode === "apply" ? "住人の申請。支援は要らない。申請のチャンネルに届いたら認定か見送りを決め、そのあと本人が案内に同意すると住人になる" : `住人の登録（18 歳以上の確認と同意。在籍 ${config.member.minDays} 日で有効）`;
+    lines.push(`${at("resident")}: \`住人\` … ${how}`);
+  }
+  if (config.group) lines.push(`${at("group")}: \`グループ\` … VRChat の Group に招待する（支援者か住人の人だけ）`);
+  lines.push("", "**人を調べる**");
+  lines.push("下の `🔎 人を調べる` を押して、Discord のユーザー名か VRChat の表示名を入れると、その人の手続きがどこまで済んでいて、何がまだかを出します（自分にだけ見える）。`/vrc-admin lookup` でも同じものが出ます");
   return lines;
 }
 
@@ -57,6 +69,15 @@ function chunk(lines: string[]): string[] {
   }
   if (cur) out.push(cur);
   return out;
+}
+
+/** 一覧の最後のメッセージに付けるボタン */
+function lookupButtons(): ActionRowBuilder<ButtonBuilder>[] {
+  return [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(IDS.adminLookup).setLabel("人を調べる").setStyle(ButtonStyle.Primary).setEmoji("🔎"),
+    ),
+  ];
 }
 
 /** 一覧のメッセージを、今の内容に合わせる（あれば書き換え、足りなければ投稿、余れば消す） */
@@ -75,13 +96,16 @@ export async function updateCommandBoard(client: Client, config: AppConfig): Pro
 
   let changed = 0;
   for (let i = 0; i < chunks.length; i++) {
+    // 「人を調べる」のボタンは、最後のメッセージにだけ付ける
+    const components = i === chunks.length - 1 ? lookupButtons() : [];
+    const want = JSON.stringify(components.map((r) => r.toJSON()));
     if (i < mine.length) {
-      if (mine[i].content !== chunks[i]) {
-        await mine[i].edit({ content: chunks[i] });
+      if (mine[i].content !== chunks[i] || JSON.stringify(mine[i].components.map((r) => r.toJSON())) !== want) {
+        await mine[i].edit({ content: chunks[i], components });
         changed++;
       }
     } else {
-      await ch.send({ content: chunks[i] });
+      await ch.send({ content: chunks[i], components });
       changed++;
     }
   }
