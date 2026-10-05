@@ -204,6 +204,18 @@ export const WORLD_INFO_CHANNELS: { lang: string; name: string; topic: (jp: stri
 /** 前の版の、案内のチャンネルの名前（1 つだけだった）。あれば、日本語のチャンネルとして使い続ける */
 const OLD_WORLD_INFO_NAME = "🔗ワールド-world";
 
+/**
+ * はじめに（最初に読む案内）のチャンネル。言語ごとに 1 つずつ作る（ワールドの案内と同じ理由）
+ */
+export const START_HERE_CHANNELS: { lang: string; name: string; topic: string }[] = [
+  { lang: "ja", name: "📖はじめに-jp", topic: "まずはこちらです。登録の手順" },
+  { lang: "en", name: "📖start-here-en", topic: "Start here: how to register" },
+  { lang: "zh", name: "📖开始之前-zh", topic: "请先阅读：注册步骤" },
+  { lang: "ko", name: "📖시작하기-ko", topic: "먼저 읽어 주세요: 등록 방법" },
+];
+/** 前の版の、はじめにのチャンネルの名前（1 つだけだった）。あれば、日本語のチャンネルとして使い続ける */
+const OLD_START_HERE_NAME = "📖はじめに-start-here";
+
 /** INFO カテゴリ（全員向け） */
 export async function setupInfo(guild: Guild, config: AppConfig): Promise<string> {
   log.info(`setup-info 開始 guild=${guild.name} (${guild.id})`);
@@ -214,9 +226,18 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
   const { cat, created } = await ensureCategory(guild, "📌 INFO", []);
   const out: string[] = [`${created ? "作成" : "既存"}: ${cat.name}`];
 
+  // 前の版で作ったカテゴリ: 1 つだけだった はじめに を、日本語のチャンネルにする（投稿と権限はそのまま残る）
+  const oldStart = cat.children.cache.find((c) => c.name === OLD_START_HERE_NAME && c.type === ChannelType.GuildText);
+  if (oldStart && !cat.children.cache.some((c) => c.name === START_HERE_CHANNELS[0].name)) {
+    await oldStart.edit({ name: START_HERE_CHANNELS[0].name, topic: START_HERE_CHANNELS[0].topic, reason: "SupporterGate setup" });
+    log.info(`setup: 名前を変更 ${cat.name}/${OLD_START_HERE_NAME} -> ${START_HERE_CHANNELS[0].name} (${oldStart.id})`);
+    out.push(`名前を変更: ${OLD_START_HERE_NAME} → ${START_HERE_CHANNELS[0].name}`);
+  }
+
+  const readOnly: OverwriteResolvable[] = [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }, ...botOw];
   const specs: ChannelSpec[] = [
-    { name: "📖はじめに-start-here", type: ChannelType.GuildText, overwrites: [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }, ...botOw] },
-    { name: "📢お知らせ-announcements", type: ChannelType.GuildText, overwrites: [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }, ...botOw] },
+    ...START_HERE_CHANNELS.map((s): ChannelSpec => ({ name: s.name, type: ChannelType.GuildText, topic: s.topic, overwrites: readOnly })),
+    { name: "📢お知らせ-announcements", type: ChannelType.GuildText, overwrites: readOnly },
     {
       name: "🧾登録-register",
       type: ChannelType.GuildText,
@@ -228,11 +249,17 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
     },
   ];
   let registerId: string | null = null;
+  const ordered: GuildBasedChannel[] = [];
   for (const spec of specs) {
     const r = await ensureChannel(guild, cat, spec);
+    ordered.push(r.ch);
     out.push(`${r.created ? "作成" : "既存"}: ${spec.name}`);
     if (spec.name === "🧾登録-register") registerId = r.ch.id;
   }
+  // 並びを揃える: はじめに（言語ごと）→ お知らせ → 登録
+  await guild.channels
+    .setPositions(ordered.map((ch, i) => ({ channel: ch.id, position: i })))
+    .catch((err) => log.warn(`setup-info: 並び替えに失敗: ${String(err)}`));
   if (registerId) {
     out.push("");
     out.push(`登録チャンネル ID: \`${registerId}\``);
