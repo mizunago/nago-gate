@@ -442,7 +442,8 @@ async function handleGroupButton(deps: PanelDeps, interaction: ButtonInteraction
     return;
   }
   if (rec.effectiveRank <= 0 && !rec.memberActive) {
-    await interaction.reply({ content: t(lang, "group.notEligible"), ephemeral: true });
+    const key = config.member?.mode === "apply" ? "group.notEligibleApply" : "group.notEligible";
+    await interaction.reply({ content: t(lang, key), ephemeral: true });
     return;
   }
   if (!rec.groupRequestedAt) {

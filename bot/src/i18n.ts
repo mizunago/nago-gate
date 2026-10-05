@@ -322,6 +322,13 @@ const M = {
     "zh-TW": "只有支持者或成員可以加入 VRChat Group。可透過 Membership（メンバー）按鈕登記為成員。",
     ko: "VRChat Group에는 후원자 또는 멤버만 참가할 수 있습니다. 멤버는 Membership(メンバー) 버튼으로 등록할 수 있습니다.",
   },
+  "group.notEligibleApply": {
+    ja: "VRChat の Group に参加できるのは、支援者かメンバーの方です。メンバーには、「メンバー」ボタンから申請できます。",
+    en: "The VRChat Group is for supporters and members. You can apply for membership with the Membership button.",
+    "zh-CN": "只有支持者或成员可以加入 VRChat Group。可通过 Membership（メンバー）按钮申请成为成员。",
+    "zh-TW": "只有支持者或成員可以加入 VRChat Group。可透過 Membership（メンバー）按鈕申請成為成員。",
+    ko: "VRChat Group에는 후원자 또는 멤버만 참가할 수 있습니다. 멤버는 Membership(メンバー) 버튼으로 신청할 수 있습니다.",
+  },
   "group.howto": {
     ja: "VRChat の Group「{name}」への参加の希望を受け付けました。\n持ち主が確認して、登録した表示名（**{vrcName}**）のアカウントへ、Group の招待を送ります。届くまで、少し時間がかかることがあります。届いたら、VRChat の通知から承諾してください。\n\nGroup に入ると、フレンドでない方とも、Group のインスタンスで一緒に遊べます。\nGroup のページ: {url}",
     en: "Your request to join the VRChat Group \"{name}\" is recorded.\nThe owner will check it and send a Group invite to the account with your registered display name (**{vrcName}**). This may take a while. When it arrives, accept it from your VRChat notifications.\n\nIn the Group, you can play together in Group instances, even with people who are not your friends.\nGroup page: {url}",
