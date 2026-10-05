@@ -29,6 +29,10 @@ export interface MemberRecord {
   memberConsentAt: string | null;
   /** 管理者が手動でメンバーと認定したか（在籍日数と同意を問わない。名前の登録とサーバーへの在籍は必要） */
   memberManual: boolean;
+  /** 申請制のとき: メンバーの申請を出した日時。申請していない・結果が出たあとは null */
+  memberAppliedAt: string | null;
+  /** 申請制のとき: 申請が見送られた日時。見送られていなければ null */
+  memberDeclinedAt: string | null;
   /** メンバーの条件（同意・名前の登録・在籍日数、または手動の認定）を満たしているか。同期のたびに更新 */
   memberActive: boolean;
   /** サーバーに参加した日時（在籍日数の計算用）。サーバーにいないときは null */
@@ -71,6 +75,8 @@ export class Store {
       rec.memberConsentAt ??= null;
       rec.memberActive ??= false;
       rec.memberManual ??= false;
+      rec.memberAppliedAt ??= null;
+      rec.memberDeclinedAt ??= null;
       rec.joinedAt ??= null;
       rec.groupRequestedAt ??= null;
       rec.vrcUserId ??= null;
@@ -112,6 +118,8 @@ export class Store {
       memberConsentAt: null,
       memberActive: false,
       memberManual: false,
+      memberAppliedAt: null,
+      memberDeclinedAt: null,
       joinedAt: null,
       groupRequestedAt: null,
       vrcUserId: null,

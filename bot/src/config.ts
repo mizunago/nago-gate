@@ -29,8 +29,14 @@ export type PublishConfig =
  */
 export interface MemberConfig {
   roleId: string;
-  /** サーバーに参加してから必要な日数 */
+  /** サーバーに参加してから必要な日数（自動のとき: 認定までの日数。申請制のとき: 申請できるようになるまでの日数） */
   minDays: number;
+  /** auto = 条件を満たせば自動で認定する。apply = 本人が申請し、管理者が見て認定する */
+  mode: "auto" | "apply";
+  /** 申請制のとき: 申請を出すチャンネル。未設定ならコマンドのチャンネル、それも無ければログのチャンネル */
+  reviewChannelId: string | null;
+  /** 申請制のとき: 見送りのあと、次に申請できるまでの日数 */
+  reapplyDays: number;
 }
 
 /** アプリ内部で使う平坦な設定（ファイルの構造とは分離） */
@@ -95,7 +101,7 @@ interface ConfigFile {
   rules?: { graceDays?: number; nameChangeCooldownDays?: number; maxNameLength?: number };
   sync?: { intervalMinutes?: number };
   publish?: PublishConfig;
-  member?: { roleId?: string; minDays?: number };
+  member?: { roleId?: string; minDays?: number; mode?: string; reviewChannelId?: string; reapplyDays?: number };
   links?: Record<string, unknown>;
   vrcGroup?: { name?: string; url?: string; id?: string };
 }
@@ -200,7 +206,11 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
   if (raw.member?.roleId) {
     const minDays = raw.member.minDays ?? 7;
     if (typeof minDays !== "number" || minDays < 0) throw new Error("member.minDays は 0 以上の数にしてください");
-    member = { roleId: raw.member.roleId, minDays };
+    const mode = raw.member.mode ?? "auto";
+    if (mode !== "auto" && mode !== "apply") throw new Error('member.mode は "auto" か "apply" にしてください');
+    const reapplyDays = raw.member.reapplyDays ?? 30;
+    if (typeof reapplyDays !== "number" || reapplyDays < 0) throw new Error("member.reapplyDays は 0 以上の数にしてください");
+    member = { roleId: raw.member.roleId, minDays, mode, reviewChannelId: raw.member.reviewChannelId || null, reapplyDays };
   }
 
   const links: Record<string, string> = {};

@@ -146,12 +146,15 @@ export function memberEligibleFrom(config: AppConfig, rec: MemberRecord): Date |
 
 /**
  * メンバーの条件を満たしているか。支援の有無は見ない。
- * 通常は、同意・名前の登録・在籍日数。管理者が手動で認定した人は、名前の登録とサーバーへの在籍だけでよい
+ * 通常は、同意・名前の登録・在籍日数。管理者が手動で認定した人（申請制で認定された人も同じ）は、名前の登録とサーバーへの在籍だけでよい
  */
 export function isMemberEligible(config: AppConfig, rec: MemberRecord, now: Date): boolean {
   if (!config.member || !rec.vrcName || rec.banned) return false;
   if (rec.memberManual) return rec.joinedAt !== null;
   if (!rec.memberConsentAt) return false;
+  // 申請制: 申請中の人は、管理者が認定するまでメンバーではない（認定されると memberManual が立つ）。
+  // 申請制にする前に自分で登録した人は、申請の記録が無いので、前の決まり（同意と在籍日数）のまま扱う
+  if (config.member.mode === "apply" && rec.memberAppliedAt) return false;
   const from = memberEligibleFrom(config, rec);
   return from !== null && from <= now;
 }

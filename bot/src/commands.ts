@@ -1,10 +1,10 @@
 import {
   ChatInputCommandInteraction,
-  GuildMember,
   PermissionFlagsBits,
   SlashCommandBuilder,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from "discord.js";
+import { isAdmin } from "./admin.js";
 import { tierByRank, type AppConfig } from "./config.js";
 import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
@@ -144,10 +144,6 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
   return [vrc.toJSON(), admin.toJSON()];
 }
 
-function isAdmin(config: AppConfig, member: GuildMember): boolean {
-  if (member.permissions.has(PermissionFlagsBits.ManageGuild)) return true;
-  return config.adminRoleIds.some((id) => member.roles.cache.has(id));
-}
 
 export interface CommandDeps extends SyncContext {
   requestPublish: () => void;
@@ -388,6 +384,9 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       rec.discordTag = user.tag;
       rec.joinedAt = target?.joinedAt ? target.joinedAt.toISOString() : null;
       rec.memberManual = grant;
+      // 手動の認定と取り消しは、申請の結果より優先する（申請中・見送りの記録は消す）
+      rec.memberAppliedAt = null;
+      rec.memberDeclinedAt = null;
       if (!grant) rec.memberConsentAt = null;
       rec.memberActive = isMemberEligible(config, rec, now);
       rec.updatedAt = now.toISOString();
@@ -446,6 +445,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       rec.banReason = reason || null;
       rec.memberConsentAt = null;
       rec.memberManual = false;
+      rec.memberAppliedAt = null;
       rec.memberActive = false;
       rec.manualRank = 0;
       rec.manualUntil = null;

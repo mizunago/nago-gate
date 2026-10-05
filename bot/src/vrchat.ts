@@ -1,6 +1,6 @@
-// VRChat の API（公式には案内されていないもの）を、Group への招待のためだけに使う。
+// VRChat の API（公式には案内されていないもの）を、Group への招待と、メンバーの申請の確認のためだけに使う。
 //
-// 使うのは、登録パネルの「グループ」のボタンが押されたときだけ。定期的な問い合わせはしない。
+// 使うのは、登録パネルの「グループ」のボタンと、メンバーの申請のボタンが押されたときだけ。定期的な問い合わせはしない。
 // VRChat の決まりに合わせて、アプリを名乗る User-Agent を付け、問い合わせの間隔を空ける。
 // 認証は、Bot 用のアカウントでログインしたときのクッキー（auth）を使う（instance/.env の VRC_AUTH_COOKIE）。
 // API は予告なく変わることがある。失敗したら、呼び出し側が手作業の流れ（持ち主が招待する）に戻す。
@@ -22,6 +22,29 @@ export class VrcApiError extends Error {
 export interface VrcUser {
   id: string;
   displayName: string;
+}
+
+/** メンバーの申請を持ち主が確かめるために見る、公開されているプロフィールの一部 */
+export interface VrcProfile {
+  id: string;
+  displayName: string;
+  bio: string;
+  /** VRChat に登録した日（YYYY-MM-DD）。取れなければ空 */
+  dateJoined: string;
+  /** トラストランク（Visitor / New User / User / Known User / Trusted User）。取れなければ空 */
+  trust: string;
+  /** 年齢確認の表示（18+ / verified / hidden）。取れなければ空 */
+  ageVerification: string;
+}
+
+/** タグからトラストランクの名前を引く。タグが無ければ空 */
+export function trustRank(tags: unknown): string {
+  if (!Array.isArray(tags)) return "";
+  if (tags.includes("system_trust_veteran")) return "Trusted User";
+  if (tags.includes("system_trust_trusted")) return "Known User";
+  if (tags.includes("system_trust_known")) return "User";
+  if (tags.includes("system_trust_basic")) return "New User";
+  return "Visitor";
 }
 
 type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
@@ -79,6 +102,22 @@ export class VrcClient {
     const users = await this.call<VrcUser[]>("GET", `/users?search=${encodeURIComponent(displayName.trim())}&n=50`);
     const hit = (users ?? []).find((u) => typeof u.displayName === "string" && u.displayName.trim().toLowerCase() === want);
     return hit ? { id: hit.id, displayName: hit.displayName } : null;
+  }
+
+  /** 1 人のプロフィール（公開されている範囲）。メンバーの申請を、持ち主が確かめるときに使う */
+  async getProfile(userId: string): Promise<VrcProfile> {
+    const u = await this.call<{ id?: string; displayName?: string; bio?: string; date_joined?: string; tags?: string[]; ageVerificationStatus?: string }>(
+      "GET",
+      `/users/${encodeURIComponent(userId)}`,
+    );
+    return {
+      id: u?.id ?? userId,
+      displayName: u?.displayName ?? "",
+      bio: typeof u?.bio === "string" ? u.bio : "",
+      dateJoined: typeof u?.date_joined === "string" ? u.date_joined : "",
+      trust: trustRank(u?.tags),
+      ageVerification: typeof u?.ageVerificationStatus === "string" ? u.ageVerificationStatus : "",
+    };
   }
 
   /**

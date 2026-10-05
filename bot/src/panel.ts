@@ -5,18 +5,21 @@ import {
   ButtonInteraction,
   ButtonStyle,
   Message,
+  MessageFlags,
   ModalBuilder,
   ModalSubmitInteraction,
   TextInputBuilder,
   TextInputStyle,
   type MessageCreateOptions,
 } from "discord.js";
-import type { AppConfig } from "./config.js";
+import { isAdmin } from "./admin.js";
+import { tierByRank, type AppConfig, type MemberConfig } from "./config.js";
 import { langOf, t, type Lang } from "./i18n.js";
 import { log } from "./log.js";
 import { describe, fmtDate, memberState, parseTextRegister, registerName } from "./register.js";
+import type { MemberRecord } from "./store.js";
 import { isMemberEligible, memberEligibleFrom, type SyncContext } from "./sync.js";
-import { bringIntoGroup } from "./vrchat.js";
+import { bringIntoGroup, type VrcProfile } from "./vrchat.js";
 
 export const IDS = {
   register: "sg:register",
@@ -26,6 +29,9 @@ export const IDS = {
   member: "sg:member",
   memberAgree: "sg:member:agree",
   memberLeave: "sg:member:leave",
+  /** 申請の認定・見送り（管理者用）。後ろに、申請した人の Discord の ID が付く */
+  memberApprove: "sg:member:approve:",
+  memberDecline: "sg:member:decline:",
   group: "sg:group",
   modal: "sg:register-modal",
   modalName: "name",
@@ -47,7 +53,15 @@ export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
     "🇨🇳 点击 **注册**，输入你的 VRChat 显示名称（个人资料上显示的名字）。更改名称后请重新注册（每 30 天一次）。",
     "🇰🇷 **등록** 버튼을 누르고 VRChat 표시 이름(프로필에 표시되는 이름)을 입력하세요. 이름을 바꾸면 다시 등록하세요(30일에 1회).",
   ];
-  if (config.member) {
+  if (config.member?.mode === "apply") {
+    lines.push(
+      "",
+      "🇯🇵 **メンバー** ボタン: メンバー限定の案内は、申請して、確認が済んだ方に見せています（18 歳以上の方のみ）。",
+      "🇬🇧 **Membership** button: the member-only area is shown to those who apply and are approved (18+ only).",
+      "🇨🇳 **成员** 按钮：成员限定区域仅向提出申请并通过确认的人开放（仅限 18 岁以上）。",
+      "🇰🇷 **멤버** 버튼: 멤버 전용 안내는 신청 후 확인이 끝난 분께만 보입니다 (18세 이상).",
+    );
+  } else if (config.member) {
     const d = config.member.minDays;
     lines.push(
       "",
@@ -93,7 +107,187 @@ export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
   return { content: lines.join("\n"), components: rows };
 }
 
-/** メンバー登録のボタン（説明を出す・同意する・取り消す） */
+/** 見送りのあと、次に申請できる日時。見送られていなければ null */
+function reapplyFrom(mc: MemberConfig, rec: MemberRecord): Date | null {
+  if (!rec.memberDeclinedAt) return null;
+  return new Date(new Date(rec.memberDeclinedAt).getTime() + mc.reapplyDays * 86_400_000);
+}
+
+/** 申請制のとき: 今は申請できない理由（申請できるなら null） */
+function applyBlocked(config: AppConfig, rec: MemberRecord, lang: Lang, now: Date): string | null {
+  const mc = config.member;
+  if (!mc) return t(lang, "member.unavailable");
+  const again = reapplyFrom(mc, rec);
+  if (again && again > now) return t(lang, "member.declinedWait", { date: fmtDate(again.toISOString()) });
+  const from = memberEligibleFrom(config, rec);
+  if (from && from > now) return t(lang, "member.applyTooEarly", { days: mc.minDays, date: fmtDate(from.toISOString()) });
+  return null;
+}
+
+/** 管理者に見せる、申請の内容 */
+function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, profile: VrcProfile | null, profileNote: string, now: Date): string {
+  const days = rec.joinedAt ? Math.floor((now.getTime() - new Date(rec.joinedAt).getTime()) / 86_400_000) : null;
+  const tier = tierByRank(config, rec.effectiveRank);
+  const lines = [
+    `📨 **メンバーの申請** <@${ownerId}>`,
+    `申請した人: <@${rec.discordId}>（${rec.discordTag ?? "-"}）`,
+    `サーバーに参加: ${rec.joinedAt ? `${fmtDate(rec.joinedAt)}（${days} 日前）` : "不明"}`,
+    `VRChat の表示名: **${rec.vrcName ?? "-"}**`,
+  ];
+  if (profile) {
+    lines.push(`VRChat のプロフィール: https://vrchat.com/home/user/${profile.id}`);
+    const facts = [
+      profile.dateJoined ? `VRChat の登録日 ${profile.dateJoined}` : "",
+      profile.trust ? `ランク ${profile.trust}` : "",
+      profile.ageVerification ? `年齢確認 ${profile.ageVerification}` : "",
+    ].filter((f) => f.length > 0);
+    if (facts.length > 0) lines.push(facts.join(" / "));
+    const bio = profile.bio.replace(/\s+/g, " ").trim();
+    if (bio.length > 0) lines.push(`自己紹介: ${bio.slice(0, 200)}${bio.length > 200 ? "…" : ""}`);
+  } else {
+    lines.push(`VRChat のプロフィール: ${profileNote}`);
+  }
+  lines.push(`支援: ${tier ? tier.label : "なし"}`);
+  lines.push("プロフィールを見て、下のボタンで決めてください。認定すると、すぐにメンバーのロールが付きます。");
+  return lines.join("\n");
+}
+
+/** 申請を受け付けて、管理者のチャンネルに確認の依頼を出す */
+async function submitApplication(deps: PanelDeps, interaction: ButtonInteraction<"cached">, lang: Lang, rec: MemberRecord, now: Date): Promise<void> {
+  const { config, store } = deps;
+  const mc = config.member;
+  if (!mc) return;
+  const who = `${interaction.user.tag} (${interaction.user.id})`;
+  const blocked = applyBlocked(config, rec, lang, now);
+  if (blocked) {
+    await interaction.update({ content: blocked, components: [] });
+    return;
+  }
+  if (rec.memberAppliedAt) {
+    await interaction.update({ content: t(lang, "member.applied"), components: [] });
+    return;
+  }
+  // VRChat への問い合わせに数秒かかるので、先に受け付けだけ返す
+  await interaction.deferUpdate();
+  rec.memberConsentAt = now.toISOString();
+  rec.memberAppliedAt = now.toISOString();
+  rec.memberDeclinedAt = null;
+  rec.updatedAt = now.toISOString();
+  store.save();
+  log.info(`メンバーの申請 ${who}: VRChat の表示名=${rec.vrcName ?? "-"} 参加日=${rec.joinedAt ?? "-"} ランク=${rec.effectiveRank}`);
+
+  // 申請した人の VRChat のプロフィール（公開されている範囲）を、確認用に添える
+  let profile: VrcProfile | null = null;
+  let profileNote = "VRChat の API を使っていないので、表示名で検索してください";
+  const access = deps.vrc?.get() ?? null;
+  if (access && rec.vrcName) {
+    try {
+      const user = await access.client.findUserByDisplayName(rec.vrcName);
+      if (user) {
+        if (rec.vrcUserId !== user.id) {
+          rec.vrcUserId = user.id;
+          store.save();
+        }
+        profile = await access.client.getProfile(user.id);
+      } else {
+        profileNote = "この表示名のユーザーが、VRChat で見つかりませんでした（表示名を変えたか、登録の間違いかもしれません）";
+      }
+    } catch (err) {
+      profileNote = "取得できませんでした。表示名で検索してください";
+      log.warn(`メンバーの申請: VRChat のプロフィールの取得に失敗 ${who}: ${String(err)}`);
+    }
+  }
+
+  const channelId = mc.reviewChannelId ?? config.commandsChannelId ?? config.logChannelId;
+  const channel = channelId ? await interaction.guild.channels.fetch(channelId).catch(() => null) : null;
+  if (channel && channel.isTextBased()) {
+    const ownerId = interaction.guild.ownerId;
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(IDS.memberApprove + rec.discordId).setLabel("認定する").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(IDS.memberDecline + rec.discordId).setLabel("見送る").setStyle(ButtonStyle.Secondary),
+    );
+    await channel
+      .send({ content: reviewContent(config, rec, ownerId, profile, profileNote, now), components: [row], allowedMentions: { users: [ownerId] }, flags: MessageFlags.SuppressEmbeds })
+      .catch((err) => log.warn(`メンバーの申請を、管理のチャンネルに出せませんでした ${who}: ${String(err)}。/vrc-admin member-grant で認定できます`));
+  } else {
+    log.warn(`メンバーの申請を出すチャンネルがありません ${who}。/vrc-admin member-grant で認定できます`);
+  }
+  await interaction.editReply({ content: t(lang, "member.applied"), components: [] });
+}
+
+/** 申請の認定・見送り（管理者が、申請のメッセージのボタンで行う） */
+async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteraction<"cached">): Promise<void> {
+  const { config, store } = deps;
+  const mc = config.member;
+  if (!isAdmin(config, interaction.member)) {
+    await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
+    return;
+  }
+  const approve = interaction.customId.startsWith(IDS.memberApprove);
+  const userId = interaction.customId.slice((approve ? IDS.memberApprove : IDS.memberDecline).length);
+  const rec = store.get(userId);
+  const by = interaction.user.tag;
+  const now = new Date();
+  // 結果を、申請のメッセージの下に書き足して、ボタンを外す
+  const close = async (note: string): Promise<void> => {
+    await interaction.update({ content: `${interaction.message.content}\n\n${note}`, components: [], allowedMentions: { parse: [] } });
+  };
+  if (!mc || !rec || !rec.memberAppliedAt) {
+    await close("ℹ️ この申請は、もう処理済みか、取り下げられています。");
+    return;
+  }
+  const who = `${rec.discordTag ?? "-"} (${userId})`;
+
+  if (!approve) {
+    rec.memberAppliedAt = null;
+    rec.memberConsentAt = null;
+    rec.memberDeclinedAt = now.toISOString();
+    rec.memberManual = false;
+    rec.memberActive = false;
+    rec.updatedAt = now.toISOString();
+    store.save();
+    log.info(`メンバーの申請を見送り ${who} by ${by}`);
+    await close(`⏸️ 見送りました（${by}、${fmtDate(now.toISOString())}）。本人には知らせていません。本人は「状態」のボタンで、見送りと、次に申請できる日を見られます。`);
+    return;
+  }
+
+  if (rec.banned) {
+    await interaction.reply({ content: "この人は BAN 中です。認定するなら、先に `/vrc-admin unban` で解除してください。", ephemeral: true });
+    return;
+  }
+  const target = await interaction.guild.members.fetch(userId).catch(() => null);
+  if (!target) {
+    rec.memberAppliedAt = null;
+    rec.memberConsentAt = null;
+    rec.updatedAt = now.toISOString();
+    store.save();
+    await close("ℹ️ 申請した人は、もうサーバーにいません。申請を閉じました。");
+    return;
+  }
+  // 認定は、手動の認定（member-grant）と同じ扱いにする
+  rec.joinedAt = target.joinedAt ? target.joinedAt.toISOString() : rec.joinedAt;
+  rec.memberManual = true;
+  rec.memberAppliedAt = null;
+  rec.memberDeclinedAt = null;
+  rec.memberActive = isMemberEligible(config, rec, now);
+  rec.updatedAt = now.toISOString();
+  store.save();
+  await target.roles.add(mc.roleId, `SupporterGate member approved by ${by}`).catch((err) => log.warn(`メンバーのロール付与に失敗 ${who}: ${String(err)}`));
+  deps.requestPublish();
+  log.info(`メンバーの申請を認定 ${who} by ${by} 有効=${rec.memberActive}`);
+
+  // 本人に知らせる。DM を受け取らない設定なら届かないが、ロールと「状態」のボタンで分かる
+  const dmText = (["ja", "en"] as Lang[]).map((l) => [t(l, "member.approvedDm"), config.group ? t(l, "member.approvedDmGroup") : ""].filter((x) => x.length > 0).join("\n")).join("\n\n");
+  let dmNote = "本人に DM で知らせました。";
+  try {
+    await target.send({ content: dmText });
+  } catch {
+    dmNote = "本人への DM は届きませんでした（受け取らない設定）。ロールは付いています。";
+  }
+  await close(`✅ 認定しました（${by}、${fmtDate(now.toISOString())}）。${dmNote}`);
+}
+
+/** メンバーのボタン（説明を出す・同意する・取り消す）。申請制のときは、同意が申請になる */
 async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteraction<"cached">, lang: Lang): Promise<void> {
   const { config, store } = deps;
   const mc = config.member;
@@ -115,25 +309,40 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
   rec.discordTag = interaction.user.tag;
   if (interaction.member.joinedAt) rec.joinedAt = interaction.member.joinedAt.toISOString();
   const id = interaction.customId;
+  const apply = mc.mode === "apply";
+  const now = new Date();
 
   if (id === IDS.member) {
     if (!rec.memberConsentAt && !rec.memberManual) {
+      if (apply) {
+        const blocked = applyBlocked(config, rec, lang, now);
+        if (blocked) {
+          await interaction.reply({ content: blocked, ephemeral: true });
+          return;
+        }
+      }
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, "member.agree")).setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, apply ? "member.apply" : "member.agree")).setStyle(ButtonStyle.Success),
       );
-      const content = [t(lang, "member.explain", { days: mc.minDays }), t(lang, "share.notice"), t(lang, "member.confirm")].join("\n\n");
+      const content = apply
+        ? [t(lang, "member.explainApply"), t(lang, "share.notice"), t(lang, "member.confirmApply")].join("\n\n")
+        : [t(lang, "member.explain", { days: mc.minDays }), t(lang, "share.notice"), t(lang, "member.confirm")].join("\n\n");
       await interaction.reply({ content, components: [row], ephemeral: true });
     } else {
+      const pending = apply && rec.memberAppliedAt !== null && !rec.memberManual;
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, "member.leave")).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, pending ? "member.withdraw" : "member.leave")).setStyle(ButtonStyle.Secondary),
       );
       await interaction.reply({ content: `${t(lang, "member.label")}: ${memberState(config, rec, lang)}`, components: [row], ephemeral: true });
     }
     return;
   }
 
-  const now = new Date();
   if (id === IDS.memberAgree) {
+    if (apply && !rec.memberManual) {
+      await submitApplication(deps, interaction, lang, rec, now);
+      return;
+    }
     if (!rec.memberConsentAt) rec.memberConsentAt = now.toISOString();
     rec.memberActive = isMemberEligible(config, rec, now);
     rec.updatedAt = now.toISOString();
@@ -153,17 +362,19 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
     return;
   }
 
-  // 取り消し
+  // 取り消し（申請中なら、申請の取り下げ）
   const wasActive = rec.memberActive;
+  const wasPending = rec.memberAppliedAt !== null && !rec.memberManual;
   rec.memberConsentAt = null;
   rec.memberManual = false;
+  rec.memberAppliedAt = null;
   rec.memberActive = false;
   rec.updatedAt = now.toISOString();
   store.save();
-  log.info(`メンバー登録の取り消し ${who}`);
+  log.info(wasPending ? `メンバーの申請の取り下げ ${who}` : `メンバー登録の取り消し ${who}`);
   await interaction.member.roles.remove(mc.roleId, "SupporterGate member").catch((err) => log.warn(`メンバーのロール剥奪に失敗 ${who}: ${String(err)}`));
   if (wasActive) deps.requestPublish();
-  await interaction.update({ content: t(lang, "member.left"), components: [] });
+  await interaction.update({ content: t(lang, wasPending ? "member.withdrawn" : "member.left"), components: [] });
 }
 
 /**
@@ -248,6 +459,11 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
 
   if (id === IDS.status) {
     await interaction.reply({ content: describe(config, store.get(interaction.user.id), lang), ephemeral: true });
+    return;
+  }
+
+  if (id.startsWith(IDS.memberApprove) || id.startsWith(IDS.memberDecline)) {
+    await handleMemberReview(deps, interaction);
     return;
   }
 

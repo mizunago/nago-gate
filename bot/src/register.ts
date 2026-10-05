@@ -30,6 +30,13 @@ export function fmtDate(iso: string | null): string {
 export function memberState(config: AppConfig, rec: MemberRecord, lang: Lang): string {
   if (rec.banned) return t(lang, "member.state.none");
   if (rec.memberManual) return t(lang, rec.memberActive ? "member.state.manual" : "member.state.manualNeedName");
+  if (config.member?.mode === "apply") {
+    if (rec.memberAppliedAt) return t(lang, "member.state.applied");
+    if (rec.memberDeclinedAt && !rec.memberConsentAt) {
+      const again = new Date(new Date(rec.memberDeclinedAt).getTime() + config.member.reapplyDays * 86_400_000);
+      if (again > new Date()) return t(lang, "member.state.declined", { date: fmtDate(again.toISOString()) });
+    }
+  }
   if (!rec.memberConsentAt) return t(lang, "member.state.none");
   if (rec.memberActive) return t(lang, "member.state.active");
   const from = memberEligibleFrom(config, rec);
