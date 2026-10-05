@@ -151,10 +151,14 @@ export function memberEligibleFrom(config: AppConfig, rec: MemberRecord): Date |
 export function isMemberEligible(config: AppConfig, rec: MemberRecord, now: Date): boolean {
   if (!config.member || !rec.vrcName || rec.banned) return false;
   if (rec.memberManual) return rec.joinedAt !== null;
+  if (config.member.mode === "apply") {
+    // 申請制: 管理者が申請を認定し、そのあと本人が案内（内容の注意と共有のお願い）に同意した人がメンバー。
+    // くわしい案内は、認定された人にだけ見せる。申請中の人は、まだメンバーではない
+    if (rec.memberApprovedAt) return rec.memberConsentAt !== null && rec.joinedAt !== null;
+    if (rec.memberAppliedAt) return false;
+    // 申請制にする前に自分で登録した人（申請の記録が無い同意）は、下の、前の決まり（同意と在籍日数）のまま扱う
+  }
   if (!rec.memberConsentAt) return false;
-  // 申請制: 申請中の人は、管理者が認定するまでメンバーではない（認定されると memberManual が立つ）。
-  // 申請制にする前に自分で登録した人は、申請の記録が無いので、前の決まり（同意と在籍日数）のまま扱う
-  if (config.member.mode === "apply" && rec.memberAppliedAt) return false;
   const from = memberEligibleFrom(config, rec);
   return from !== null && from <= now;
 }

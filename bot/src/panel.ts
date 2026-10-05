@@ -56,10 +56,10 @@ export function buildPanelMessage(config: AppConfig): MessageCreateOptions {
   if (config.member?.mode === "apply") {
     lines.push(
       "",
-      "🇯🇵 **メンバー** ボタン: メンバー限定の案内は、申請して、確認が済んだ方に見せています（18 歳以上の方のみ）。",
-      "🇬🇧 **Membership** button: the member-only area is shown to those who apply and are approved (18+ only).",
-      "🇨🇳 **成员** 按钮：成员限定区域仅向提出申请并通过确认的人开放（仅限 18 岁以上）。",
-      "🇰🇷 **멤버** 버튼: 멤버 전용 안내는 신청 후 확인이 끝난 분께만 보입니다 (18세 이상).",
+      "🇯🇵 **メンバー** ボタン: メンバーの申請ができます。確認があります（18 歳以上の方のみ）。",
+      "🇬🇧 **Membership** button: apply for membership here. Applications are reviewed (18+ only).",
+      "🇨🇳 **成员** 按钮：可在此申请成为成员，需经确认（仅限 18 岁以上）。",
+      "🇰🇷 **멤버** 버튼: 멤버 신청을 할 수 있습니다. 확인 절차가 있습니다 (18세 이상).",
     );
   } else if (config.member) {
     const d = config.member.minDays;
@@ -150,7 +150,7 @@ function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, pr
   }
   lines.push(`支援: ${tier ? tier.label : "なし"}`);
   lines.push("本人確認: していません。登録した表示名が、申請した本人の VRChat アカウントかどうかは、必要なら直接たずねて確かめてください。");
-  lines.push("プロフィールを見て、下のボタンで決めてください。認定すると、すぐにメンバーのロールが付きます。");
+  lines.push("プロフィールを見て、下のボタンで決めてください。認定すると、本人にくわしい案内（内容の注意と共有のお願い）が見えるようになり、本人が同意した時点でメンバーのロールが付きます。");
   return lines.join("\n");
 }
 
@@ -171,9 +171,9 @@ async function submitApplication(deps: PanelDeps, interaction: ButtonInteraction
   }
   // VRChat への問い合わせに数秒かかるので、先に受け付けだけ返す
   await interaction.deferUpdate();
-  rec.memberConsentAt = now.toISOString();
   rec.memberAppliedAt = now.toISOString();
   rec.memberDeclinedAt = null;
+  rec.memberApprovedAt = null;
   rec.updatedAt = now.toISOString();
   store.save();
   log.info(`メンバーの申請 ${who}: VRChat の表示名=${rec.vrcName ?? "-"} 参加日=${rec.joinedAt ?? "-"} ランク=${rec.effectiveRank}`);
@@ -243,6 +243,7 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   if (!approve) {
     rec.memberAppliedAt = null;
     rec.memberConsentAt = null;
+    rec.memberApprovedAt = null;
     rec.memberDeclinedAt = now.toISOString();
     rec.memberManual = false;
     rec.memberActive = false;
@@ -266,27 +267,30 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
     await close("ℹ️ 申請した人は、もうサーバーにいません。申請を閉じました。");
     return;
   }
-  // 認定は、手動の認定（member-grant）と同じ扱いにする
+  // 認定しても、ここではメンバーにしない。本人が、くわしい案内を読んで同意した時点でメンバーになる
   rec.joinedAt = target.joinedAt ? target.joinedAt.toISOString() : rec.joinedAt;
-  rec.memberManual = true;
+  rec.memberApprovedAt = now.toISOString();
   rec.memberAppliedAt = null;
   rec.memberDeclinedAt = null;
   rec.memberActive = isMemberEligible(config, rec, now);
   rec.updatedAt = now.toISOString();
   store.save();
-  await target.roles.add(mc.roleId, `SupporterGate member approved by ${by}`).catch((err) => log.warn(`メンバーのロール付与に失敗 ${who}: ${String(err)}`));
-  deps.requestPublish();
+  if (rec.memberActive) {
+    await target.roles.add(mc.roleId, `SupporterGate member approved by ${by}`).catch((err) => log.warn(`メンバーのロール付与に失敗 ${who}: ${String(err)}`));
+    deps.requestPublish();
+  }
   log.info(`メンバーの申請を認定 ${who} by ${by} 有効=${rec.memberActive}`);
 
-  // 本人に知らせる。DM を受け取らない設定なら届かないが、ロールと「状態」のボタンで分かる
-  const dmText = (["ja", "en"] as Lang[]).map((l) => [t(l, "member.approvedDm"), config.group ? t(l, "member.approvedDmGroup") : ""].filter((x) => x.length > 0).join("\n")).join("\n\n");
+  // 本人に知らせる。DM を受け取らない設定なら届かないが、「状態」のボタンで分かる。DM には、内容の説明は書かない
+  const dmText = (["ja", "en"] as Lang[]).map((l) => t(l, "member.approvedDm")).join("\n\n");
   let dmNote = "本人に DM で知らせました。";
   try {
     await target.send({ content: dmText });
   } catch {
-    dmNote = "本人への DM は届きませんでした（受け取らない設定）。ロールは付いています。";
+    dmNote = "本人への DM は届きませんでした（受け取らない設定）。本人は「状態」のボタンで分かります。";
   }
-  await close(`✅ 認定しました（${by}、${fmtDate(now.toISOString())}）。${dmNote}`);
+  const roleNote = rec.memberActive ? "メンバーのロールを付けました。" : "本人が、メンバーのボタンから案内に同意すると、メンバーのロールが付きます。";
+  await close(`✅ 認定しました（${by}、${fmtDate(now.toISOString())}）。${roleNote}${dmNote}`);
 }
 
 /** メンバーのボタン（説明を出す・同意する・取り消す）。申請制のときは、同意が申請になる */
@@ -314,8 +318,21 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
   const apply = mc.mode === "apply";
   const now = new Date();
 
+  // 申請制で、認定は済んだが、本人の同意がまだの人
+  const awaitingConsent = apply && !rec.memberManual && rec.memberApprovedAt !== null && !rec.memberConsentAt;
+  // 申請制で、申請を出して確認を待っている人
+  const pendingReview = apply && !rec.memberManual && rec.memberAppliedAt !== null && !rec.memberApprovedAt;
+
   if (id === IDS.member) {
-    if (!rec.memberConsentAt && !rec.memberManual) {
+    if (awaitingConsent) {
+      // くわしい案内（内容の注意と共有のお願い）は、認定された人にだけ見せる
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, "member.agree")).setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, "member.withdraw")).setStyle(ButtonStyle.Secondary),
+      );
+      const content = [t(lang, "member.explainApproved"), t(lang, "share.notice"), t(lang, "member.confirm")].join("\n\n");
+      await interaction.reply({ content, components: [row], ephemeral: true });
+    } else if (!rec.memberConsentAt && !rec.memberManual && !pendingReview) {
       if (apply) {
         const blocked = applyBlocked(config, rec, lang, now);
         if (blocked) {
@@ -326,12 +343,13 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId(IDS.memberAgree).setLabel(t(lang, apply ? "member.apply" : "member.agree")).setStyle(ButtonStyle.Success),
       );
+      // 申請の段階では、メンバー向けの物の中身には触れない（年齢の確認と、確認のしかただけ）
       const content = apply
-        ? [t(lang, "member.explainApply"), t(lang, "share.notice"), t(lang, "member.confirmApply")].join("\n\n")
+        ? [t(lang, "member.explainApply"), t(lang, "member.confirmApply")].join("\n\n")
         : [t(lang, "member.explain", { days: mc.minDays }), t(lang, "share.notice"), t(lang, "member.confirm")].join("\n\n");
       await interaction.reply({ content, components: [row], ephemeral: true });
     } else {
-      const pending = apply && rec.memberAppliedAt !== null && !rec.memberManual;
+      const pending = pendingReview;
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, pending ? "member.withdraw" : "member.leave")).setStyle(ButtonStyle.Secondary),
       );
@@ -341,7 +359,7 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
   }
 
   if (id === IDS.memberAgree) {
-    if (apply && !rec.memberManual) {
+    if (apply && !rec.memberManual && !rec.memberApprovedAt) {
       await submitApplication(deps, interaction, lang, rec, now);
       return;
     }
@@ -356,6 +374,7 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
       await interaction.member.roles.add(mc.roleId, "SupporterGate member").catch((err) => log.warn(`メンバーのロール付与に失敗 ${who}: ${String(err)}`));
       deps.requestPublish();
       content = t(lang, "member.granted");
+      if (apply && config.group) content += `\n${t(lang, "member.approvedDmGroup")}`;
     } else {
       const from = memberEligibleFrom(config, rec);
       content = t(lang, "member.pending", { date: from ? fmtDate(from.toISOString()) : "-" });
@@ -366,10 +385,11 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
 
   // 取り消し（申請中なら、申請の取り下げ）
   const wasActive = rec.memberActive;
-  const wasPending = rec.memberAppliedAt !== null && !rec.memberManual;
+  const wasPending = pendingReview || awaitingConsent;
   rec.memberConsentAt = null;
   rec.memberManual = false;
   rec.memberAppliedAt = null;
+  rec.memberApprovedAt = null;
   rec.memberActive = false;
   rec.updatedAt = now.toISOString();
   store.save();

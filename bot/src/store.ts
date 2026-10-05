@@ -33,6 +33,8 @@ export interface MemberRecord {
   memberAppliedAt: string | null;
   /** 申請制のとき: 申請が見送られた日時。見送られていなければ null */
   memberDeclinedAt: string | null;
+  /** 申請制のとき: 管理者が申請を認定した日時。このあと本人が案内に同意する（memberConsentAt）と、メンバーになる */
+  memberApprovedAt: string | null;
   /** メンバーの条件（同意・名前の登録・在籍日数、または手動の認定）を満たしているか。同期のたびに更新 */
   memberActive: boolean;
   /** サーバーに参加した日時（在籍日数の計算用）。サーバーにいないときは null */
@@ -77,6 +79,7 @@ export class Store {
       rec.memberManual ??= false;
       rec.memberAppliedAt ??= null;
       rec.memberDeclinedAt ??= null;
+      rec.memberApprovedAt ??= null;
       rec.joinedAt ??= null;
       rec.groupRequestedAt ??= null;
       rec.vrcUserId ??= null;
@@ -120,6 +123,7 @@ export class Store {
       memberManual: false,
       memberAppliedAt: null,
       memberDeclinedAt: null,
+      memberApprovedAt: null,
       joinedAt: null,
       groupRequestedAt: null,
       vrcUserId: null,

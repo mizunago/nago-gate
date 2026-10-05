@@ -387,6 +387,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       // 手動の認定と取り消しは、申請の結果より優先する（申請中・見送りの記録は消す）
       rec.memberAppliedAt = null;
       rec.memberDeclinedAt = null;
+      rec.memberApprovedAt = null;
       if (!grant) rec.memberConsentAt = null;
       rec.memberActive = isMemberEligible(config, rec, now);
       rec.updatedAt = now.toISOString();
@@ -446,6 +447,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       rec.memberConsentAt = null;
       rec.memberManual = false;
       rec.memberAppliedAt = null;
+      rec.memberApprovedAt = null;
       rec.memberActive = false;
       rec.manualRank = 0;
       rec.manualUntil = null;
