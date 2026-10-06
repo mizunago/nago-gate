@@ -103,7 +103,7 @@ npm start
 | コマンド | 説明 |
 |---|---|
 | `/vrc-admin setup-roles` | 出力ロールと入力ロールを作成し、config 用の ID を表示 |
-| `/vrc-admin setup-info` | INFO カテゴリ（はじめに jp/en/zh/ko・お知らせ・登録・状態・住人・グループ）を作成 |
+| `/vrc-admin setup-info` | INFO カテゴリ（はじめに jp/en/zh/ko・お知らせ・登録・状態・住人・グループ）を作成。お知らせは、読む人がリアクションだけできる。登録のチャンネルは書き込みを止めてある（ボタンとスラッシュコマンドで登録する。文字での登録を受け付けたいときは、そのチャンネルの権限で送信を許可する） |
 | `/vrc-admin setup-community` | コミュニティカテゴリ（雑談 jp/en/zh/ko、sfw-photo、nsfw-photo）を作成 |
 | `/vrc-admin setup-world jp: en: visibility: [nsfw:]` | ワールド用カテゴリ（案内 jp/en/zh/ko・更新情報・フィードバック・雑談の lounge）を作成。visibility は 全員 / Supporter / Platinum / 住人 |
 | `/vrc-admin panel` | 登録・状態・住人・グループのパネルを、設定にあるそれぞれのチャンネルに置く。既にパネルがあれば、新しく投稿せずに書き換える。登録のチャンネルが未設定なら、実行したチャンネルに登録のパネルを置く |

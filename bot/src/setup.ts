@@ -244,15 +244,22 @@ export async function setupInfo(guild: Guild, config: AppConfig): Promise<string
   }
 
   const readOnly: OverwriteResolvable[] = [{ id: everyone.id, deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] }, ...botOw];
+  // お知らせは、読む人がリアクションで反応できるようにする（書き込みはできない）
+  const announce: OverwriteResolvable[] = [
+    { id: everyone.id, allow: [P.AddReactions, P.ReadMessageHistory], deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads] },
+    ...botOw,
+  ];
   const specs: ChannelSpec[] = [
     ...START_HERE_CHANNELS.map((s): ChannelSpec => ({ name: s.name, type: ChannelType.GuildText, topic: s.topic, overwrites: readOnly })),
-    { name: "📢お知らせ-announcements", type: ChannelType.GuildText, overwrites: readOnly },
+    { name: "📢お知らせ-announcements", type: ChannelType.GuildText, overwrites: announce },
     {
       name: "🧾登録-register",
       type: ChannelType.GuildText,
       topic: "Discord と VRChat をつなぐ（VRChat の表示名の登録） / Link Discord to VRChat (register your display name)",
+      // 書き込みはできない（2026-10-06。ボタンで足りるため）。スラッシュコマンドは使える。
+      // 文字で「/vrc register」と書いた人を受け付けたいときは、このチャンネルの権限で送信を許可する
       overwrites: [
-        { id: everyone.id, allow: [P.SendMessages, P.UseApplicationCommands], deny: [P.CreatePublicThreads, P.CreatePrivateThreads, P.AttachFiles, P.EmbedLinks] },
+        { id: everyone.id, allow: [P.UseApplicationCommands], deny: [P.SendMessages, P.CreatePublicThreads, P.CreatePrivateThreads, P.AttachFiles, P.EmbedLinks] },
         ...botOw,
       ],
     },
@@ -355,14 +362,19 @@ export async function setupWorld(
   const noSend = [P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.CreatePrivateThreads];
   const base: OverwriteResolvable[] = [];
   const readOnly: OverwriteResolvable[] = [];
+  // 更新情報は、見られる人がリアクションで反応できるようにする（書き込みはできない）
+  const updates: OverwriteResolvable[] = [];
   if (visibility === "public") {
     // 公開ワールドは @everyone の基本権限（見る・送信）のまま使う
     readOnly.push({ id: everyone.id, deny: noSend });
+    updates.push({ id: everyone.id, allow: [P.AddReactions, P.ReadMessageHistory], deny: noSend });
   } else {
     base.push({ id: everyone.id, deny: [P.ViewChannel] });
     base.push({ id: viewer!.id, allow: me ? onlyHeld(me, [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads]) : [P.ViewChannel, P.SendMessages] });
     readOnly.push({ id: everyone.id, deny: [P.ViewChannel] });
     readOnly.push({ id: viewer!.id, allow: [P.ViewChannel], deny: noSend });
+    updates.push({ id: everyone.id, deny: [P.ViewChannel] });
+    updates.push({ id: viewer!.id, allow: [P.ViewChannel, P.AddReactions, P.ReadMessageHistory], deny: noSend });
   }
   if (me) {
     // Bot は「自分が持っていない権限」を他者に付与できないため、
@@ -370,6 +382,7 @@ export async function setupWorld(
     const botAllow = onlyHeld(me, [P.ViewChannel, P.SendMessages, P.SendMessagesInThreads, P.CreatePublicThreads, P.ManageMessages]);
     base.push({ id: me.id, allow: botAllow });
     readOnly.push({ id: me.id, allow: botAllow });
+    updates.push({ id: me.id, allow: botAllow });
   }
 
   const { cat, created } = await ensureCategory(guild, catName, base);
@@ -388,7 +401,7 @@ export async function setupWorld(
 
   const specs: ChannelSpec[] = [
     ...WORLD_INFO_CHANNELS.map((info): ChannelSpec => ({ name: info.name, type: ChannelType.GuildText, topic: info.topic(jpName, enName), nsfw, overwrites: readOnly })),
-    { name: "🔧更新情報-updates", type: ChannelType.GuildText, topic: "更新ログ / Update log", nsfw, overwrites: readOnly },
+    { name: "🔧更新情報-updates", type: ChannelType.GuildText, topic: "更新ログ / Update log", nsfw, overwrites: updates },
     { name: "🐛バグ報告と要望-feedback", type: ChannelType.GuildForum, topic: "バグ報告と要望 / Bug reports & requests. タグで種別と言語を選んでください", nsfw, sync: true, tags: FEEDBACK_TAGS },
     { name: "💬さろん-lounge", type: ChannelType.GuildText, topic: loungeTopic, nsfw, sync: true },
   ];
