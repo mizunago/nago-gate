@@ -480,6 +480,9 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
     await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
     return;
   }
+  // 本人への DM で 3 秒を超えることがあるので、先に受け付けだけ返す（返さないと「応答しませんでした」と出て、
+  // もう一度押すと「処理済み」と出る。認定そのものは 1 回目で済んでいる）
+  await interaction.deferUpdate();
   const approve = interaction.customId.startsWith(IDS.memberApprove);
   const userId = interaction.customId.slice((approve ? IDS.memberApprove : IDS.memberDecline).length);
   const rec = store.get(userId);
@@ -487,7 +490,7 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   const now = new Date();
   // 結果を、申請のメッセージの下に書き足して、決めるボタンを外す（「くわしく」は残す）
   const close = async (note: string): Promise<void> => {
-    await interaction.update({ content: `${interaction.message.content}\n\n${note}`, components: [lookupRow(userId)], allowedMentions: { parse: [] } });
+    await interaction.editReply({ content: `${interaction.message.content}\n\n${note}`, components: [lookupRow(userId)], allowedMentions: { parse: [] } });
   };
   if (!mc || !rec || !rec.memberAppliedAt) {
     await close("ℹ️ この申請は、もう処理済みか、取り下げられています。");
@@ -510,7 +513,7 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   }
 
   if (rec.banned) {
-    await interaction.reply({ content: "この人は BAN 中です。\n認定するなら、先に `/vrc-admin unban` で解除してください。", ephemeral: true });
+    await interaction.followUp({ content: "この人は BAN 中です。\n認定するなら、先に `/vrc-admin unban` で解除してください。", ephemeral: true });
     return;
   }
   const target = await interaction.guild.members.fetch(userId).catch(() => null);
