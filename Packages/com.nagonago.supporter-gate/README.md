@@ -25,6 +25,7 @@
 
 ## 版の履歴
 
+- 0.6.2: Discord のコピー欄を、板（案内のパネル）の大きさに対する比率で置くようにした。0.6.1 までは 900×600 の板を前提に決まった位置に置いていたので、小さな板では欄がはみ出していた。QR は、板の形に合わせて正方形を保つ。ボタンの場所を空けるとき、案内の文の欄の下の辺だけを上げ、上の辺は動かさないようにした（0.6.1 は欄ごと上へずらしていたので、額縁に合わせた文が上に寄った）。既に欄を足したシーンでも、`Tools > SupporterGate > Add Discord Copy Panel (existing scene)` をもう一度実行すると、板の大きさに合わせて置き直す。0.6.1 で上へずれた文の欄は、元の位置に戻してから実行する
 - 0.6.1: QR の画像のファイルが無いとき（消した、Git で追跡していないなど）は、QR を出さないようにした（白い四角だけが出ていた）。そのときは入力欄と説明だけが出る。`Tools > SupporterGate > Update Discord QR` で作り直せば戻る。エディタを外から動かす道具向けに、ダイアログを出さずに結果の文を返す `SupporterGateSetup.AddDiscordCopyPanelsSilent()` を足した（`UpdateDiscordQr(null)` も、ダイアログを出さずに文を返す）
 - 0.6.0: 「メンバー」の呼び名を「住人 / Resident」に変えた（支援サイトの「メンバーシップ」と紛れるため）。ワールドの表示（「あなたは住人です」、住人だけのゲートの文など）が変わる。設定とコードの名前（`Use Member List`、リストの `members`、文言のキーの `.member`）はそのまま。案内のパネルに「URL をコピー・QR」のボタンを足した。押すと、Discord の招待 URL を入れた入力欄（PC で Ctrl+A、Ctrl+C でコピーできる）、QR コード（スマホで読める）、Discord での開き方（ブラウザに貼る、アプリの「＋」から「サーバーに参加」）が出る。新しく作る一式には付く。既にあるシーンには `Tools > SupporterGate > Add Discord Copy Panel (existing scene)` で足せる（案内の文は、ボタンの分だけ上に詰める）。QR の画像は、エディタがリストの `links.discord` を読んで作る（`Assets/NagoSupporterGate/DiscordInviteQR.png`）。招待 URL を変えたら `Tools > SupporterGate > Update Discord QR` で作り直す。リストの URL と QR の URL が違うときは、古い QR を出さない。メニューの `Convert Existing World` の「メンバーだけが入れるワールドにする」は「住人だけが入れるワールドにする」になった
 - 0.5.2: `Wire Notices (existing scene)` が、ゲートの無いシーンでも動くようにした。公開のワールドに Registry とボードだけを置いた場合も、ボードに文言の表・通知・文字の自動縮小を配線する（前の版は「シーンに SupporterGate がありません」と出して止まっていた）

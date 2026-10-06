@@ -235,6 +235,66 @@ public static class PackageBatch
         Log("add invite x2: links=" + links.Length + " texts=" + texts + " infoText=" + infoText.rectTransform.anchoredPosition + " " + infoText.rectTransform.sizeDelta);
         bool ok = links.Length == 1 && texts.Contains("UdonBehaviour") && Mathf.Approximately(infoText.rectTransform.anchoredPosition.y, 96f) && Mathf.Approximately(infoText.rectTransform.sizeDelta.y, 484f);
         Log(ok ? "VERIFY_ADD_INVITE_OK" : "VERIFY_ADD_INVITE_FAIL");
+        VerifySmallBoard();
+    }
+
+    /// <summary>
+    /// 板が小さい（820×520）。案内の文は額縁に合わせて引き伸ばしてある。
+    /// コピー欄の部品が板からはみ出さず、QR は正方形で、文の上の辺は動かない。0.6.1 の置き方からの置き直しも確かめる
+    /// </summary>
+    private static void VerifySmallBoard()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+        SupporterGateSetup.CreateSceneSetup();
+        SupporterInviteLink first = UnityEngine.Object.FindObjectOfType<SupporterInviteLink>(true);
+        RectTransform board = (RectTransform)first.transform.parent;
+        board.sizeDelta = new Vector2(820f, 520f);
+        // 0.6.1 の置き方（決まった位置）に戻して、置き直しを試す
+        foreach (string n in new[] { "OpenButton", "CopyPanel/UrlField", "CopyPanel/Help", "CopyPanel/QR", "CopyPanel/CloseButton" })
+        {
+            RectTransform r = (RectTransform)first.transform.Find(n);
+            r.anchorMin = Vector2.zero; r.anchorMax = Vector2.zero; r.pivot = Vector2.zero;
+        }
+        ((RectTransform)first.transform.Find("CopyPanel/UrlField")).anchoredPosition = new Vector2(20f, 490f);
+        ((RectTransform)first.transform.Find("CopyPanel/UrlField")).sizeDelta = new Vector2(860f, 90f);
+        // 案内の文は、額縁に合わせて引き伸ばした形にする
+        SupporterCreditsBoard credits = UnityEngine.Object.FindObjectOfType<SupporterCreditsBoard>(true);
+        RectTransform text = (new SerializedObject(credits).FindProperty("infoText").objectReferenceValue as TextMeshProUGUI).rectTransform;
+        text.anchorMin = Vector2.zero; text.anchorMax = Vector2.one; text.pivot = new Vector2(0.5f, 0.5f);
+        text.offsetMin = new Vector2(40f, 40f); text.offsetMax = new Vector2(-40f, -60f);
+        Vector3[] tc = new Vector3[4];
+        text.GetWorldCorners(tc);
+        float topBefore = board.InverseTransformPoint(tc[1]).y;
+        string msg = SupporterGateSetup.AddDiscordCopyPanelsSilent();
+        SupporterGateSetup.AddDiscordCopyPanelsSilent();
+        text.GetWorldCorners(tc);
+        float topAfter = board.InverseTransformPoint(tc[1]).y, bottomAfter = board.InverseTransformPoint(tc[0]).y;
+        Vector3[] bc = new Vector3[4];
+        board.GetWorldCorners(bc);
+        Rect boardRect = board.rect;
+        bool inside = true;
+        string worst = "";
+        foreach (string n in new[] { "OpenButton", "CopyPanel", "CopyPanel/UrlField", "CopyPanel/Help", "CopyPanel/QR", "CopyPanel/CloseButton" })
+        {
+            RectTransform r = (RectTransform)first.transform.Find(n);
+            Vector3[] c = new Vector3[4];
+            r.GetWorldCorners(c);
+            foreach (Vector3 w in c)
+            {
+                Vector3 l = board.InverseTransformPoint(w);
+                if (l.x < boardRect.xMin - 0.5f || l.x > boardRect.xMax + 0.5f || l.y < boardRect.yMin - 0.5f || l.y > boardRect.yMax + 0.5f) { inside = false; worst = n + " " + l; }
+            }
+        }
+        RectTransform qr = (RectTransform)first.transform.Find("CopyPanel/QR");
+        Vector3[] oc = new Vector3[4];
+        ((RectTransform)first.transform.Find("OpenButton")).GetWorldCorners(oc);
+        float openTop = board.InverseTransformPoint(oc[1]).y;
+        int links = UnityEngine.Object.FindObjectsOfType<SupporterInviteLink>(true).Length;
+        Log("small board: inside=" + inside + (worst != "" ? " (" + worst + ")" : "") + " qr=" + qr.rect.width.ToString("0.0") + "x" + qr.rect.height.ToString("0.0")
+            + " textTop " + topBefore.ToString("0.0") + "->" + topAfter.ToString("0.0") + " textBottom=" + bottomAfter.ToString("0.0") + " openTop=" + openTop.ToString("0.0") + " links=" + links
+            + " msg=" + msg.Split('\n')[0] + " / " + (msg.Contains("置き直しました") ? "置き直した" : "置き直していない"));
+        bool ok = inside && Mathf.Abs(qr.rect.width - qr.rect.height) < 0.5f && Mathf.Abs(topBefore - topAfter) < 0.5f && bottomAfter >= openTop - 0.5f && links == 1 && msg.Contains("置き直しました");
+        Log(ok ? "VERIFY_SMALL_BOARD_OK" : "VERIFY_SMALL_BOARD_FAIL");
     }
 
     /// <summary>A scene without a gate (a public world with only the registry and the board): the upgrade path must still wire the board.</summary>
@@ -355,6 +415,10 @@ public static class PackageBatch
                 panel.Find("CloseButton").GetComponentInChildren<TextMeshProUGUI>().text = JsonText(json, "info.copy.close", lang);
                 RenderPanel(outDir, "invite-open-" + lang, info);
             }
+            // 板が小さいとき（820×520）
+            ((RectTransform)info).sizeDelta = new Vector2(820f, 520f);
+            SupporterGateSetup.AddDiscordCopyPanelsSilent();
+            RenderPanel(outDir, "invite-open-small", info);
             Log("PREVIEW_INVITE_DONE");
         }
         catch (Exception ex) { Log("EXCEPTION: " + ex); }

@@ -44,18 +44,27 @@ public static partial class SupporterGateSetup
     /// </summary>
     public static string AddDiscordCopyPanelsSilent()
     {
-        int added = 0;
+        int added = 0, relaid = 0;
         foreach (SupporterCreditsBoard credits in Object.FindObjectsOfType<SupporterCreditsBoard>(true))
         {
             TextMeshProUGUI infoText = new SerializedObject(credits).FindProperty("infoText").objectReferenceValue as TextMeshProUGUI;
             if (infoText == null) continue;
-            if (infoText.transform.parent != null && infoText.transform.parent.Find(InviteRootName) != null) continue;
+            Transform existing = infoText.transform.parent != null ? infoText.transform.parent.Find(InviteRootName) : null;
+            if (existing != null)
+            {
+                // 前の版で足した欄: 板の大きさに合わせて置き直す（2 回目以降は何も変わらない）
+                MakeRoomForButton(infoText, (RectTransform)existing.parent);
+                LayoutInvite(existing);
+                relaid++;
+                continue;
+            }
             AddInviteLink(credits, infoText);
             WireNotices(credits.transform.parent != null ? credits.transform.parent.gameObject : credits.gameObject);
             added++;
         }
         string qr = UpdateDiscordQr(null);
-        string msg = (added > 0 ? "案内のパネルに、Discord のコピー欄を " + added + " 個足しました。" : "足す場所はありませんでした（案内のパネルが無いか、もう足してあります）。") + "\n\n" + qr;
+        string msg = (added > 0 ? "案内のパネルに、Discord のコピー欄を " + added + " 個足しました。" : "足す場所はありませんでした（案内のパネルが無いか、もう足してあります）。")
+            + (relaid > 0 ? "\n既にあった欄 " + relaid + " 個を、板の大きさに合わせて置き直しました。" : "") + "\n\n" + qr;
         Debug.Log("[SupporterGate] " + msg.Replace("\n", " "));
         return msg;
     }
@@ -187,14 +196,7 @@ public static partial class SupporterGateSetup
     public static SupporterInviteLink AddInviteLink(SupporterCreditsBoard credits, TextMeshProUGUI infoText)
     {
         GameObject canvas = infoText.transform.parent.gameObject;
-        RectTransform textRect = infoText.rectTransform;
-        Undo.RecordObject(textRect, "Make room for the Discord button");
-        if (textRect.anchoredPosition.y < 96f)
-        {
-            float delta = 96f - textRect.anchoredPosition.y;
-            textRect.anchoredPosition = new Vector2(textRect.anchoredPosition.x, 96f);
-            textRect.sizeDelta = new Vector2(textRect.sizeDelta.x, Mathf.Max(100f, textRect.sizeDelta.y - delta));
-        }
+        MakeRoomForButton(infoText, (RectTransform)canvas.transform);
 
         GameObject root = ChildRect(canvas, InviteRootName);
         Undo.RegisterCreatedObjectUndo(root, "Add Discord Copy Panel");
@@ -234,10 +236,80 @@ public static partial class SupporterGateSetup
         SetRef(link, "helpText", help);
         SetRef(link, "closeLabel", closeLabel);
         SetRef(link, "qrRoot", qr);
+        LayoutInvite(root.transform);
         panel.SetActive(false);
         open.SetActive(false);   // リストに URL が入ってから出す
         EditorSceneManager.MarkSceneDirty(canvas.scene);
         return link;
+    }
+
+    // 部品の置き場所は、900×600 の板を基準にした比率で決める（板の大きさが違っても、はみ出さないように）
+    private const float BaseW = 900f, BaseH = 600f;
+    // ボタンの上の端（板の下からの割合）。案内の文は、これより下に掛からないようにする
+    private const float ButtonTop = 96f / BaseH;
+
+    private static void PlaceRatio(Transform t, float x, float y, float w, float h)
+    {
+        RectTransform rt = t as RectTransform;
+        if (rt == null) return;
+        Undo.RecordObject(rt, "Layout Discord Copy Panel");
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchorMin = new Vector2(x / BaseW, y / BaseH);
+        rt.anchorMax = new Vector2((x + w) / BaseW, (y + h) / BaseH);
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+    }
+
+    /// <summary>
+    /// コピー欄の部品を、板（DiscordInvite の親）の大きさに対する比率で置き直す。QR は、今の板の形で正方形になる大きさにする。
+    /// 何度呼んでもよい。板の大きさを変えたら、Add Discord Copy Panel をもう一度実行すれば合わせ直せる
+    /// </summary>
+    public static void LayoutInvite(Transform root)
+    {
+        Transform open = root.Find("OpenButton");
+        Transform panel = root.Find("CopyPanel");
+        if (open != null) PlaceRatio(open, 250f, 16f, 400f, 66f);
+        if (panel == null) return;
+        PlaceRatio(panel.Find("UrlField"), 20f, 490f, 860f, 90f);
+        PlaceRatio(panel.Find("Help"), 20f, 100f, 530f, 370f);
+        PlaceRatio(panel.Find("CloseButton"), 570f, 18f, 310f, 70f);
+        RectTransform qr = panel.Find("QR") as RectTransform;
+        RectTransform area = root as RectTransform;
+        if (qr != null && area != null)
+        {
+            // QR の枠（基準で 310×310）の中に、正方形で収める
+            Vector2 size = area.rect.size;
+            if (size.x <= 0f || size.y <= 0f) size = new Vector2(BaseW, BaseH);
+            float side = Mathf.Min(310f / BaseW * size.x, 310f / BaseH * size.y);
+            Undo.RecordObject(qr, "Layout Discord QR");
+            Vector2 center = new Vector2((570f + 155f) / BaseW, (110f + 155f) / BaseH);
+            qr.anchorMin = center;
+            qr.anchorMax = center;
+            qr.pivot = new Vector2(0.5f, 0.5f);
+            qr.anchoredPosition = Vector2.zero;
+            qr.sizeDelta = new Vector2(side, side);
+        }
+        EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
+    }
+
+    /// <summary>
+    /// 案内の文が、ボタンに掛からないようにする。文の欄の下の辺だけを上げ、上の辺は動かさない（額縁などに合わせた位置を崩さない）
+    /// </summary>
+    private static void MakeRoomForButton(TextMeshProUGUI infoText, RectTransform board)
+    {
+        RectTransform t = infoText.rectTransform;
+        RectTransform parent = t.parent as RectTransform;
+        if (parent == null || board == null) return;
+        Vector3[] bc = new Vector3[4];
+        board.GetWorldCorners(bc);   // 0: 左下、1: 左上
+        float limit = parent.InverseTransformPoint(Vector3.Lerp(bc[0], bc[1], ButtonTop)).y;
+        Vector3[] tc = new Vector3[4];
+        t.GetWorldCorners(tc);
+        float bottom = parent.InverseTransformPoint(tc[0]).y;
+        float delta = limit - bottom;
+        if (delta <= 0.01f) return;
+        Undo.RecordObject(t, "Make room for the Discord button");
+        t.offsetMin = new Vector2(t.offsetMin.x, t.offsetMin.y + delta);
     }
 
     /// <summary>URL を入れておく入力欄（TextMeshPro）。編集が終わったら、URL に戻す</summary>
