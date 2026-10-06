@@ -22,7 +22,8 @@ import { log } from "./log.js";
 import { describe, fmtDate, memberState, parseTextRegister, registerName } from "./register.js";
 import { personById, resolvePerson, resolvedReport, tierMention } from "./report.js";
 import type { MemberRecord, Store } from "./store.js";
-import { isMemberEligible, memberEligibleFrom, type SyncContext } from "./sync.js";
+import { isMemberEligible, isTesterActive, memberEligibleFrom, type SyncContext } from "./sync.js";
+import { grantTester, parseRankUser, revokeTester, TESTER_IDS, TESTER_MAX_DAYS, testerButtons } from "./tester.js";
 import { bringIntoGroup, type VrcProfile } from "./vrchat.js";
 
 export const IDS = {
@@ -395,7 +396,8 @@ function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, pr
     lines.push(`VRChat のプロフィール: ${profileNote}`);
   }
   // ロールのメンションにすると、Discord がロールの色（Supporter は金、Platinum は水色）で出す。通知は飛ばさない
-  lines.push(`支援: ${tierMention(config, rec.effectiveRank)}`);
+  lines.push(`支援: ${tierMention(config, rec.supportRank)}`);
+  if (isTesterActive(rec, now)) lines.push(`協力者: ${tierMention(config, rec.testerRank)} 相当、${fmtDate(rec.testerUntil)} まで`);
   lines.push("本人確認: していません。\n登録した表示名が、申請した本人の VRChat アカウントかどうかは、必要なら直接たずねて確かめてください。");
   lines.push("プロフィールを見て、下のボタンで決めてください。\n認定すると、本人にくわしい案内（内容の注意と共有のお願い）が見えるようになり、本人が同意した時点で住人のロールが付きます。");
   return lines.join("\n");
@@ -689,7 +691,8 @@ async function handleGroupButton(deps: PanelDeps, interaction: ButtonInteraction
     await interaction.reply({ content: t(lang, "group.needName", channelRefs(config, lang)), ephemeral: true });
     return;
   }
-  if (rec.effectiveRank <= 0 && !rec.memberActive) {
+  // 協力者の枠だけの人は、Group には入れない（支援者でも住人でもないため）
+  if (rec.supportRank <= 0 && !rec.memberActive) {
     const key = config.member?.mode === "apply" ? "group.notEligibleApply" : "group.notEligible";
     await interaction.reply({ content: t(lang, key, channelRefs(config, lang)), ephemeral: true });
     return;
@@ -784,7 +787,44 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
     }
     const userId = id.slice(IDS.adminLookupUser.length);
     const people = await personById(interaction.guild, store, userId);
-    await interaction.reply({ content: resolvedReport(config, interaction.guild, userId, people, new Date()), ephemeral: true, allowedMentions: { parse: [] } });
+    await interaction.reply({
+      content: resolvedReport(config, interaction.guild, userId, people, new Date()),
+      components: testerButtons(config, people),
+      ephemeral: true,
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
+
+  // 協力者にする・外す（人を調べた結果のボタン）
+  if (id.startsWith(TESTER_IDS.grant) || id.startsWith(TESTER_IDS.revoke)) {
+    if (!isAdmin(config, interaction.member)) {
+      await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
+      return;
+    }
+    if (id.startsWith(TESTER_IDS.revoke)) {
+      await interaction.deferReply({ ephemeral: true });
+      const r = await revokeTester(config, store, interaction.guild, id.slice(TESTER_IDS.revoke.length), interaction.user.tag);
+      if (r.ok) deps.requestPublish();
+      await interaction.editReply({ content: r.message, allowedMentions: { parse: [] } });
+      return;
+    }
+    const target = parseRankUser(id.slice(TESTER_IDS.grant.length));
+    const tier = target ? tierByRank(config, target.rank) : null;
+    if (!target || !tier) {
+      await interaction.reply({ content: "ボタンの内容を読めませんでした。\nもう一度、人を調べ直してください。", ephemeral: true });
+      return;
+    }
+    const modal = new ModalBuilder().setCustomId(`${TESTER_IDS.modal}${target.rank}:${target.userId}`).setTitle(`協力者にする（${tier.label} 相当）`);
+    const input = new TextInputBuilder()
+      .setCustomId(TESTER_IDS.modalDays)
+      .setLabel(`日数（1〜${TESTER_MAX_DAYS}）`)
+      .setValue(String(config.tester.defaultDays))
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(3);
+    modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+    await interaction.showModal(modal);
     return;
   }
 
@@ -822,7 +862,8 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
 export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInteraction): Promise<void> {
   const { config, store } = deps;
   const lang = langOf(interaction.locale);
-  if (interaction.customId !== IDS.modal && interaction.customId !== IDS.adminLookupModal) return;
+  const testerModal = interaction.customId.startsWith(TESTER_IDS.modal);
+  if (interaction.customId !== IDS.modal && interaction.customId !== IDS.adminLookupModal && !testerModal) return;
   if (!interaction.inCachedGuild() || interaction.guildId !== config.guildId) {
     await interaction.reply({ content: t(lang, "err.wrongServer"), ephemeral: true });
     return;
@@ -835,7 +876,30 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
     const query = interaction.fields.getTextInputValue(IDS.adminLookupQuery).trim();
     const people = await resolvePerson(interaction.guild, store, query);
     log.info(`人を調べる「${query}」 by ${interaction.user.tag}: ${people.length} 件`);
-    await interaction.reply({ content: resolvedReport(config, interaction.guild, query, people, new Date()), ephemeral: true, allowedMentions: { parse: [] } });
+    await interaction.reply({
+      content: resolvedReport(config, interaction.guild, query, people, new Date()),
+      components: testerButtons(config, people),
+      ephemeral: true,
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
+  if (testerModal) {
+    if (!isAdmin(config, interaction.member)) {
+      await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
+      return;
+    }
+    const target = parseRankUser(interaction.customId.slice(TESTER_IDS.modal.length));
+    const raw = interaction.fields.getTextInputValue(TESTER_IDS.modalDays).trim().replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+    const days = /^\d+$/.test(raw) ? Number(raw) : NaN;
+    if (!target) {
+      await interaction.reply({ content: "ボタンの内容を読めませんでした。\nもう一度、人を調べ直してください。", ephemeral: true });
+      return;
+    }
+    await interaction.deferReply({ ephemeral: true });
+    const r = await grantTester(config, store, interaction.guild, target.userId, target.rank, days, interaction.user.tag);
+    if (r.ok) deps.requestPublish();
+    await interaction.editReply({ content: r.message, allowedMentions: { parse: [] } });
     return;
   }
   const name = interaction.fields.getTextInputValue(IDS.modalName);

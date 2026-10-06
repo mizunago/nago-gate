@@ -11,8 +11,10 @@ export interface MemberRecord {
   showCredit: boolean;
   /** 支援サイトのロールから算出した現在ランク (0 = 支援なし) */
   activeRank: number;
-  /** 猶予を含めた有効ランク。JSON に出るのはこれ */
+  /** 猶予・手動の付与・協力者の枠を含めた有効ランク。ワールドに入れるかの判定（JSON の access）はこれ */
   effectiveRank: number;
+  /** 支援のランク（猶予と手動の付与を含み、協力者の枠を除く）。支援者のボードと、Supporter・Platinum のロールはこれで決める */
+  supportRank: number;
   /** 支援停止後の猶予期限 (ISO)。支援中は null */
   graceUntil: string | null;
   /** 猶予中に維持するランク */
@@ -21,6 +23,13 @@ export interface MemberRecord {
   manualRank: number;
   /** 手動付与の期限 (ISO)。null は無期限 */
   manualUntil: string | null;
+  /**
+   * 協力者の枠のランク (0 = なし)。デバッグなどを手伝ってくれる、支援者ではない人を、期間を決めて支援者と同じに入れる。
+   * 支援者のボードには載せず、Supporter・Platinum のロールも付けない（付けるなら config.tester.roleId のロール）
+   */
+  testerRank: number;
+  /** 協力者の枠の期限 (ISO)。期限を過ぎると、同期のときに外れる */
+  testerUntil: string | null;
   /** 最後に支援ロールを確認できた日時 */
   lastActiveAt: string | null;
   /** 最後に活動を確認した Discord ユーザー名（管理用） */
@@ -86,6 +95,9 @@ export class Store {
       rec.banned ??= false;
       rec.bannedAt ??= null;
       rec.banReason ??= null;
+      rec.testerRank ??= 0;
+      rec.testerUntil ??= null;
+      rec.supportRank ??= rec.effectiveRank;
     }
     return parsed;
   }
@@ -112,10 +124,13 @@ export class Store {
       showCredit: true,
       activeRank: 0,
       effectiveRank: 0,
+      supportRank: 0,
       graceUntil: null,
       graceRank: 0,
       manualRank: 0,
       manualUntil: null,
+      testerRank: 0,
+      testerUntil: null,
       lastActiveAt: null,
       discordTag: null,
       memberConsentAt: null,

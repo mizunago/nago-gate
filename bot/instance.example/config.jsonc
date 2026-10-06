@@ -70,6 +70,12 @@
   //   // , "mode": "apply"
   // },
 
+  // 協力者（任意）。デバッグなどを手伝ってくれる、支援者ではない人を、期間を決めて支援者と同じにワールドへ入れる。
+  //   ボードには載らず、Supporter・Platinum のロールも付かない。管理者が「人を調べる」のボタンか /vrc-admin tester-grant で付ける。
+  //   roleId は、誰が協力者か分かるように付けるロール（/vrc-admin setup-roles が「Tester」を作る）。書かなければロールは付けない
+  //   defaultDays は、日数を入れなかったときの期間（既定 30）
+  // "tester": { "roleId": "000000000000000000", "defaultDays": 30 },
+
   // リストに入れて、ワールドの中に出す案内用のリンク（任意）。
   // "discord" を書くと、クレジットのボードの題の下に招待 URL が出る。ここを変えれば、全ワールドの表示が変わる
   // "links": { "discord": "https://discord.gg/xxxxxxxx" },

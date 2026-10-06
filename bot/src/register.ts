@@ -6,7 +6,7 @@ import { t, type Lang } from "./i18n.js";
 import type { MemberRecord, Store } from "./store.js";
 import { tierByRank } from "./config.js";
 import { log } from "./log.js";
-import { memberEligibleFrom } from "./sync.js";
+import { isTesterActive, memberEligibleFrom } from "./sync.js";
 
 export interface RegisterInput {
   discordId: string;
@@ -63,6 +63,10 @@ export function describe(config: AppConfig, rec: MemberRecord | null, lang: Lang
       ? t(lang, "status.manualUntil", { rank: rec.manualRank, date: fmtDate(rec.manualUntil) })
       : t(lang, "status.manualForever", { rank: rec.manualRank });
     lines.push(`${t(lang, "status.manual")}: ${v}`);
+  }
+  if (!rec.banned && isTesterActive(rec, new Date())) {
+    const testerTier = tierByRank(config, rec.testerRank);
+    lines.push(`${t(lang, "status.tester")}: ${t(lang, "status.testerUntil", { tier: testerTier ? testerTier.label : String(rec.testerRank), date: fmtDate(rec.testerUntil) })}`);
   }
   if (rec.nameChangedAt) {
     const next = new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000);

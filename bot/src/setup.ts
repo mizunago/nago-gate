@@ -34,6 +34,8 @@ export const ROLE_NAMES = {
   /** 住人のロール（2026-10-06 に Member から名前を変えた） */
   member: "Resident",
   memberOld: "Member",
+  /** 協力者のロール（誰が協力者か分かるようにするだけ。チャンネルの権限には使わない） */
+  tester: "Tester",
   sources: ["src-patreon-supporter", "src-patreon-platinum", "src-cien-supporter", "src-cien-platinum"],
 } as const;
 
@@ -64,6 +66,7 @@ export async function setupRoles(guild: Guild): Promise<string> {
   const pla = await ensureRole(guild, ROLE_NAMES.platinum, { color: 0x8fd3ff, hoist: true });
   // 住人は支援とは別の軸（申請と認定で付く）。一覧では分けて見せない
   const mem = await ensureRole(guild, ROLE_NAMES.member, { oldName: ROLE_NAMES.memberOld });
+  const tes = await ensureRole(guild, ROLE_NAMES.tester, { color: 0x4fc3b5 });
   const src: Record<string, Role> = {};
   for (const n of ROLE_NAMES.sources) {
     const r = await ensureRole(guild, n, {});
@@ -74,14 +77,15 @@ export async function setupRoles(guild: Guild): Promise<string> {
     `${sup.created ? "作成" : "既存"}: ${ROLE_NAMES.supporter}`,
     `${pla.created ? "作成" : "既存"}: ${ROLE_NAMES.platinum}`,
     `${mem.created ? "作成" : "既存"}: ${ROLE_NAMES.member}`,
+    `${tes.created ? "作成" : "既存"}: ${ROLE_NAMES.tester}`,
   );
 
-  // 並び順: 管理対象外のロールを下に、その上に src-* → Member → Supporter → Platinum。Bot のロール（managed）は動かさない
-  const ourIds = new Set([pla.role.id, sup.role.id, mem.role.id, ...ROLE_NAMES.sources.map((n) => src[n].id)]);
+  // 並び順: 管理対象外のロールを下に、その上に src-* → Tester → Resident → Supporter → Platinum。Bot のロール（managed）は動かさない
+  const ourIds = new Set([pla.role.id, sup.role.id, mem.role.id, tes.role.id, ...ROLE_NAMES.sources.map((n) => src[n].id)]);
   const others = [...guild.roles.cache.values()]
     .filter((r) => r.id !== guild.id && !r.managed && !ourIds.has(r.id))
     .sort((a, b) => a.position - b.position);
-  const ascending = [...others, ...ROLE_NAMES.sources.slice().reverse().map((n) => src[n]), mem.role, sup.role, pla.role];
+  const ascending = [...others, ...ROLE_NAMES.sources.slice().reverse().map((n) => src[n]), tes.role, mem.role, sup.role, pla.role];
   const me = guild.members.me;
   // Discord は「自分の最上位ロール以上の位置」への移動を拒否するため、Bot 自身のロールを最後尾（最上位）に含めて一括指定する
   const botRole = me && me.roles.highest.id !== guild.id ? me.roles.highest : null;
@@ -112,7 +116,9 @@ export async function setupRoles(guild: Guild): Promise<string> {
     `    "sourceRoleIds": ["${src["src-patreon-platinum"].id}", "${src["src-cien-platinum"].id}"] }`,
     "],",
     "// 住人を使う場合だけ（支援とは別に、申請と認定で付くロール）",
-    `"member": { "roleId": "${mem.role.id}", "minDays": 7 }`,
+    `"member": { "roleId": "${mem.role.id}", "minDays": 7 },`,
+    "// 協力者（期間を決めて支援者と同じに入れる人）に付けるロール。付けないなら書かない",
+    `"tester": { "roleId": "${tes.role.id}", "defaultDays": 30 }`,
     "```",
   ].join("\n");
   return `${lines.join("\n")}\n\nconfig.jsonc に貼る内容:\n${snippet}\n次に Patreon / Ci-en の連携画面で src-* ロールをプランに割り当ててください。`;

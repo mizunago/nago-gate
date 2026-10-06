@@ -69,6 +69,15 @@ export interface AppConfig {
   links: Record<string, string>;
   /** VRChat の Group（未設定なら、登録パネルにグループのボタンを出さない） */
   group: GroupConfig | null;
+  /** 協力者の枠（デバッグなどを手伝ってくれる人を、期間を決めて支援者と同じに入れる） */
+  tester: TesterConfig;
+}
+
+export interface TesterConfig {
+  /** 協力者に付ける Discord のロール（誰が協力者か分かるようにするだけ）。未設定ならロールは付けない */
+  roleId: string | null;
+  /** 日数を指定しなかったときの期間 */
+  defaultDays: number;
 }
 
 /** VRChat の Group。支援者とメンバーが、フレンドでなくても同じインスタンスで遊べるようにするためのもの */
@@ -121,6 +130,7 @@ interface ConfigFile {
   member?: { roleId?: string; minDays?: number; mode?: string; reviewChannelId?: string; reapplyDays?: number };
   links?: Record<string, unknown>;
   vrcGroup?: { name?: string; url?: string; id?: string };
+  tester?: { roleId?: string; defaultDays?: number };
 }
 
 export function resolveInstanceDir(): string {
@@ -237,6 +247,9 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     links[key] = value;
   }
 
+  const testerDays = raw.tester?.defaultDays ?? 30;
+  if (typeof testerDays !== "number" || !Number.isInteger(testerDays) || testerDays < 1 || testerDays > 365) throw new Error("tester.defaultDays は 1 から 365 の整数にしてください");
+
   let group: GroupConfig | null = null;
   if (raw.vrcGroup?.url) {
     if (typeof raw.vrcGroup.url !== "string" || !/^https:\/\/\S{1,200}$/.test(raw.vrcGroup.url)) throw new Error("vrcGroup.url は https の URL にしてください");
@@ -262,6 +275,7 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     member,
     links,
     group,
+    tester: { roleId: raw.tester?.roleId || null, defaultDays: testerDays },
   };
 }
 

@@ -6,7 +6,7 @@ import { tierByRank, type AppConfig } from "./config.js";
 import { normalizeName } from "./hash.js";
 import { fmtDate } from "./register.js";
 import type { MemberRecord, Store } from "./store.js";
-import { desiredRoleIds, isMemberEligible, rankFromRoles } from "./sync.js";
+import { desiredRoleIds, isMemberEligible, isTesterActive, rankFromRoles } from "./sync.js";
 
 /** サーバーにいる本人の、今のロール */
 export interface LivePerson {
@@ -51,8 +51,8 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
     nexts.push(`本人に、${ch.register} で 🧾 登録 を押して、VRChat の表示名を入れてもらう`);
   }
 
-  // 支援
-  const effective = rec?.effectiveRank ?? 0;
+  // 支援（協力者の枠は含めない。Supporter・Platinum のロールは、支援のランクで付く）
+  const effective = rec?.supportRank ?? 0;
   const liveRank = live ? rankFromRoles(config, live.roleIds) : 0;
   const graceActive = !!rec && rec.graceUntil !== null && new Date(rec.graceUntil) > now && rec.graceRank > 0;
   const manualActive = !!rec && rec.manualRank > 0 && (rec.manualUntil === null || new Date(rec.manualUntil) > now);
@@ -69,6 +69,13 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
     nexts.push("`/vrc-admin sync` を打つ");
   } else {
     lines.push(`${NONE} 支援: なし`);
+  }
+
+  // 協力者の枠（ワールドには支援者と同じに入れる。ボードには載らない）
+  const tester = !!rec && !rec.banned && isTesterActive(rec, now);
+  if (tester) {
+    const roleNote = config.tester.roleId && live && !live.roleIds.includes(config.tester.roleId) ? "、協力者のロールがまだ付いていない（次の同期で付く）" : "";
+    lines.push(`${DONE} 協力者: ${tierMention(config, rec!.testerRank)} 相当、${fmtDate(rec!.testerUntil)} まで（ボードには載らない${roleNote}）`);
   }
 
   // 住人
@@ -110,7 +117,7 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
 
   // クレジットとリスト
   if (rec && effective > 0) lines.push(`${rec.showCredit ? DONE : NONE} クレジット: ${rec.showCredit ? "ON（支援者のボードに名前が出る）" : "OFF（ボードに名前を出さない）"}`);
-  const supporterListed = !!rec && effective > 0 && !!rec.vrcName;
+  const supporterListed = !!rec && !rec.banned && (effective > 0 || tester) && !!rec.vrcName;
   const residentListed = !!rec && !!mc && isMemberEligible(config, rec, now);
   const lists = [supporterListed ? "支援者のリスト" : "", residentListed ? "住人のリスト" : ""].filter(Boolean);
   lines.push(`${lists.length > 0 ? DONE : NONE} ワールドのリスト: ${lists.length > 0 ? `${lists.join("と")}に載る。ワールドへの反映は最長 10 分ほど` : "載らない"}`);

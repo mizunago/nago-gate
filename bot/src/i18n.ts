@@ -199,6 +199,14 @@ const M = {
   "status.manual": { ja: "手動付与", en: "Manual grant", "zh-CN": "手动授予", "zh-TW": "手動授予", ko: "수동 부여" },
   "status.manualUntil": { ja: "ランク {rank}（{date} まで）", en: "tier {rank} (until {date})", "zh-CN": "等级 {rank}（至 {date}）", "zh-TW": "等級 {rank}（至 {date}）", ko: "등급 {rank} ({date}까지)" },
   "status.manualForever": { ja: "ランク {rank}（無期限）", en: "tier {rank} (no expiry)", "zh-CN": "等级 {rank}（无期限）", "zh-TW": "等級 {rank}（無期限）", ko: "등급 {rank} (무기한)" },
+  "status.tester": { ja: "協力者", en: "Tester", "zh-CN": "协助者", "zh-TW": "協助者", ko: "협력자" },
+  "status.testerUntil": {
+    ja: "{tier} と同じに入れます（{date} まで、ボードには載りません）",
+    en: "same access as {tier} until {date} (not shown on the board)",
+    "zh-CN": "与 {tier} 相同的进入权限（至 {date}，不显示在名单板上）",
+    "zh-TW": "與 {tier} 相同的進入權限（至 {date}，不顯示在名單板上）",
+    ko: "{tier}와 같은 입장 권한 ({date}까지, 보드에는 표시되지 않습니다)",
+  },
   "status.nextChange": { ja: "次回名前変更可能", en: "Next name change", "zh-CN": "下次可更改名称", "zh-TW": "下次可更改名稱", ko: "다음 이름 변경 가능" },
   "status.now": { ja: "今すぐ", en: "now", "zh-CN": "现在", "zh-TW": "現在", ko: "지금" },
 

@@ -133,9 +133,22 @@ export function updateEffectiveRank(config: AppConfig, rec: MemberRecord, active
     rec.manualUntil = null;
   }
   if (manualValid && rec.manualRank > effective) effective = rec.manualRank;
+  rec.supportRank = effective;
+
+  // 協力者の枠: ワールドに入れるかの判定だけに足す（ボードとロールは supportRank のまま）。期限を過ぎたら外す
+  if (rec.testerRank > 0 && !isTesterActive(rec, now)) {
+    rec.testerRank = 0;
+    rec.testerUntil = null;
+  }
+  if (rec.testerRank > effective) effective = rec.testerRank;
 
   rec.effectiveRank = effective;
   rec.updatedAt = now.toISOString();
+}
+
+/** 協力者の枠が、今有効か（ランクがあり、期限前） */
+export function isTesterActive(rec: MemberRecord, now: Date): boolean {
+  return rec.testerRank > 0 && rec.testerUntil !== null && new Date(rec.testerUntil) > now;
 }
 
 /** メンバーの在籍日数の条件を満たす日時。サーバーにいない、または機能が無効なら null */
@@ -177,16 +190,23 @@ function roleName(member: GuildMember, id: string): string {
 async function applyRoles(
   config: AppConfig,
   member: GuildMember,
-  effectiveRank: number,
+  supportRank: number,
   memberActive: boolean,
+  testerActive: boolean,
   result: SyncResult,
   log: (m: string) => void,
 ): Promise<void> {
+  // Supporter・Platinum のロールは、支援のランクで決める（協力者の枠では付けない。支援者向けのチャンネルを見せないため）
+  const effectiveRank = supportRank;
   const desired = desiredRoleIds(config, effectiveRank);
   const managed = new Set(config.tiers.map((t) => t.roleId));
   if (config.member) {
     managed.add(config.member.roleId);
     if (memberActive) desired.add(config.member.roleId);
+  }
+  if (config.tester.roleId) {
+    managed.add(config.tester.roleId);
+    if (testerActive) desired.add(config.tester.roleId);
   }
   const current = new Set(member.roles.cache.keys());
   const toAdd = [...desired].filter((id) => !current.has(id));
@@ -219,8 +239,9 @@ export function buildSupportersJson(config: AppConfig, store: Store, protection:
     if (rec.effectiveRank <= 0 || !rec.vrcName || rec.banned) continue;
     // 判定用のハッシュは、登録された名前そのままで作る。表示用の名前だけ、表示を乱す文字を落とす
     supporters.push({ name: rec.vrcName, rank: rec.effectiveRank });
+    // ボードには、支援のランクで載せる（協力者の枠だけの人は載せない）
     const shown = displaySafeName(rec.vrcName);
-    if (rec.showCredit && shown) credits.push({ n: shown, r: rec.effectiveRank });
+    if (rec.showCredit && shown && rec.supportRank > 0) credits.push({ n: shown, r: rec.supportRank });
   }
   credits.sort((a, b) => b.r - a.r || a.n.localeCompare(b.n, "ja"));
 
@@ -315,8 +336,9 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
     if (!rec) continue;
     seen.add(member.id);
     rec.discordTag = member.user.tag;
-    const before = { active: rec.activeRank, effective: rec.effectiveRank, grace: rec.graceUntil };
+    const before = { active: rec.activeRank, effective: rec.effectiveRank, grace: rec.graceUntil, tester: rec.testerRank };
     updateEffectiveRank(ctx.config, rec, activeRank, now);
+    if (before.tester > 0 && rec.testerRank === 0) ctx.log(`協力者の枠の期限が切れました ${member.user.tag} (${member.id})`);
     if (before.active !== rec.activeRank || before.effective !== rec.effectiveRank || before.grace !== rec.graceUntil) {
       stateChanged = true;
       ctx.log(`状態変化 ${member.user.tag} (${member.id}): active ${before.active}->${rec.activeRank}, effective ${before.effective}->${rec.effectiveRank}, grace ${before.grace ?? "-"}->${rec.graceUntil ?? "-"}`);
@@ -335,7 +357,7 @@ export async function runSync(ctx: SyncContext, guild: Guild, reason: string): P
     if (rec.memberActive) result.members++;
 
     // BAN 中の人がサーバーにいる場合（Discord 側の BAN だけ解かれた等）は、ロールを付けない
-    await applyRoles(ctx.config, member, rec.banned ? 0 : rec.effectiveRank, rec.memberActive, result, ctx.log);
+    await applyRoles(ctx.config, member, rec.banned ? 0 : rec.supportRank, rec.memberActive, !rec.banned && isTesterActive(rec, now), result, ctx.log);
   }
 
   // サーバーを抜けた（支援サイト Bot にキックされた等）メンバー: ロール操作は不可、猶予だけ進める

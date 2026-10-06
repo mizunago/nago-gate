@@ -11,6 +11,7 @@ import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
 import { activateMemberIfReady, buildPanelMessage, IDS, placePanels } from "./panel.js";
 import { personById, resolvedReport } from "./report.js";
+import { grantTester, revokeTester, TESTER_MAX_DAYS, testerButtons, testerList } from "./tester.js";
 import { keyedHashName } from "./protect.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
@@ -109,6 +110,21 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
         .setDescription("手動付与を取り消す")
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
+    .addSubcommand((s) =>
+      s
+        .setName("tester-grant")
+        .setDescription("協力者にする（期間を決めて、支援者と同じにワールドへ入れる。ボードには載らず、支援者のロールも付かない）")
+        .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true))
+        .addIntegerOption((o) => o.setName("rank").setDescription("どのランクと同じに入れるか（config.tiers の rank）").setRequired(true))
+        .addIntegerOption((o) => o.setName("days").setDescription("日数（省略で config.tester.defaultDays、既定 30）").setMinValue(1).setMaxValue(TESTER_MAX_DAYS)),
+    )
+    .addSubcommand((s) =>
+      s
+        .setName("tester-revoke")
+        .setDescription("協力者の枠を外す")
+        .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
+    )
+    .addSubcommand((s) => s.setName("testers").setDescription("今の協力者の一覧（期限の近い順）"))
     .addSubcommand((s) =>
       s
         .setName("member-grant")
@@ -264,7 +280,27 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       const user = interaction.options.getUser("user", true);
       // 記録だけでなく、サーバーで今付いているロールも見て、どこまで済んでいるかを出す
       const people = await personById(interaction.guild, store, user.id);
-      await interaction.reply({ content: resolvedReport(config, interaction.guild, user.id, people, new Date()), ephemeral: true, allowedMentions: { parse: [] } });
+      await interaction.reply({
+        content: resolvedReport(config, interaction.guild, user.id, people, new Date()),
+        components: testerButtons(config, people),
+        ephemeral: true,
+        allowedMentions: { parse: [] },
+      });
+      return;
+    }
+    if (sub === "tester-grant" || sub === "tester-revoke") {
+      const user = interaction.options.getUser("user", true);
+      await interaction.deferReply({ ephemeral: true });
+      const r =
+        sub === "tester-grant"
+          ? await grantTester(config, store, interaction.guild, user.id, interaction.options.getInteger("rank", true), interaction.options.getInteger("days") ?? config.tester.defaultDays, member.user.tag)
+          : await revokeTester(config, store, interaction.guild, user.id, member.user.tag);
+      if (r.ok) deps.requestPublish();
+      await interaction.editReply({ content: r.message, allowedMentions: { parse: [] } });
+      return;
+    }
+    if (sub === "testers") {
+      await interaction.reply({ content: testerList(config, store).slice(0, 1900), ephemeral: true, allowedMentions: { parse: [] } });
       return;
     }
     if (sub === "whois") {
@@ -274,7 +310,8 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         await interaction.reply({ content: `VRChat の表示名「${name}」は、登録されていません。\nGroup の参加申請なら、承認せずに、登録してから申請し直してもらってください。`, ephemeral: true });
         return;
       }
-      const eligible = !rec.banned && (rec.effectiveRank > 0 || rec.memberActive);
+      // 協力者の枠だけの人は、Group には入れない（支援者でも住人でもないため）
+      const eligible = !rec.banned && (rec.supportRank > 0 || rec.memberActive);
       const verdict = eligible
         ? "承認してよい（支援者か住人）"
         : rec.banned
@@ -441,6 +478,9 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       rec.memberActive = false;
       rec.manualRank = 0;
       rec.manualUntil = null;
+      rec.testerRank = 0;
+      rec.testerUntil = null;
+      updateEffectiveRank(config, rec, rec.activeRank, now);
       rec.updatedAt = now.toISOString();
       store.save();
       deps.requestPublish();
@@ -448,7 +488,9 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       // Bot が付けるロール（住人と、支援者のロール）を外す。失敗しても、次の同期が外し直す
       let roleNote = "サーバーにいないので、外すロールはありません。";
       if (target) {
-        const managed = [...config.tiers.map((tier) => tier.roleId), ...(config.member ? [config.member.roleId] : [])].filter((id) => target.roles.cache.has(id));
+        const managed = [...config.tiers.map((tier) => tier.roleId), ...(config.member ? [config.member.roleId] : []), ...(config.tester.roleId ? [config.tester.roleId] : [])].filter((id) =>
+          target.roles.cache.has(id),
+        );
         const names = managed.map((id) => interaction.guild.roles.cache.get(id)?.name ?? id).join("・");
         roleNote = managed.length > 0 ? `ロール（${names}）を外しました。` : "外すロールはありませんでした。";
         if (managed.length > 0) {
