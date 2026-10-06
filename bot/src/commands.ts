@@ -234,7 +234,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
           return;
         }
         await channel.send(buildPanelMessage(config));
-        lines = [`登録のパネルを、このチャンネルに置きました。テキスト投稿の自動処理を使うなら、config.jsonc の discord.registerChannelId に \`${interaction.channelId}\` を設定してください`];
+        lines = [`登録のパネルを、このチャンネルに置きました。\nテキスト投稿の自動処理を使うなら、config.jsonc の discord.registerChannelId に \`${interaction.channelId}\` を設定してください`];
       }
       log.info(`パネルを置く by ${member.user.tag}: ${lines.join(" / ")}`);
       await interaction.editReply(lines.join("\n").slice(0, 1900));
@@ -271,7 +271,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       const name = interaction.options.getString("name", true).trim();
       const rec = store.findByNormalizedName(normalizeName(name), normalizeName);
       if (!rec) {
-        await interaction.reply({ content: `VRChat の表示名「${name}」は、登録されていません。Group の参加申請なら、承認せずに、登録してから申請し直してもらってください。`, ephemeral: true });
+        await interaction.reply({ content: `VRChat の表示名「${name}」は、登録されていません。\nGroup の参加申請なら、承認せずに、登録してから申請し直してもらってください。`, ephemeral: true });
         return;
       }
       const eligible = !rec.banned && (rec.effectiveRank > 0 || rec.memberActive);
@@ -319,7 +319,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       }
       const rec = store.getOrCreate(user.id);
       if (rec.banned) {
-        await interaction.reply({ content: `<@${user.id}> は BAN 中です。先に \`/vrc-admin unban\` で解除してください`, ephemeral: true });
+        await interaction.reply({ content: `<@${user.id}> は BAN 中です。\n先に \`/vrc-admin unban\` で解除してください`, ephemeral: true });
         return;
       }
       const now = new Date();
@@ -329,7 +329,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       store.save();
       log.info(`管理者 grant ${user.tag} (${user.id}) rank=${rank} days=${days ?? "∞"} by ${member.user.tag}`);
       deps.requestPublish();
-      await interaction.reply({ content: `<@${user.id}> にランク ${rank} を手動付与しました（${days ? `${days} 日間` : "無期限"}）。ロール反映は次回同期時です。`, ephemeral: true });
+      await interaction.reply({ content: `<@${user.id}> にランク ${rank} を手動付与しました（${days ? `${days} 日間` : "無期限"}）。\nロール反映は次回同期時です。`, ephemeral: true });
       return;
     }
     if (sub === "revoke") {
@@ -367,7 +367,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         return;
       }
       if (grant && rec.banned) {
-        await interaction.reply({ content: `<@${user.id}> は BAN 中です。先に \`/vrc-admin unban\` で解除してください`, ephemeral: true });
+        await interaction.reply({ content: `<@${user.id}> は BAN 中です。\n先に \`/vrc-admin unban\` で解除してください`, ephemeral: true });
         return;
       }
       const now = new Date();
@@ -389,9 +389,9 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       }
       deps.requestPublish();
       let msg: string;
-      if (!grant) msg = `<@${user.id}> の住人の認定を取り消しました。本人が申請し直せば、通常の手続きで住人になれます。`;
-      else if (rec.memberActive) msg = `<@${user.id}> を住人に認定しました。数分後から住人限定のワールドに入れます。`;
-      else msg = `<@${user.id}> を住人に認定しましたが、VRChat の表示名がまだ登録されていません。本人が登録するか、\`/vrc-admin setname\` で設定すると有効になります。`;
+      if (!grant) msg = `<@${user.id}> の住人の認定を取り消しました。\n本人が申請し直せば、通常の手続きで住人になれます。`;
+      else if (rec.memberActive) msg = `<@${user.id}> を住人に認定しました。\n数分後から住人限定のワールドに入れます。`;
+      else msg = `<@${user.id}> を住人に認定しましたが、VRChat の表示名がまだ登録されていません。\n本人が登録するか、\`/vrc-admin setname\` で設定すると有効になります。`;
       await interaction.reply({ content: msg, ephemeral: true });
       return;
     }
@@ -421,7 +421,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
         deps.requestPublish();
         log.info(`管理者 unban ${user.tag} (${user.id}) by ${member.user.tag}`);
         await interaction.editReply(
-          `<@${user.id}> の BAN を解除しました。支援中なら、次の同期で支援者に戻ります。住人は、本人が申請し直せば、通常の手続きで戻れます。\n` +
+          `<@${user.id}> の BAN を解除しました。\n支援中なら、次の同期で支援者に戻ります。\n住人は、本人が申請し直せば、通常の手続きで戻れます。\n` +
             "サーバーから BAN していた場合は、Discord の「サーバー設定 → BAN」からも解除してください。",
         );
         return;
@@ -461,10 +461,10 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       log.info(`管理者 ban ${user.tag} (${user.id}) name=${rec.vrcName ?? "-"} reason=${reason || "-"} by ${member.user.tag}`);
       const nameNote = rec.vrcName ? `登録していた表示名（**${rec.vrcName}**）は、ほかのアカウントでも登録できません。` : "表示名は登録されていませんでした。";
       await interaction.editReply(
-        `<@${user.id}> を支援者・住人のリストから外しました。${roleNote}\n` +
-          `${nameNote}本人も、登録と住人の申請をやり直せません。\n` +
+        `<@${user.id}> を支援者・住人のリストから外しました。\n${roleNote ? roleNote + "\n" : ""}` +
+          `${nameNote}\n本人も、登録と住人の申請をやり直せません。\n` +
           "ワールドへの反映は、遅くとも 20 分ほどです（今いるインスタンスからは、リストの読み直しのあとに出されます）。\n" +
-          "**サーバーからの BAN は行っていません。** 必要なら、Discord の画面から BAN してください。支援サイトでの支援も止まりません。\n" +
+          "**サーバーからの BAN は行っていません。**\n必要なら、Discord の画面から BAN してください。\n支援サイトでの支援も止まりません。\n" +
           "解除は `/vrc-admin unban` です。",
       );
       return;

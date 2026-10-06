@@ -40,7 +40,7 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
   }
 
   if (rec?.banned) {
-    lines.push(`${TODO} BAN 中（${fmtDate(rec.bannedAt)}${rec.banReason ? `、${rec.banReason}` : ""}）。どのリストにも載らない`);
+    lines.push(`${TODO} BAN 中（${fmtDate(rec.bannedAt)}${rec.banReason ? `、${rec.banReason}` : ""}）、どのリストにも載らない`);
     return lines.join("\n") + "\n**次にやること**: 入れるようにするなら `/vrc-admin unban`";
   }
 
@@ -61,8 +61,8 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
     const why = liveRank > 0 ? "支援サイトのロールあり" : graceActive ? `猶予中、${fmtDate(rec!.graceUntil)} まで` : manualActive ? "手動の付与" : "";
     if (missing.length === 0) lines.push(`${DONE} 支援: ${tierMention(config, effective)}（${why}）`);
     else {
-      lines.push(`${WAIT} 支援: ${tierMention(config, effective)}。Bot のロールが、まだ付いていない（${missing.map((id) => live!.roleName(id)).join("・")}）`);
-      nexts.push("`/vrc-admin sync` を打つ。それでも付かなければ、Bot のロールが Supporter・Platinum より上にあるかを見る");
+      lines.push(`${WAIT} 支援: ${tierMention(config, effective)}、Bot のロールが、まだ付いていない（${missing.map((id) => live!.roleName(id)).join("・")}）`);
+      nexts.push("`/vrc-admin sync` を打つ（それでも付かなければ、Bot のロールが Supporter・Platinum より上にあるかを見る）");
     }
   } else if (liveRank > 0) {
     lines.push(`${WAIT} 支援: 支援サイトのロールはあるが、Bot がまだ読み取っていない`);
@@ -78,19 +78,19 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
     if (rec.memberManual) {
       if (rec.memberActive || resident) lines.push(`${DONE} 住人: 住人（手動で認定）`);
       else {
-        lines.push(`${WAIT} 住人: 手動で認定済み。表示名の登録待ち`);
+        lines.push(`${WAIT} 住人: 手動で認定済み、表示名の登録待ち`);
       }
     } else if (rec.memberActive || resident) {
       lines.push(`${DONE} 住人: 住人（同意 ${fmtDate(rec.memberConsentAt)}）`);
     } else if (mc.mode === "apply" && rec.memberApprovedAt && !rec.memberConsentAt) {
-      lines.push(`${WAIT} 住人: 認定済み（${fmtDate(rec.memberApprovedAt)}）。本人の同意待ち`);
+      lines.push(`${WAIT} 住人: 認定済み（${fmtDate(rec.memberApprovedAt)}）、本人の同意待ち`);
       nexts.push(`本人に、${ch.resident} で 🏠 住人 を押して、案内に同意してもらう`);
     } else if (rec.memberAppliedAt) {
-      lines.push(`${WAIT} 住人: 申請中（${fmtDate(rec.memberAppliedAt)}）。あなたの確認待ち`);
+      lines.push(`${WAIT} 住人: 申請中（${fmtDate(rec.memberAppliedAt)}）、あなたの確認待ち`);
       nexts.push("申請のチャンネルのメッセージで、認定するか見送るかを決める");
     } else if (rec.memberDeclinedAt) {
       const again = new Date(new Date(rec.memberDeclinedAt).getTime() + mc.reapplyDays * 86_400_000);
-      lines.push(`${NONE} 住人: 見送り（${fmtDate(rec.memberDeclinedAt)}）。${again > now ? `${fmtDate(again.toISOString())} から申請し直せる` : "もう申請し直せる"}`);
+      lines.push(`${NONE} 住人: 見送り（${fmtDate(rec.memberDeclinedAt)}）、${again > now ? `${fmtDate(again.toISOString())} から申請し直せる` : "もう申請し直せる"}`);
     } else {
       lines.push(`${NONE} 住人: 申請していない`);
     }
@@ -101,7 +101,7 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
   // グループ
   const canGroup = effective > 0 || !!rec?.memberActive;
   if (config.group) {
-    if (rec?.groupRequestedAt) lines.push(`${DONE} グループ: 👥 グループ を押した（${fmtDate(rec.groupRequestedAt)}）。招待の結果は Bot のログ`);
+    if (rec?.groupRequestedAt) lines.push(`${DONE} グループ: 👥 グループ を押した（${fmtDate(rec.groupRequestedAt)}）、招待の結果は Bot のログ`);
     else if (canGroup) {
       lines.push(`${TODO} グループ: まだ押していない`);
       nexts.push(`Group に入りたいなら、本人に ${ch.group} で 👥 グループ を押してもらう`);
@@ -115,7 +115,7 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
   const lists = [supporterListed ? "支援者のリスト" : "", residentListed ? "住人のリスト" : ""].filter(Boolean);
   lines.push(`${lists.length > 0 ? DONE : NONE} ワールドのリスト: ${lists.length > 0 ? `${lists.join("と")}に載る。ワールドへの反映は最長 10 分ほど` : "載らない"}`);
 
-  const next = nexts[0] ?? "ありません。手続きは済んでいます";
+  const next = nexts[0] ?? "ありません（手続きは済んでいます）";
   return lines.join("\n") + `\n**次にやること**: ${next}`;
 }
 
@@ -166,10 +166,10 @@ export async function resolvePerson(guild: Guild, store: Store, query: string): 
 
 /** 探した結果を、持ち主に返す文にする */
 export function resolvedReport(config: AppConfig, guild: Guild, query: string, people: ResolvedPerson[], now: Date): string {
-  if (people.length === 0) return `「${query}」に当たる人は、サーバーにも記録にもいません。Discord のユーザー名か、VRChat の表示名で試してください。`;
+  if (people.length === 0) return `「${query}」に当たる人は、サーバーにも記録にもいません。\nDiscord のユーザー名か、VRChat の表示名で試してください。`;
   if (people.length > 1) {
     const list = people.map((p) => `・<@${p.userId}>（${p.member?.user.username ?? p.rec?.discordTag ?? "-"}${p.rec?.vrcName ? `、VRChat: ${p.rec.vrcName}` : ""}）`).join("\n");
-    return `「${query}」に当たる人が ${people.length} 人います。ユーザー名を正確に入れ直してください。\n${list}`;
+    return `「${query}」に当たる人が ${people.length} 人います。\nユーザー名を正確に入れ直してください。\n${list}`;
   }
   const p = people[0];
   const live: LivePerson | null = p.member

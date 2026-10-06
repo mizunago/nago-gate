@@ -69,7 +69,7 @@ function statusLines(): Lines {
   return {
     ja: [
       "- **状態**: 登録した表示名、支援者かどうか、住人の申請がどこまで進んだかを見られます",
-      "- **クレジット ON / OFF**: ワールドの中の支援者のボードに、名前を出すかを選べます。最初は ON です。支援者の方にだけ関係します",
+      "- **クレジット ON / OFF**: ワールドの中の支援者のボードに、名前を出すかを選べます\n  - 最初は ON です\n  - 支援者の方にだけ関係します",
     ],
     en: [
       "- **Status**: see your registered display name, whether you are a supporter, and how far your resident application has gone",
@@ -77,7 +77,7 @@ function statusLines(): Lines {
     ],
     "zh-CN": [
       "- **Status**：查看已注册的显示名称、是否为支持者，以及居民申请的进度",
-      "- **Credits ON / OFF**：选择是否在世界内的支持者名单板上显示你的名字。默认为 ON。仅与支持者有关",
+      "- **Credits ON / OFF**：选择是否在世界内的支持者名单板上显示你的名字\n  - 默认为 ON\n  - 仅与支持者有关",
     ],
     "zh-TW": [],
     ko: [
@@ -101,8 +101,8 @@ function residentLines(config: AppConfig, refs: (lang: Lang) => Record<PanelKind
   }
   return {
     ja: [
-      "- 住人になると、VRChat の Group に参加できます。支援は要りません。Patreon の会員（メンバーシップ）とは別のものです",
-      "- 申請できるのは 18 歳以上の方です。確認のために、VRChat の公開プロフィールを拝見します",
+      "- 住人になると、VRChat の Group に参加できます\n  - 支援は要りません\n  - Patreon の会員（メンバーシップ）とは別のものです",
+      "- 申請できるのは 18 歳以上の方です\n  - 確認のために、VRChat の公開プロフィールを拝見します",
       `- 先に ${refs("ja").register} で表示名を登録してから、**🏠 住人** を押してください`,
     ],
     en: [
@@ -111,8 +111,8 @@ function residentLines(config: AppConfig, refs: (lang: Lang) => Record<PanelKind
       `- Register your display name in ${refs("en").register} first, then press **🏠 Resident**`,
     ],
     "zh-CN": [
-      "- 成为居民后，可以加入 VRChat Group。无需支持。这与 Patreon 的会员资格无关",
-      "- 年满 18 岁即可申请。为了确认，我们会查看你公开的 VRChat 个人资料",
+      "- 成为居民后，可以加入 VRChat Group\n  - 无需支持\n  - 这与 Patreon 的会员资格无关",
+      "- 年满 18 岁即可申请\n  - 为了确认，我们会查看你公开的 VRChat 个人资料",
       `- 请先在 ${refs("zh-CN").register} 注册显示名称，然后点击 **🏠 Resident**`,
     ],
     "zh-TW": [],
@@ -128,8 +128,8 @@ function groupLines(config: AppConfig, refs: (lang: Lang) => Record<PanelKind, s
   const resident = config.member !== null;
   return {
     ja: [
-      `- ${resident ? "支援者と住人" : "支援者"}の方は、VRChat の Group に参加できます。フレンドでなくても、Group のインスタンスで一緒に遊べます`,
-      "- **👥 グループ** を押すと、登録した表示名の VRChat アカウントに、Group の招待が届きます。VRChat の通知から承諾してください",
+      `- ${resident ? "支援者と住人" : "支援者"}の方は、VRChat の Group に参加できます\n  - フレンドでなくても、Group のインスタンスで一緒に遊べます`,
+      "- **👥 グループ** を押すと、登録した表示名の VRChat アカウントに、Group の招待が届きます\n  - VRChat の通知から承諾してください",
       ...(resident ? [`- 支援者でも住人でもない方は、先に ${refs("ja").resident} で住人の申請をしてください`] : []),
     ],
     en: [
@@ -138,8 +138,8 @@ function groupLines(config: AppConfig, refs: (lang: Lang) => Record<PanelKind, s
       ...(resident ? [`- If you are neither a supporter nor a resident, apply as a resident in ${refs("en").resident} first`] : []),
     ],
     "zh-CN": [
-      `- ${resident ? "支持者和居民" : "支持者"}可以加入 VRChat Group。即使不是好友，也可以在 Group 实例中一起游玩`,
-      "- 点击 **👥 Group** 后，会向你注册的显示名称的 VRChat 账号发送 Group 邀请。请在 VRChat 的通知中接受",
+      `- ${resident ? "支持者和居民" : "支持者"}可以加入 VRChat Group\n  - 即使不是好友，也可以在 Group 实例中一起游玩`,
+      "- 点击 **👥 Group** 后，会向你注册的显示名称的 VRChat 账号发送 Group 邀请\n  - 请在 VRChat 的通知中接受",
       ...(resident ? [`- 既不是支持者也不是居民的话，请先在 ${refs("zh-CN").resident} 申请成为居民`] : []),
     ],
     "zh-TW": [],
@@ -158,9 +158,9 @@ function shortLines(config: AppConfig, kind: "status" | "resident" | "group"): L
   const resident = config.member !== null;
   if (kind === "status") {
     return {
-      ja: ["- **状態**: 登録と支援の状態を見られます。**クレジット ON / OFF**: ワールドの支援者のボードに、名前を出すかを選べます"],
+      ja: ["- **状態**: 登録と支援の状態を見られます", "- **クレジット ON / OFF**: ワールドの支援者のボードに、名前を出すかを選べます"],
       en: ["- **Status**: see your registration and support status. **Credits ON / OFF**: choose whether your name appears on the supporter board in the worlds"],
-      "zh-CN": ["- **Status**：查看注册与支持状态。**Credits ON / OFF**：选择是否在世界内的支持者名单板上显示名字"],
+      "zh-CN": ["- **Status**：查看注册与支持状态", "- **Credits ON / OFF**：选择是否在世界内的支持者名单板上显示名字"],
       "zh-TW": [],
       ko: ["- **Status**: 등록과 후원 상태를 볼 수 있습니다. **Credits ON / OFF**: 월드 안의 후원자 보드에 이름을 표시할지 고를 수 있습니다"],
     };
@@ -168,9 +168,9 @@ function shortLines(config: AppConfig, kind: "status" | "resident" | "group"): L
   if (kind === "resident") {
     return apply
       ? {
-          ja: ["- **🏠 住人**: 住人の申請（18 歳以上。支援は要りません）。住人になると、VRChat の Group に参加できます"],
+          ja: ["- **🏠 住人**: 住人の申請（18 歳以上。支援は要りません）\n  - 住人になると、VRChat の Group に参加できます"],
           en: ["- **🏠 Resident**: apply as a resident (18+, no support needed). Residents can join our VRChat Group"],
-          "zh-CN": ["- **🏠 Resident**：申请成为居民（18 岁以上，无需支持）。居民可以加入 VRChat Group"],
+          "zh-CN": ["- **🏠 Resident**：申请成为居民（18 岁以上，无需支持）\n  - 居民可以加入 VRChat Group"],
           "zh-TW": [],
           ko: ["- **🏠 Resident**: 주민 신청 (18세 이상, 후원 불필요). 주민은 VRChat Group에 참가할 수 있습니다"],
         }
@@ -196,7 +196,7 @@ function registerLines(config: AppConfig, refs: (lang: Lang) => Record<PanelKind
   const status = shortLines(config, "status");
   const lines: Lines = {
     ja: [
-      "- **🧾 登録**: VRChat の表示名（プロフィールに出ている名前）を入れると、Discord と VRChat のアカウントがつながります。支援者の方も、住人の申請をする方も、最初にこれを押してください",
+      "- **🧾 登録**: VRChat の表示名（プロフィールに出ている名前）を入れると、Discord と VRChat のアカウントがつながります\n  - 支援者の方も、住人の申請をする方も、最初にこれを押してください",
       ...(ownStatus ? ["- **状態**: つながったか、支援者として確認できたかを見られます"] : status.ja),
       "- 表示名を変えたら、登録し直してください（30 日に 1 回まで）",
     ],
@@ -206,7 +206,7 @@ function registerLines(config: AppConfig, refs: (lang: Lang) => Record<PanelKind
       "- If you change your display name, register again (once every 30 days)",
     ],
     "zh-CN": [
-      "- **Register**：输入你的 VRChat 显示名称（个人资料上显示的名字），即可把 Discord 账号和 VRChat 账号关联起来。无论是支持者还是想申请成为居民，都请先点这里",
+      "- **Register**：输入你的 VRChat 显示名称（个人资料上显示的名字），即可把 Discord 账号和 VRChat 账号关联起来\n  - 无论是支持者还是想申请成为居民，都请先点这里",
       ...(ownStatus ? ["- **Status**：查看是否已关联、是否已确认为支持者"] : status["zh-CN"]),
       "- 更改显示名称后请重新注册（每 30 天一次）",
     ],
@@ -320,7 +320,7 @@ export async function placePanels(guild: Guild, config: AppConfig, botUserId: st
       out.push(`${kind}: <#${channelId}> ${same ? "変更なし" : "書き換えた"}（${panel.content!.length} 文字）`);
     } else {
       await channel.send({ ...panel, allowedMentions: { parse: [] } });
-      out.push(`${kind}: <#${channelId}> 新しく置いた（${panel.content!.length} 文字）。ピン留めしておくと見つけやすい`);
+      out.push(`${kind}: <#${channelId}> 新しく置いた（${panel.content!.length} 文字）。\nピン留めしておくと見つけやすい`);
     }
     log.info(`パネル ${kind} channel=${channelId} ${old ? "書き換え" : "投稿"}`);
   }
@@ -396,8 +396,8 @@ function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, pr
   }
   // ロールのメンションにすると、Discord がロールの色（Supporter は金、Platinum は水色）で出す。通知は飛ばさない
   lines.push(`支援: ${tierMention(config, rec.effectiveRank)}`);
-  lines.push("本人確認: していません。登録した表示名が、申請した本人の VRChat アカウントかどうかは、必要なら直接たずねて確かめてください。");
-  lines.push("プロフィールを見て、下のボタンで決めてください。認定すると、本人にくわしい案内（内容の注意と共有のお願い）が見えるようになり、本人が同意した時点で住人のロールが付きます。");
+  lines.push("本人確認: していません。\n登録した表示名が、申請した本人の VRChat アカウントかどうかは、必要なら直接たずねて確かめてください。");
+  lines.push("プロフィールを見て、下のボタンで決めてください。\n認定すると、本人にくわしい案内（内容の注意と共有のお願い）が見えるようになり、本人が同意した時点で住人のロールが付きます。");
   return lines.join("\n");
 }
 
@@ -449,7 +449,7 @@ async function submitApplication(deps: PanelDeps, interaction: ButtonInteraction
         profileNote = "この表示名のユーザーが、VRChat で見つかりませんでした（表示名を変えたか、登録の間違いかもしれません）";
       }
     } catch (err) {
-      profileNote = "取得できませんでした。表示名で検索してください";
+      profileNote = "取得できませんでした（表示名で検索してください）";
       log.warn(`住人の申請: VRChat のプロフィールの取得に失敗 ${who}: ${String(err)}`);
     }
   }
@@ -505,12 +505,12 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
     rec.updatedAt = now.toISOString();
     store.save();
     log.info(`住人の申請を見送り ${who} by ${by}`);
-    await close(`⏸️ 見送りました（${by}、${fmtDate(now.toISOString())}）。本人には知らせていません。本人は「状態」のボタンで、見送りと、次に申請できる日を見られます。`);
+    await close(`⏸️ 見送りました（${by}、${fmtDate(now.toISOString())}）。\n本人には知らせていません。\n本人は「状態」のボタンで、見送りと、次に申請できる日を見られます。`);
     return;
   }
 
   if (rec.banned) {
-    await interaction.reply({ content: "この人は BAN 中です。認定するなら、先に `/vrc-admin unban` で解除してください。", ephemeral: true });
+    await interaction.reply({ content: "この人は BAN 中です。\n認定するなら、先に `/vrc-admin unban` で解除してください。", ephemeral: true });
     return;
   }
   const target = await interaction.guild.members.fetch(userId).catch(() => null);
@@ -519,7 +519,7 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
     rec.memberConsentAt = null;
     rec.updatedAt = now.toISOString();
     store.save();
-    await close("ℹ️ 申請した人は、もうサーバーにいません。申請を閉じました。");
+    await close("ℹ️ 申請した人は、もうサーバーにいません。\n申請を閉じました。");
     return;
   }
   // 認定しても、ここでは住人にしない。本人が、くわしい案内を読んで同意した時点で住人になる
@@ -542,10 +542,10 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   try {
     await target.send({ content: dmText });
   } catch {
-    dmNote = "本人への DM は届きませんでした（受け取らない設定）。本人は「状態」のボタンで分かります。";
+    dmNote = "本人への DM は届きませんでした（受け取らない設定）。\n本人は「状態」のボタンで分かります。";
   }
   const roleNote = rec.memberActive ? "住人のロールを付けました。" : "本人が、住人のボタンから案内に同意すると、住人のロールが付きます。";
-  await close(`✅ 認定しました（${by}、${fmtDate(now.toISOString())}）。${roleNote}${dmNote}`);
+  await close(`✅ 認定しました（${by}、${fmtDate(now.toISOString())}）。\n${roleNote}\n${dmNote}`);
 }
 
 /** 申請制で、認定は済んだが、本人の同意がまだの人か */

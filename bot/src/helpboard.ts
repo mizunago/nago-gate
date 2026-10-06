@@ -27,7 +27,7 @@ function describeOf(o: { description: string; description_localizations?: Record
 
 /** 一覧の本文（行の並び）。管理者向けを先に出す */
 export function buildCommandHelpLines(config: AppConfig): string[] {
-  const lines: string[] = [HEADER, "Bot が起動するたびに、今の内容へ書き換えます。`[ ]` は省略できる項目です。"];
+  const lines: string[] = [HEADER, "Bot が起動するたびに、今の内容へ書き換えます。", "`[ ]` は省略できる項目です。"];
   const commands = buildCommands() as unknown as (OptionJson & { options?: OptionJson[] })[];
   const order = [...commands].sort((a, b) => (a.name === "vrc-admin" ? -1 : 0) - (b.name === "vrc-admin" ? -1 : 0));
   for (const cmd of order) {
@@ -44,16 +44,18 @@ export function buildCommandHelpLines(config: AppConfig): string[] {
     return id ? `<#${id}>` : "登録のチャンネル";
   };
   lines.push("", "**ボタンの場所と、することの中身**");
-  lines.push(`${at("register")}: \`登録\` … Discord と VRChat のアカウントをつなぐ（VRChat の表示名を入れる。30 日に 1 回まで変えられる）。支援者も、住人の申請をする人も、最初にこれ`);
+  lines.push(`${at("register")}: \`登録\` … Discord と VRChat のアカウントをつなぐ（VRChat の表示名を入れる、30 日に 1 回まで変えられる）`);
+  lines.push("　支援者も、住人の申請をする人も、最初にこれ");
   lines.push(`${at("register")}${hasOwnChannel(config, "status") ? `・${at("status")}` : ""}: \`状態\` … 本人が、自分の登録・支援・住人の申請の状態を見る`);
   lines.push(`${at("status")}: \`クレジット ON / OFF\` … ワールドの支援者のボードに、名前を出すかを選ぶ（支援者にだけ関係する）`);
   if (config.member) {
-    const how = config.member.mode === "apply" ? "住人の申請。支援は要らない。申請のチャンネルに届いたら認定か見送りを決め、そのあと本人が案内に同意すると住人になる" : `住人の登録（18 歳以上の確認と同意。在籍 ${config.member.minDays} 日で有効）`;
+    const how = config.member.mode === "apply" ? "住人の申請（支援は要らない）\n　申請のチャンネルに届いたら認定か見送りを決め、そのあと本人が案内に同意すると住人になる" : `住人の登録（18 歳以上の確認と同意、在籍 ${config.member.minDays} 日で有効）`;
     lines.push(`${at("resident")}: \`住人\` … ${how}`);
   }
   if (config.group) lines.push(`${at("group")}: \`グループ\` … VRChat の Group に招待する（支援者か住人の人だけ）`);
   lines.push("", "**人を調べる**");
-  lines.push("下の `🔎 人を調べる` を押して、Discord のユーザー名か VRChat の表示名を入れると、その人の手続きがどこまで済んでいて、何がまだかを出します（自分にだけ見える）。`/vrc-admin lookup` でも同じものが出ます");
+  lines.push("下の `🔎 人を調べる` を押して、Discord のユーザー名か VRChat の表示名を入れると、その人の手続きがどこまで済んでいて、何がまだかを出します（自分にだけ見える）。");
+  lines.push("`/vrc-admin lookup` でも同じものが出ます。");
   return lines;
 }
 
