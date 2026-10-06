@@ -25,6 +25,7 @@
 
 ## 版の履歴
 
+- 0.6.1: QR の画像のファイルが無いとき（消した、Git で追跡していないなど）は、QR を出さないようにした（白い四角だけが出ていた）。そのときは入力欄と説明だけが出る。`Tools > SupporterGate > Update Discord QR` で作り直せば戻る。エディタを外から動かす道具向けに、ダイアログを出さずに結果の文を返す `SupporterGateSetup.AddDiscordCopyPanelsSilent()` を足した（`UpdateDiscordQr(null)` も、ダイアログを出さずに文を返す）
 - 0.6.0: 「メンバー」の呼び名を「住人 / Resident」に変えた（支援サイトの「メンバーシップ」と紛れるため）。ワールドの表示（「あなたは住人です」、住人だけのゲートの文など）が変わる。設定とコードの名前（`Use Member List`、リストの `members`、文言のキーの `.member`）はそのまま。案内のパネルに「URL をコピー・QR」のボタンを足した。押すと、Discord の招待 URL を入れた入力欄（PC で Ctrl+A、Ctrl+C でコピーできる）、QR コード（スマホで読める）、Discord での開き方（ブラウザに貼る、アプリの「＋」から「サーバーに参加」）が出る。新しく作る一式には付く。既にあるシーンには `Tools > SupporterGate > Add Discord Copy Panel (existing scene)` で足せる（案内の文は、ボタンの分だけ上に詰める）。QR の画像は、エディタがリストの `links.discord` を読んで作る（`Assets/NagoSupporterGate/DiscordInviteQR.png`）。招待 URL を変えたら `Tools > SupporterGate > Update Discord QR` で作り直す。リストの URL と QR の URL が違うときは、古い QR を出さない。メニューの `Convert Existing World` の「メンバーだけが入れるワールドにする」は「住人だけが入れるワールドにする」になった
 - 0.5.2: `Wire Notices (existing scene)` が、ゲートの無いシーンでも動くようにした。公開のワールドに Registry とボードだけを置いた場合も、ボードに文言の表・通知・文字の自動縮小を配線する（前の版は「シーンに SupporterGate がありません」と出して止まっていた）
 - 0.5.1: 承認パネルの文字が枠からはみ出すのを修正。見出し・名前・状態・ボタンは 1 行で出し、枠の幅に収まるまで自動で小さくする（英語の長い見出しや、全角 15 文字の名前で 2 行になり、ボタンや行に重なっていた）。ロビーのボタンの文字も同じ扱いにした。上げたあとに `Wire Notices (existing scene)` をもう一度実行すると、既にあるシーンにも効く

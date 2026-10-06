@@ -42,6 +42,9 @@ SCENARIOS = [
     ("invite/oldqr（QR を作ったあとに招待 URL を変えた。古い QR は出さず、コピーの欄だけ出す）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_QRURL": "https://discord.gg/oldInvite"}, [
         "invite(ja) button=True before=False open=True url=https://discord.gg/testInvite/ field=https://discord.gg/testInvite/ qr=False help=<b>PC でコピーする</b>",
     ], [], ["invite(ja) && スマホで開く"]),
+    ("invite/noqrtex（QR の画像のファイルが無い。URL が合っていても、白い四角を出さない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOQRTEX": "1"}, [
+        "invite(ja) button=True before=False open=True url=https://discord.gg/testInvite/ field=https://discord.gg/testInvite/ qr=False help=<b>PC でコピーする</b>",
+    ], [], ["invite(ja) && スマホで開く"]),
     ("member/Paula（住人限定。本人はプラチナかつ住人）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Paula"}, [
         "info(ja)= && あなたは<color=#8FD3FF><b>プラチナサポーター</b></color>・<color=#9BE7A8><b>住人</b></color>です",
         "info(en)= && Your status && You are: <color=#8FD3FF><b>Platinum Supporter</b></color> / <color=#9BE7A8><b>Resident</b></color>",

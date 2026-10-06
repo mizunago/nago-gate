@@ -199,6 +199,8 @@ public static class PlaySmoke
         {
             string qrUrl = Env("SG_SMOKE_QRURL") == "" ? "https://discord.gg/testInvite" : Env("SG_SMOKE_QRURL");
             File.AppendAllText(LogPath, "[EDITOR] qr: " + SupporterGateSetup.UpdateDiscordQr(qrUrl).Replace("\n", " / ") + "\n");
+            // SG_SMOKE_NOQRTEX=1: QR の画像が無い（ファイルを消した）。URL は合っていても、QR は出さない
+            if (Env("SG_SMOKE_NOQRTEX") == "1") invite.transform.Find("CopyPanel/QR").GetComponent<UnityEngine.UI.RawImage>().texture = null;
             SerializedObject iso = new SerializedObject(invite);
             iso.FindProperty("debugLog").boolValue = true;
             iso.ApplyModifiedPropertiesWithoutUndo();

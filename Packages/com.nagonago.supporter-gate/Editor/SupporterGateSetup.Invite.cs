@@ -35,6 +35,15 @@ public static partial class SupporterGateSetup
     [MenuItem("Tools/SupporterGate/Add Discord Copy Panel (existing scene)", false, 22)]
     public static void AddDiscordCopyPanels()
     {
+        string msg = AddDiscordCopyPanelsSilent();
+        if (!Application.isBatchMode) EditorUtility.DisplayDialog("SupporterGate", msg, "OK");
+    }
+
+    /// <summary>
+    /// Add Discord Copy Panel の本体。ダイアログを出さずに、やったことの説明を返す（エディタを外から動かす道具や、検査から呼ぶ用）
+    /// </summary>
+    public static string AddDiscordCopyPanelsSilent()
+    {
         int added = 0;
         foreach (SupporterCreditsBoard credits in Object.FindObjectsOfType<SupporterCreditsBoard>(true))
         {
@@ -48,7 +57,7 @@ public static partial class SupporterGateSetup
         string qr = UpdateDiscordQr(null);
         string msg = (added > 0 ? "案内のパネルに、Discord のコピー欄を " + added + " 個足しました。" : "足す場所はありませんでした（案内のパネルが無いか、もう足してあります）。") + "\n\n" + qr;
         Debug.Log("[SupporterGate] " + msg.Replace("\n", " "));
-        if (!Application.isBatchMode) EditorUtility.DisplayDialog("SupporterGate", msg, "OK");
+        return msg;
     }
 
     [MenuItem("Tools/SupporterGate/Update Discord QR", false, 23)]

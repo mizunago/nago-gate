@@ -227,8 +227,9 @@ public static class PackageBatch
         TextMeshProUGUI infoText = new SerializedObject(credits).FindProperty("infoText").objectReferenceValue as TextMeshProUGUI;
         infoText.rectTransform.anchoredPosition = new Vector2(20f, 20f);   // 前の版の大きさに戻す
         infoText.rectTransform.sizeDelta = new Vector2(860f, 560f);
-        SupporterGateSetup.AddDiscordCopyPanels();
-        SupporterGateSetup.AddDiscordCopyPanels();
+        string first = SupporterGateSetup.AddDiscordCopyPanelsSilent();
+        string second = SupporterGateSetup.AddDiscordCopyPanelsSilent();
+        Log("add invite: " + first.Replace("\n", " / ") + " || again: " + second.Replace("\n", " / "));
         SupporterInviteLink[] links = UnityEngine.Object.FindObjectsOfType<SupporterInviteLink>(true);
         string texts = links.Length > 0 ? Var(links[0], "texts") : "-";
         Log("add invite x2: links=" + links.Length + " texts=" + texts + " infoText=" + infoText.rectTransform.anchoredPosition + " " + infoText.rectTransform.sizeDelta);

@@ -3,11 +3,12 @@
 // VRChat の中からはリンクを開けないので、PC では欄からコピーしてもらい、スマホでは QR を読んでもらう。
 // URL はリスト（links.discord）から読む。リストに URL が無ければ、ボタンごと隠す。
 // QR の画像はエディタで作る（Tools > SupporterGate > Add Discord Copy Panel）。作ったときの URL を qrUrl に残し、
-// リストの URL と違えば QR を隠す（古い招待を読ませない）。
+// リストの URL と違えば QR を隠す（古い招待を読ませない）。QR の画像が無いとき（ファイルを消したなど）も隠す。
 // 文言は texts（NoticeTable）から今の言語で引く。texts が無ければ日本語の既定の文を使う。
 
 using UdonSharp;
 using UnityEngine;
+using UnityEngine.UI;
 using VRC.SDKBase;
 using TMPro;
 using NagoNotice;
@@ -37,11 +38,13 @@ public class SupporterInviteLink : UdonSharpBehaviour
     [SerializeField] private bool debugLog;
 
     private string _url = "";
+    private RawImage _qrImage;
 
     void Start()
     {
         if (copyPanel != null) copyPanel.SetActive(false);
         if (openButton != null) openButton.SetActive(false);
+        if (qrRoot != null) _qrImage = qrRoot.GetComponent<RawImage>();
         if (registry != null) registry._RegisterListener(this);
         if (notice != null) notice._RegisterListener(this);
         Refresh();
@@ -100,7 +103,8 @@ public class SupporterInviteLink : UdonSharpBehaviour
 
     private void Refresh()
     {
-        bool qr = QrMatches();
+        // 画像が無いまま出すと、白い四角だけになるので出さない
+        bool qr = QrMatches() && _qrImage != null && _qrImage.texture != null;
         if (qrRoot != null) qrRoot.SetActive(qr);
         if (urlField != null && urlField.text != _url) urlField.text = _url;
         if (openLabel != null) openLabel.text = T("info.copy.open", "URL をコピー・QR");
