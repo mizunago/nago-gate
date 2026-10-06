@@ -184,6 +184,54 @@ public static class PackageBatch
         VerifyBoardOnly();
         VerifyTestPanel();
         VerifyContentGuard();
+        VerifyOwnersOnly();
+    }
+
+    /// <summary>
+    /// 持ち主だけのワールド: 変換すると、リストを使わない設定になり、覚えた持ち主の名前が入り、
+    /// どこのワールドか分かる板（名前の一覧・案内）が隠れる。許可制なら承認パネルは出したまま
+    /// </summary>
+    private static void VerifyOwnersOnly()
+    {
+        string savedPref = EditorPrefs.GetString("NagoSupporterGate.OwnerNames", "");
+        bool ok = true;
+        try
+        {
+            SupporterGateSetup.SetDefaultOwnerNames("TestOwner", " TestOwner ", "Second");
+            string prefs = string.Join(",", SupporterGateSetup.GetDefaultOwnerNames());
+            ok = prefs == "TestOwner,Second";
+            foreach (SupporterGateMode mode in new[] { SupporterGateMode.SupporterApproval, SupporterGateMode.SupportersOnly })
+            {
+                EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+                GameObject world = new GameObject("VRCWorld");
+                world.AddComponent<VRC.SDK3.Components.VRCSceneDescriptor>().spawns = new[] { world.transform };
+                world.AddComponent<VRC.Core.PipelineManager>();
+                Cube("Thing", null);
+                string report = SupporterGateSetup.ConvertExistingWorld(mode, false, true);
+                SupporterGate gate = UnityEngine.Object.FindObjectOfType<SupporterGate>(true);
+                SupporterRegistry registry = UnityEngine.Object.FindObjectOfType<SupporterRegistry>(true);
+                SerializedProperty owners = new SerializedObject(gate).FindProperty("ownerDisplayNames");
+                List<string> names = new List<string>();
+                for (int i = 0; i < owners.arraySize; i++) names.Add(owners.GetArrayElementAtIndex(i).stringValue);
+                Transform room = GameObject.Find("SupporterGate System/LobbyRoom").transform;
+                string state = "ownersOnly=" + Var(gate, "ownersOnly") + " useMemberList=" + Var(gate, "useMemberList") + " mode=" + Var(gate, "mode")
+                    + " noList=" + Var(registry, "noList") + " owners=" + string.Join(",", names)
+                    + " credits=" + room.Find("CreditsBoard").gameObject.activeSelf + " info=" + room.Find("InfoPanel").gameObject.activeSelf
+                    + " approval=" + room.Find("ApprovalPanel").gameObject.activeSelf + " guard=" + (UnityEngine.Object.FindObjectOfType<SupporterContentGuard>(true) != null);
+                Log("owners " + mode + ": " + state + " | " + report.Replace("\n", " / "));
+                bool approval = mode == SupporterGateMode.SupporterApproval;
+                ok = ok && Var(gate, "ownersOnly") == "True" && Var(gate, "useMemberList") == "False" && Var(registry, "noList") == "True"
+                    && string.Join(",", names) == "TestOwner,Second" && !room.Find("CreditsBoard").gameObject.activeSelf && !room.Find("InfoPanel").gameObject.activeSelf
+                    && room.Find("ApprovalPanel").gameObject.activeSelf == approval && state.EndsWith("guard=True")
+                    && report.Contains(approval ? "入れるのは、持ち主と、持ち主が許可した人です。" : "入れるのは、持ち主だけです。")
+                    && report.Contains("Owner Display Names: TestOwner、Second") && !report.Contains("Data Url");
+            }
+        }
+        finally
+        {
+            EditorPrefs.SetString("NagoSupporterGate.OwnerNames", savedPref);
+        }
+        Log(ok ? "VERIFY_OWNERS_ONLY_OK" : "VERIFY_OWNERS_ONLY_FAIL");
     }
 
     /// <summary>

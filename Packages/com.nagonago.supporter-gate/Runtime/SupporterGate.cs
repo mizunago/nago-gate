@@ -52,6 +52,8 @@ public class SupporterGate : UdonSharpBehaviour
     [SerializeField] private int requiredRank = 1;
     [Tooltip("ON にすると、支援のランクではなく「メンバー」（リストの members）で判定する。支援者でも、メンバーでなければ入れない")]
     [SerializeField] private bool useMemberList = false;
+    [Tooltip("持ち主だけ: 支援者のリストを使わず、Owner Display Names の人だけを「支援者」として扱う（実験用のワールドなど）。Mode が SupporterApproval なら、在室の持ち主が許可した人も入れる。リストの読み込みを待たない。表示の「支援者」は「持ち主」になる")]
+    [SerializeField] private bool ownersOnly = false;
     [Tooltip("支援者が「有効化」するまで非支援者を入れない（Approval / Presence モード）")]
     [SerializeField] private bool requireSupporterActivation = false;
     [Tooltip("支援者が全員退室してから非支援者をロビーへ戻すまでの秒数（支援者のリジョイン猶予）")]
@@ -111,7 +113,7 @@ public class SupporterGate : UdonSharpBehaviour
     void Start()
     {
         _startTime = Time.time;
-        if (registry == null) Debug.LogError("[SupporterGate] registry が未設定です");
+        if (registry == null) { if (!ownersOnly) Debug.LogError("[SupporterGate] registry が未設定です"); }
         else registry._RegisterListener(this);
         if (notice != null)
         {
@@ -140,6 +142,8 @@ public class SupporterGate : UdonSharpBehaviour
     public int _GetRequiredRank() { return requiredRank; }
     /// <summary>メンバーで判定するゲートか（表示の言葉を「メンバー」に替えるために、パネルが見る）</summary>
     public bool _UsesMemberList() { return useMemberList; }
+    /// <summary>持ち主だけのゲートか（表示の言葉を「持ち主」に替えるために、パネルが見る）</summary>
+    public bool _IsOwnersOnly() { return ownersOnly; }
     public bool _RequiresActivation() { return requireSupporterActivation; }
     public bool _IsActivated() { return _activated; }
     public bool _IsLocalAllowed() { return _localAllowed; }
@@ -151,13 +155,13 @@ public class SupporterGate : UdonSharpBehaviour
     /// <summary>ローカルプレイヤーが支援者として扱われるか</summary>
     public bool _IsLocalSupporter()
     {
-        if (registry == null) return false;
+        if (registry == null && !ownersOnly) return false;
         return LocalRank() >= requiredRank;
     }
 
     public bool _IsPlayerSupporter(VRCPlayerApi player)
     {
-        if (registry == null || player == null || !player.IsValid()) return false;
+        if ((registry == null && !ownersOnly) || player == null || !player.IsValid()) return false;
         return RankOf(player) >= requiredRank;
     }
 
@@ -297,7 +301,7 @@ public class SupporterGate : UdonSharpBehaviour
 
     private void Evaluate()
     {
-        if (registry == null) return;
+        if (registry == null && !ownersOnly) return;
         VRCPlayerApi local = Networking.LocalPlayer;
         if (local == null) return;
 
@@ -437,7 +441,7 @@ public class SupporterGate : UdonSharpBehaviour
     /// <summary>支援者に、支援者でない人の入室を知らせる（自分の入室直後に並ぶ既存の人の分は出さない）</summary>
     private void NotifySupporterOfGuest(VRCPlayerApi player)
     {
-        if (!notifySupporterOfGuests || notice == null || registry == null) return;
+        if (!notifySupporterOfGuests || notice == null || (registry == null && !ownersOnly)) return;
         if (mode != SupporterGateMode.SupporterApproval) return;
         if (player == null || !player.IsValid() || player.isLocal) return;
         if (Time.time - _startTime < 8f) return;
@@ -470,6 +474,12 @@ public class SupporterGate : UdonSharpBehaviour
         if (texts != null)
         {
             string lang = Lang();
+            // 持ち主だけのゲートでは、「支援者」を「持ち主」に言い換えた文（キー + ".owner"）があればそれを使う
+            if (ownersOnly)
+            {
+                string o = texts._Get(key + ".owner", lang);
+                if (o != null) return o;
+            }
             // メンバーで判定するゲートでは、「支援者」を「メンバー」に言い換えた文（キー + ".member"）があればそれを使う
             if (useMemberList)
             {
@@ -504,6 +514,12 @@ public class SupporterGate : UdonSharpBehaviour
     /// </summary>
     private int ListRank(VRCPlayerApi p)
     {
+        if (ownersOnly)
+        {
+            // 持ち主だけ: リストは見ない（読み込みを待たない）。テスト用の上書き中の自分だけは、その値を使う
+            if (registry != null && p.isLocal && registry._IsTestOverride()) return registry._GetRank(p);
+            return 0;
+        }
         int r = registry._GetRank(p);
         if (!useMemberList || r == SupporterRegistry.RankUnknown) return r;
         return registry._IsMember(p) ? requiredRank : 0;
@@ -516,7 +532,7 @@ public class SupporterGate : UdonSharpBehaviour
     private int RankOf(VRCPlayerApi p)
     {
         int r = ListRank(p);
-        if (r < requiredRank && IsOwnerName(p) && !(p.isLocal && registry._IsTestOverride())) return requiredRank;
+        if (r < requiredRank && IsOwnerName(p) && !(p.isLocal && registry != null && registry._IsTestOverride())) return requiredRank;
         return r;
     }
 
@@ -558,7 +574,7 @@ public class SupporterGate : UdonSharpBehaviour
     /// <summary>今、入れない理由</summary>
     private int DenyCode(int localRank)
     {
-        if (registry == null) return ReasonOther;
+        if (registry == null && !ownersOnly) return ReasonOther;
         if (localRank == SupporterRegistry.RankUnknown) return registry._HasError() ? ReasonListError : ReasonLoading;
         if (mode == SupporterGateMode.SupportersOnly) return ReasonSupportersOnly;
         if (_supporterCount == 0) return ReasonNoSupporter;
@@ -569,7 +585,7 @@ public class SupporterGate : UdonSharpBehaviour
 
     private string DenyReason()
     {
-        if (registry == null) return T("gate.deny.other", "入場できません");
+        if (registry == null && !ownersOnly) return T("gate.deny.other", "入場できません");
         return DenyReasonText(DenyCode(LocalRank()));
     }
 
@@ -615,7 +631,8 @@ public class SupporterGate : UdonSharpBehaviour
         if (localRank == SupporterRegistry.RankUnknown) you = Tint(SupporterRegistry.ColorDim, T("gate.you.checking", "確認中"));
         else if (localRank >= requiredRank)
         {
-            if (useMemberList) you = T("gate.you.member", "住人");
+            if (ownersOnly) you = T("gate.you.owner", "持ち主");
+            else if (useMemberList) you = T("gate.you.member", "住人");
             else
             {
                 // 呼び名は、案内のパネルと同じ（文言の表の credits.tier.<ティアの id>。無ければリストの label）
@@ -625,7 +642,7 @@ public class SupporterGate : UdonSharpBehaviour
                 if (id.Length > 0) you = T("credits.tier." + id, you);
             }
             // 役割の名前には色を付ける（支援者はティアの色、メンバーはメンバーの色）
-            you = Tint(useMemberList ? SupporterRegistry.ColorMember : registry._GetTierColorHex(localRank), you);
+            you = Tint(ownersOnly ? SupporterRegistry.ColorOk : useMemberList ? SupporterRegistry.ColorMember : registry._GetTierColorHex(localRank), you);
         }
         else if (_IsApproved(Networking.LocalPlayer.playerId)) you = Tint(SupporterRegistry.ColorOk, T("gate.you.approved", "許可済み"));
         else you = "<b>" + T("gate.you.guest", "一般") + "</b>";

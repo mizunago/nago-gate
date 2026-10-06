@@ -152,6 +152,9 @@ public static partial class SupporterGateSetup
         // ---- 文言の表と共通の通知 ----
         WireNotices(root);
 
+        // ---- 持ち主の名前（Tools > SupporterGate > Owner Names... で覚えさせた名前） ----
+        FillOwnerNames(gate);
+
         Undo.CollapseUndoOperations(group);
         Selection.activeGameObject = root;
         EditorSceneManager.MarkSceneDirty(root.scene);
@@ -208,7 +211,7 @@ public static partial class SupporterGateSetup
     [MenuItem("Tools/SupporterGate/Convert Existing World/支援者と、許可した人が入れるワールドにする", false, 42)]
     public static void ConvertApproval() { ConvertWithDialog(SupporterGateMode.SupporterApproval, false); }
 
-    private static void ConvertWithDialog(SupporterGateMode mode, bool useMemberList)
+    private static void ConvertWithDialog(SupporterGateMode mode, bool useMemberList, bool ownersOnly = false)
     {
         bool go = EditorUtility.DisplayDialog("SupporterGate",
             "今のシーンに、入口の部屋とゲートを足します。\n\n" +
@@ -218,14 +221,15 @@ public static partial class SupporterGateSetup
             "ワールド本体のオブジェクトは動かしません。元に戻すときは Undo（Ctrl+Z）を使ってください。",
             "実行する", "やめる");
         if (!go) return;
-        EditorUtility.DisplayDialog("SupporterGate", ConvertExistingWorld(mode, useMemberList), "OK");
+        EditorUtility.DisplayDialog("SupporterGate", ConvertExistingWorld(mode, useMemberList, ownersOnly), "OK");
     }
 
     /// <summary>
     /// ゲートの無いワールドを、入口の部屋つきのワールドに変える。戻り値は、やったことと次にやることの説明。
     /// ワールド本体のオブジェクトには触らない（スポーン地点の設定と、落下時のリスポーンの高さだけ変える）。
+    /// ownersOnly なら、持ち主だけのワールドにする（支援者のリストを使わず、Owner Display Names の人と、許可制ならその人が許可した人だけが入れる）。
     /// </summary>
-    public static string ConvertExistingWorld(SupporterGateMode mode, bool useMemberList)
+    public static string ConvertExistingWorld(SupporterGateMode mode, bool useMemberList, bool ownersOnly = false)
     {
         if (!ProgramAssetsReady()) return "UdonSharp のプログラムアセットがまだ生成されていません。コンパイルが終わるのを待ってから、もう一度実行してください。";
         VRCSceneDescriptor descriptor = Object.FindObjectOfType<VRCSceneDescriptor>(true);
@@ -309,7 +313,9 @@ public static partial class SupporterGateSetup
 
         // 9. ゲートの設定
         SetInt(gate, "mode", (int)mode);
-        SetBool(gate, "useMemberList", useMemberList);
+        SetBool(gate, "useMemberList", useMemberList && !ownersOnly);
+        string ownersReport = ownersOnly ? ApplyOwnersOnly(gate, root) : "";
+        string[] owners = FillOwnerNames(gate);
 
         // 10. 入れない人の画面で、ワールド本体を見せない・聞かせない（同期する物は見た目だけ消す）
         string guardReport = SetUpContentGuardSilent();
@@ -318,19 +324,31 @@ public static partial class SupporterGateSetup
         Selection.activeGameObject = room;
         EditorSceneManager.MarkSceneDirty(root.scene);
 
-        string who = useMemberList ? "住人だけ" : (mode == SupporterGateMode.SupporterApproval ? "支援者と、支援者が許可した人" : "支援者だけ");
+        string who = ownersOnly ? (mode == SupporterGateMode.SupporterApproval ? "持ち主と、持ち主が許可した人" : "持ち主だけ")
+            : useMemberList ? "住人だけ" : (mode == SupporterGateMode.SupporterApproval ? "支援者と、支援者が許可した人" : "支援者だけ");
+        string ownerLine = owners.Length > 0
+            ? "・Owner Display Names: " + string.Join("、", owners) + "\n"
+            : "・Owner Display Names が空です（" + (ownersOnly ? "このままでは誰も入れません" : "持ち主の特別枠が無い") + "）。Tools > SupporterGate > Owner Names... で名前を覚えさせると、次から自動で入ります\n";
+        string next = ownersOnly
+            ? "次にやること\n" +
+              (owners.Length > 0 ? "" : "1. Gate の Owner Display Names に、自分の VRChat の表示名を入れる\n") +
+              "・入口の部屋の見た目は自由に変えてよい（LobbyRoom ごと動かせます）\n" +
+              "・ワールド本体を変えたら、Tools > SupporterGate > Set Up Content Guard (auto) をもう一度実行する（入れない人に見せない物を選び直す）"
+            : "次にやること\n" +
+              "1. SupporterGate System > Registry の Data Url に、支援者リストの URL を入れる\n" +
+              (owners.Length > 0 ? "" : "2. 自分が入れるように、Gate の Owner Display Names に自分の VRChat の表示名を入れる\n") +
+              "・入口の部屋の見た目は自由に変えてよい（LobbyRoom ごと動かせます）\n" +
+              "・ワールド本体を変えたら、Tools > SupporterGate > Set Up Content Guard (auto) をもう一度実行する（入れない人に見せない物を選び直す）";
         string report =
             "入口の部屋とゲートを足しました。入れるのは、" + who + "です。\n\n" +
             "やったこと\n" +
             "・入口の部屋（LobbyRoom）を、ワールドの " + LobbyDepth.ToString("0") + " m 下に作りました\n" +
             "・スポーン地点を入口の部屋に替えました（元は " + oldSpawnCount + " か所。1 つ目を「入場したあとに出る場所」に引き継ぎました）\n" +
             "・落下時のリスポーンの高さ: " + oldRespawn.ToString("0.#") + " → " + descriptor.RespawnHeightY.ToString("0.#") + "\n" +
+            (ownersOnly ? "・" + ownersReport + "\n" : "") +
+            ownerLine +
             "・" + guardReport.Split('\n')[0] + "\n\n" +
-            "次にやること\n" +
-            "1. SupporterGate System > Registry の Data Url に、支援者リストの URL を入れる\n" +
-            "2. 自分が入れるように、Gate の Owner Display Names に自分の VRChat の表示名を入れる\n" +
-            "3. 入口の部屋の見た目は自由に変えてよい（LobbyRoom ごと動かせます）\n" +
-            "4. ワールド本体を変えたら、Tools > SupporterGate > Set Up Content Guard (auto) をもう一度実行する（入れない人に見せない物を選び直す）";
+            next;
         Debug.Log("[SupporterGate] " + report);
         return report;
     }

@@ -95,7 +95,11 @@ public static class PlaySmoke
             hidden.transform.localScale = new Vector3(4f, 2f, 4f);
             hidden.SetActive(false);
 
-            string report = SupporterGateSetup.ConvertExistingWorld(memberVariant ? SupporterGateMode.SupportersOnly : SupporterGateMode.SupporterApproval, memberVariant);
+            // SG_SMOKE_OWNERS: 持ち主だけのワールド。approval = 持ち主と、許可した人 / only = 持ち主だけ
+            string ownersEnv = Env("SG_SMOKE_OWNERS");
+            string report = ownersEnv != ""
+                ? SupporterGateSetup.ConvertExistingWorld(ownersEnv == "only" ? SupporterGateMode.SupportersOnly : SupporterGateMode.SupporterApproval, false, true)
+                : SupporterGateSetup.ConvertExistingWorld(memberVariant ? SupporterGateMode.SupportersOnly : SupporterGateMode.SupporterApproval, memberVariant);
             File.AppendAllText(LogPath, "[EDITOR] convert report: " + report.Replace("\n", " / ") + "\n");
             string again = SupporterGateSetup.ConvertExistingWorld(SupporterGateMode.SupportersOnly, true);
             File.AppendAllText(LogPath, "[EDITOR] convert again: " + again.Replace("\n", " / ") + "\n");
@@ -106,7 +110,8 @@ public static class PlaySmoke
             File.AppendAllText(LogPath, "[EDITOR] convert result: spawns=" + desc.spawns.Length + " spawn0=" + desc.spawns[0].name + "@" + desc.spawns[0].position.ToString("0.00")
                 + " parent=" + desc.spawns[0].parent.name + " respawnY=" + desc.RespawnHeightY + " room=" + room.position.ToString("0.00")
                 + " contentSpawn=" + cs.position.ToString("0.00") + " rotY=" + cs.eulerAngles.y.ToString("0") + " zoneCenter=" + zone.transform.position.ToString("0.00") + " zoneSize=" + zone.size.ToString("0.00")
-                + " approvalActive=" + room.Find("ApprovalPanel").gameObject.activeSelf + " roomChildren=" + room.childCount + "\n");
+                + " approvalActive=" + room.Find("ApprovalPanel").gameObject.activeSelf + " creditsActive=" + room.Find("CreditsBoard").gameObject.activeSelf
+                + " infoActive=" + room.Find("InfoPanel").gameObject.activeSelf + " roomChildren=" + room.childCount + "\n");
         }
         else
         {

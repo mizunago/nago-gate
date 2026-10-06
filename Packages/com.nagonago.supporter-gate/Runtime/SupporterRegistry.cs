@@ -58,6 +58,9 @@ public class SupporterRegistry : UdonSharpBehaviour
 
     [SerializeField] private bool debugMode;
 
+    [Tooltip("リストを読まない（持ち主だけのワールド。Gate の Owners Only と一緒に使う）。テスト用のパネルの上書きだけを受け付ける")]
+    [SerializeField] private bool noList;
+
     // ---- 取得データ ----
     private DataDictionary _access;
     private DataList _credits;
@@ -118,6 +121,11 @@ public class SupporterRegistry : UdonSharpBehaviour
         for (int i = 0; i < MaxSlots; i++) _slotIds[i] = 0;
         // 鍵が入っていれば、リストも鍵つきだと見込んでハッシュを作る（違っていたら、読み込んだときに作り直す）
         _hashKeyed = listKey != null && listKey.Length > 0;
+        if (noList)
+        {
+            if (debugMode) Debug.Log("[SupporterRegistry] リストを読まない設定です（持ち主だけのワールド）");
+            return;
+        }
         _StartDownload();
     }
 
@@ -293,7 +301,7 @@ public class SupporterRegistry : UdonSharpBehaviour
 
     public void _StartDownload()
     {
-        if (_downloading) return;
+        if (_downloading || noList) return;
         if (dataUrl == null || dataUrl.Get().Length == 0)
         {
             _lastError = "dataUrl が未設定";

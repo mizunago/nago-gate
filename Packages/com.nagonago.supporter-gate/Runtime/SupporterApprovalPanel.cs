@@ -102,7 +102,12 @@ public class SupporterApprovalPanel : UdonSharpBehaviour
         if (texts != null)
         {
             string lang = Lang();
-            // メンバーで判定するゲートでは、「支援者」を「メンバー」に言い換えた文（キー + ".member"）があればそれを使う
+            // 持ち主だけのゲートでは「持ち主」に、メンバーで判定するゲートでは「メンバー」に言い換えた文があればそれを使う
+            if (gate != null && gate._IsOwnersOnly())
+            {
+                string o = texts._Get(key + ".owner", lang);
+                if (o != null) return o;
+            }
             if (gate != null && gate._UsesMemberList())
             {
                 string m = texts._Get(key + ".member", lang);
@@ -116,7 +121,7 @@ public class SupporterApprovalPanel : UdonSharpBehaviour
 
     private void Refresh()
     {
-        if (gate == null || registry == null || rows == null) return;
+        if (gate == null || rows == null) return;
         VRCPlayerApi local = Networking.LocalPlayer;
         if (local == null) return;
 

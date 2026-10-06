@@ -41,6 +41,13 @@
     "zh-CN": "此区域仅限居民",
     "zh-TW": "此區域僅限居民"
   },
+  "gate.deny.supportersOnly.owner": {
+    "ja": "持ち主だけが入れるエリアです",
+    "en": "Only the owner can enter this area.",
+    "ko": "주인만 들어갈 수 있는 구역입니다",
+    "zh-CN": "此区域仅限主人进入",
+    "zh-TW": "此區域僅限主人進入"
+  },
   "gate.deny.noSupporter": {
     "ja": "支援者が在室していないため、\n入場できません",
     "en": "You can't enter because no supporter is in this instance.",
@@ -54,6 +61,13 @@
     "ko": "이 인스턴스에 주민이 없어 입장할 수 없습니다",
     "zh-CN": "当前房间内没有居民，无法进入",
     "zh-TW": "目前房間內沒有居民，無法進入"
+  },
+  "gate.deny.noSupporter.owner": {
+    "ja": "持ち主が在室していないため、\n入場できません",
+    "en": "You can't enter because the owner is not in this instance.",
+    "ko": "이 인스턴스에 주인이 없어 입장할 수 없습니다",
+    "zh-CN": "当前房间内没有主人，无法进入",
+    "zh-TW": "目前房間內沒有主人，無法進入"
   },
   "gate.deny.notActivated": {
     "ja": "支援者がエリアを開くまで\nお待ちください",
@@ -69,6 +83,13 @@
     "zh-CN": "请等待居民开放此区域",
     "zh-TW": "請等待居民開放此區域"
   },
+  "gate.deny.notActivated.owner": {
+    "ja": "持ち主がエリアを開くまで\nお待ちください",
+    "en": "Please wait until the owner opens the area.",
+    "ko": "주인이 구역을 열 때까지 기다려 주세요",
+    "zh-CN": "请等待主人开放此区域",
+    "zh-TW": "請等待主人開放此區域"
+  },
   "gate.deny.notApproved": {
     "ja": "在室中の支援者の許可が必要です",
     "en": "You need approval from a supporter in this instance.",
@@ -82,6 +103,13 @@
     "ko": "이 인스턴스에 있는 주민의 허가가 필요합니다",
     "zh-CN": "需要房间内的居民许可",
     "zh-TW": "需要房間內的居民許可"
+  },
+  "gate.deny.notApproved.owner": {
+    "ja": "在室中の持ち主の許可が必要です",
+    "en": "You need approval from the owner in this instance.",
+    "ko": "이 인스턴스에 있는 주인의 허가가 필요합니다",
+    "zh-CN": "需要房间内的主人许可",
+    "zh-TW": "需要房間內的主人許可"
   },
   "gate.deny.other": {
     "ja": "入場できません",
@@ -104,6 +132,13 @@
     "zh-CN": "居民已离开且等待时间已过，\n已返回大厅",
     "zh-TW": "居民已離開且等待時間已過，\n已返回大廳"
   },
+  "gate.return.noSupporter.owner": {
+    "ja": "持ち主の退出から時間が経ち、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the owner left and the grace time ran out.",
+    "ko": "주인이 퇴장한 뒤 시간이 지나 로비로 돌아왔습니다",
+    "zh-CN": "主人已离开且等待时间已过，\n已返回大厅",
+    "zh-TW": "主人已離開且等待時間已過，\n已返回大廳"
+  },
   "gate.return.revoked": {
     "ja": "支援者が許可を取り消したため、\nロビーに戻りました",
     "en": "You were returned to the lobby because the supporter revoked your access.",
@@ -117,6 +152,13 @@
     "ko": "주민이 입장 허가를 취소하여 로비로 돌아왔습니다",
     "zh-CN": "居民取消了你的进入许可，\n已返回大厅",
     "zh-TW": "居民取消了你的進入許可，\n已返回大廳"
+  },
+  "gate.return.revoked.owner": {
+    "ja": "持ち主が許可を取り消したため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the owner revoked your access.",
+    "ko": "주인이 입장 허가를 취소하여 로비로 돌아왔습니다",
+    "zh-CN": "主人取消了你的进入许可，\n已返回大厅",
+    "zh-TW": "主人取消了你的進入許可，\n已返回大廳"
   },
   "gate.return.notApproved": {
     "ja": "入場の許可が無くなったため、\nロビーに戻りました",
@@ -139,6 +181,13 @@
     "zh-CN": "居民关闭了此区域，已返回大厅",
     "zh-TW": "居民關閉了此區域，已返回大廳"
   },
+  "gate.return.deactivated.owner": {
+    "ja": "持ち主がエリアを閉じたため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because the owner closed the area.",
+    "ko": "주인이 구역을 닫아 로비로 돌아왔습니다",
+    "zh-CN": "主人关闭了此区域，已返回大厅",
+    "zh-TW": "主人關閉了此區域，已返回大廳"
+  },
   "gate.return.supportersOnly": {
     "ja": "支援者限定エリアのため、\nロビーに戻りました",
     "en": "You were returned to the lobby because this area is for supporters only.",
@@ -152,6 +201,13 @@
     "ko": "주민 전용 구역이라 로비로 돌아왔습니다",
     "zh-CN": "此区域仅限居民，已返回大厅",
     "zh-TW": "此區域僅限居民，已返回大廳"
+  },
+  "gate.return.supportersOnly.owner": {
+    "ja": "持ち主だけが入れるエリアのため、\nロビーに戻りました",
+    "en": "You were returned to the lobby because only the owner can enter this area.",
+    "ko": "주인만 들어갈 수 있는 구역이라 로비로 돌아왔습니다",
+    "zh-CN": "此区域仅限主人进入，已返回大厅",
+    "zh-TW": "此區域僅限主人進入，已返回大廳"
   },
   "gate.return.listUnavailable": {
     "ja": "支援者リストを確認できず、\nロビーに戻りました",
@@ -188,6 +244,13 @@
     "zh-CN": "居民已离开。\n{0} 后将返回大厅",
     "zh-TW": "居民已離開。\n{0} 後將返回大廳"
   },
+  "gate.countdown.owner": {
+    "ja": "持ち主が退出しました。\nあと {0} でロビーに戻ります",
+    "en": "The owner has left.\nReturning to the lobby in {0}",
+    "ko": "주인이 퇴장했습니다.\n{0} 후 로비로 돌아갑니다",
+    "zh-CN": "主人已离开。\n{0} 后将返回大厅",
+    "zh-TW": "主人已離開。\n{0} 後將返回大廳"
+  },
   "gate.supporterBack": {
     "ja": "支援者が戻りました。\nこのまま利用できます",
     "en": "The supporter is back. You can stay.",
@@ -202,6 +265,13 @@
     "zh-CN": "居民已回来，可以继续使用",
     "zh-TW": "居民已回來，可以繼續使用"
   },
+  "gate.supporterBack.owner": {
+    "ja": "持ち主が戻りました。\nこのまま利用できます",
+    "en": "The owner is back. You can stay.",
+    "ko": "주인이 돌아왔습니다. 계속 이용할 수 있습니다",
+    "zh-CN": "主人已回来，可以继续使用",
+    "zh-TW": "主人已回來，可以繼續使用"
+  },
   "gate.approved": {
     "ja": "入場が許可されました",
     "en": "A supporter approved your access.",
@@ -212,6 +282,13 @@
   "gate.approved.member": {
     "ja": "入場が許可されました",
     "en": "A resident approved your access.",
+    "ko": "입장이 허가되었습니다",
+    "zh-CN": "已获得进入许可",
+    "zh-TW": "已獲得進入許可"
+  },
+  "gate.approved.owner": {
+    "ja": "入場が許可されました",
+    "en": "The owner approved your access.",
     "ko": "입장이 허가되었습니다",
     "zh-CN": "已获得进入许可",
     "zh-TW": "已獲得進入許可"
@@ -258,6 +335,13 @@
     "zh-CN": "在场居民",
     "zh-TW": "在場居民"
   },
+  "gate.status.supporters.owner": {
+    "ja": "在室の持ち主",
+    "en": "Owner here",
+    "ko": "현재 주인",
+    "zh-CN": "在场主人",
+    "zh-TW": "在場主人"
+  },
   "gate.status.you": {
     "ja": "あなた",
     "en": "You",
@@ -293,6 +377,13 @@
     "zh-CN": "仅限居民",
     "zh-TW": "僅限居民"
   },
+  "gate.mode.supportersOnly.owner": {
+    "ja": "持ち主だけ",
+    "en": "Owner only",
+    "ko": "주인 전용",
+    "zh-CN": "仅限主人",
+    "zh-TW": "僅限主人"
+  },
   "gate.mode.approval": {
     "ja": "支援者＋許可制",
     "en": "Supporters + approved guests",
@@ -307,6 +398,13 @@
     "zh-CN": "居民＋许可制",
     "zh-TW": "居民＋許可制"
   },
+  "gate.mode.approval.owner": {
+    "ja": "持ち主＋許可制",
+    "en": "Owner + approved guests",
+    "ko": "주인 + 허가제",
+    "zh-CN": "主人＋许可制",
+    "zh-TW": "主人＋許可制"
+  },
   "gate.mode.presence": {
     "ja": "支援者在室中は開放",
     "en": "Open while a supporter is here",
@@ -320,6 +418,13 @@
     "ko": "주민이 있는 동안 개방",
     "zh-CN": "居民在场时开放",
     "zh-TW": "居民在場時開放"
+  },
+  "gate.mode.presence.owner": {
+    "ja": "持ち主の在室中は開放",
+    "en": "Open while the owner is here",
+    "ko": "주인이 있는 동안 개방",
+    "zh-CN": "主人在场时开放",
+    "zh-TW": "主人在場時開放"
   },
   "gate.you.checking": {
     "ja": "確認中",
@@ -391,6 +496,13 @@
     "zh-CN": "此面板仅限居民使用",
     "zh-TW": "此面板僅限居民使用"
   },
+  "panel.denied.owner": {
+    "ja": "このパネルは持ち主専用です",
+    "en": "This panel is for the owner only.",
+    "ko": "이 패널은 주인 전용입니다",
+    "zh-CN": "此面板仅限主人使用",
+    "zh-TW": "此面板僅限主人使用"
+  },
   "panel.activate": {
     "ja": "エリアを有効化",
     "en": "Open the area",
@@ -447,6 +559,13 @@
     "zh-CN": "进入许可（非居民 {0} 人）",
     "zh-TW": "進入許可（非居民 {0} 人）"
   },
+  "panel.header.approval.owner": {
+    "ja": "入場許可（持ち主以外 {0} 人）",
+    "en": "Approve guests ({0} guests)",
+    "ko": "입장 허가 (주인 외 {0}명)",
+    "zh-CN": "进入许可（主人以外 {0} 人）",
+    "zh-TW": "進入許可（主人以外 {0} 人）"
+  },
   "panel.header.presence": {
     "ja": "支援者在室中は開放（非支援者 {0} 人）",
     "en": "Open while a supporter is here ({0} non-supporters)",
@@ -461,6 +580,13 @@
     "zh-CN": "居民在场时开放（非居民 {0} 人）",
     "zh-TW": "居民在場時開放（非居民 {0} 人）"
   },
+  "panel.header.presence.owner": {
+    "ja": "持ち主の在室中は開放（持ち主以外 {0} 人）",
+    "en": "Open while the owner is here ({0} guests)",
+    "ko": "주인이 있는 동안 개방 (주인 외 {0}명)",
+    "zh-CN": "主人在场时开放（主人以外 {0} 人）",
+    "zh-TW": "主人在場時開放（主人以外 {0} 人）"
+  },
   "panel.header.supportersOnly": {
     "ja": "支援者限定モード",
     "en": "Supporters only",
@@ -474,6 +600,13 @@
     "ko": "주민 전용 모드",
     "zh-CN": "仅限居民模式",
     "zh-TW": "僅限居民模式"
+  },
+  "panel.header.supportersOnly.owner": {
+    "ja": "持ち主だけのモード",
+    "en": "Owner only",
+    "ko": "주인 전용 모드",
+    "zh-CN": "仅限主人模式",
+    "zh-TW": "僅限主人模式"
   },
   "panel.header.open": {
     "ja": "公開モード",
@@ -600,6 +733,13 @@
     "ko": "주민",
     "zh-CN": "居民",
     "zh-TW": "居民"
+  },
+  "gate.you.owner": {
+    "ja": "持ち主",
+    "en": "Owner",
+    "ko": "주인",
+    "zh-CN": "主人",
+    "zh-TW": "主人"
   },
   "gate.button.enter": {
     "ja": "入場する",

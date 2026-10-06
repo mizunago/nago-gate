@@ -48,6 +48,7 @@ SupporterGate System
 | Mode | `Open` 公開 / `SupportersOnly` 支援者のみ / `SupporterApproval` 支援者＋許可した人 / `SupporterPresence` 支援者在室中は誰でも |
 | Required Rank | この値以上を支援者扱い（プラチナ限定なら 2 など） |
 | Use Member List | ON にすると、支援のランクではなく住人で判定する（下の「住人だけが入れるワールド」） |
+| Owners Only | ON にすると、支援者のリストを使わず、Owner Display Names の人だけを支援者として扱う（下の「持ち主だけのワールド」） |
 | Require Supporter Activation | ON にすると、支援者が「エリアを有効化」を押すまで非支援者は入れない |
 | No Supporter Grace Seconds | 支援者が全員いなくなってから非支援者を戻すまでの秒数 |
 | Fail Open When Registry Unavailable | リスト取得失敗時に非支援者を通すか。限定ワールドでは OFF |
@@ -210,6 +211,22 @@ public void _OnRegistryUpdated()
 - クレジットの名前を自分で並べるときは、`_AreCreditsReady()` が true になってから `_GetCreditCount()` / `_GetCreditName(i)` / `_GetCreditRank(i)` を読みます（鍵つきのリストでは、読み込みの少しあとに揃う。揃ったときにも `_OnRegistryUpdated` が呼ばれる）
 - `SupporterGate._IsLocalAllowed()` で入場可否を参照できます
 - 通知を自分のギミックから出す方法は Nago Notice の README を参照
+
+## 持ち主だけのワールド（実験用など）
+
+実験用に上げたワールドを、オンラインの状態の変え忘れなどで見つけられても、入れないようにする設定です。支援者のリストは使いません。
+
+| メニュー（Convert Existing World の下） | 入れる人 |
+|---|---|
+| 持ち主と、許可した人だけが入れるワールドにする | 持ち主と、在室の持ち主が承認パネルで許可した人（持ち主が抜けると、猶予のあとロビーへ戻る） |
+| 持ち主だけが入れるワールドにする | 持ち主だけ |
+
+- 持ち主は Gate の **Owner Display Names**（VRChat の表示名の完全一致）。`Tools > SupporterGate > Owner Names...` で、このパソコンに名前を覚えさせると、ゲートを作るときに自動で入る（空のままだと誰も入れない）
+- Gate の **Owners Only** と、Registry の **No List** が ON になる。リストの読み込みを待たないので、持ち主はすぐ入れる
+- 表示の「支援者」は「持ち主」になる（ロビーの板・承認パネル・通知）
+- どこのワールドか分からないように、支援者の名前の一覧と、案内のパネル（Discord の招待）は隠す
+- 入れない人に見せない仕組み（下の ContentGuard）も作る。入れない人には、ワールドの中身が見えず、音も聞こえない
+- テスト用のパネル（Build & Test）で、「ランクなし」を押すと、持ち主のままで入れない人の見え方を確かめられる
 
 ## 入れない人に見せない仕組み（ContentGuard）
 

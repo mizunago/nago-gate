@@ -159,6 +159,19 @@ SCENARIOS = [
         "guard remute mute=False",
         "t=9  && allowed=True inside=True",
     ]),
+    ("owners/guest（持ち主と、許可した人だけのワールドを変換。本人はリストの住人だが、持ち主ではなく許可も無い）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_OWNERS": "approval"}, [
+        "convert report: 入口の部屋とゲートを足しました。入れるのは、持ち主と、持ち主が許可した人です。 && 支援者のリストを使わない設定にし、支援者の名前の板と案内のパネルを隠しました（2 枚）",
+        "convert result: && approvalActive=True creditsActive=False infoActive=False",
+        "link(discord)= && loaded=False",
+        "t=9  && allowed=False inside=False && You need approval from the owner in this instance.",
+        "status(late)= && <b>持ち主＋許可制</b> && 在室の持ち主: && あなた:</color> <b>一般</b> && <b>不可</b>",
+    ], [], ["dataUrl が未設定"]),
+    ("owners/owner（持ち主だけのワールドを変換。本人は持ち主。リストを待たずに入れる）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_OWNERS": "only", "SG_SMOKE_NAME": "OwnerLocal", "SG_SMOKE_REMOTE": "none"}, [
+        "convert report: 入口の部屋とゲートを足しました。入れるのは、持ち主だけです。",
+        "convert result: && approvalActive=False creditsActive=False infoActive=False",
+        "t=9  && pos=(3.0, 0.0, -4.0) && allowed=True inside=True",
+        "status(late)= && <b>持ち主だけ</b> && 在室の持ち主:</color> <b>1</b> && あなた:</color> <color=#7CFC9A><b>持ち主</b></color> && <b>可</b>",
+    ], [], ["dataUrl が未設定"]),
     ("nomember/GuestLocal（住人向けの物が無い公開ワールド。本人は住人だが、住人に触れない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1"}, [
         "info(ja)= && 支援者の登録は見つかりません && 支援の方法は、/Discord で案内しています && <b>discord.gg/testInvite</b>",
         "info(en)= && No supporter registration found && How to support/is explained on our Discord",
@@ -225,7 +238,7 @@ def main() -> int:
         print("== コンパイルと配線の確認 ==")
         run_unity("PackageBatch.BuildAll", "unity-build.log", {}, True)
         result = (PROJECT / "batch-result.txt").read_text(encoding="utf-8", errors="replace") if (PROJECT / "batch-result.txt").exists() else ""
-        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result and "VERIFY_INVITE_OK" in result and "VERIFY_ADD_INVITE_OK" in result and "VERIFY_SMALL_BOARD_OK" in result and "VERIFY_TEST_PANEL_OK" in result and "VERIFY_CONTENT_GUARD_OK" in result
+        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result and "VERIFY_INVITE_OK" in result and "VERIFY_ADD_INVITE_OK" in result and "VERIFY_SMALL_BOARD_OK" in result and "VERIFY_TEST_PANEL_OK" in result and "VERIFY_CONTENT_GUARD_OK" in result and "VERIFY_OWNERS_ONLY_OK" in result
         print("  " + ("ok" if build_ok else "FAIL（unity-test/batch-result.txt と unity-build.log を見る）"))
         if not build_ok:
             return 1
