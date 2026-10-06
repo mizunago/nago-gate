@@ -89,6 +89,9 @@ SCENES = [
     ("21-presence-long-en", "長い文字の確認。英語の表示で、支援者がいる間だけ開くワールドの承認パネル",
      {"SG_SMOKE_NAME": "Dave", "SG_SMOKE_REMOTE": "あいうえおかきくけこさしすせそ", "SG_SMOKE_LANG": "en", "SG_SMOKE_NOENTER": "1"},
      [("a-ApprovalPanel", "承認パネル。長い見出しが 1 行に収まる")]),
+    ("22-test-panel", "テスト用のパネル（Play モードと Build & Test だけに出る）。住人限定のワールドで、支援者だが住人ではない Dave が「住人」を押した",
+     {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave", "SG_SMOKE_REMOTE": "none", "SG_SMOKE_NOENTER": "1", "SG_SMOKE_TESTPANEL": "hold"},
+     [("a-TestPanel", "テスト用のパネル。上書き中で、住人として入場できる"), ("a-LobbyPanel", "ロビーのパネル（「ロビーへ戻る」は無い）")]),
 ]
 
 

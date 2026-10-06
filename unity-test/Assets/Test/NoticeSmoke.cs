@@ -29,6 +29,9 @@ public class NoticeSmoke : UdonSharpBehaviour
     public TMP_InputField inviteField;
     public TextMeshProUGUI inviteHelp;
     public GameObject inviteOpenButton;
+    public SupporterTestPanel testPanel;
+    public bool testPanelSteps;
+    public bool testPanelHold;
 
     private int _tick;
 
@@ -36,6 +39,34 @@ public class NoticeSmoke : UdonSharpBehaviour
     {
         SendCustomEventDelayedSeconds(nameof(_Step1), 2f);
         SendCustomEventDelayedSeconds(nameof(_Report), 1f);
+        if (testPanelSteps) SendCustomEventDelayedSeconds(nameof(_TestPanelA), 4f);
+    }
+
+    private string TestState()
+    {
+        return "allowed=" + gate._IsLocalAllowed() + " rank=" + registry._GetLocalRank() + " member=" + registry._IsLocalMember() + " override=" + registry._IsTestOverride();
+    }
+
+    // テスト用のパネル: Play モードでは出ていて、持ち主でなくても使える。押すと扱いが変わり、戻すとリストどおりになる
+    public void _TestPanelA()
+    {
+        if (testPanel == null) { Debug.Log("[SMOKE] testpanel missing"); return; }
+        Debug.Log("[SMOKE] testpanel active=" + testPanel.gameObject.activeInHierarchy + " canUse=" + testPanel._CanUse() + " before " + TestState());
+        testPanel._ResidentOn();
+        Debug.Log("[SMOKE] testpanel residentOn " + TestState());
+        if (testPanelHold) return;
+        testPanel._RankHigh();
+        Debug.Log("[SMOKE] testpanel rankHigh " + TestState());
+        testPanel._RankNone();
+        testPanel._ResidentOff();
+        Debug.Log("[SMOKE] testpanel none " + TestState());
+        SendCustomEventDelayedSeconds(nameof(_TestPanelB), 2f);
+    }
+
+    public void _TestPanelB()
+    {
+        testPanel._ResetToList();
+        Debug.Log("[SMOKE] testpanel reset " + TestState());
     }
 
     public void _Report()

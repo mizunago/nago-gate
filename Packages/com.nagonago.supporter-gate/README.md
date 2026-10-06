@@ -8,6 +8,7 @@
 - 住人（支援とは別の軸。設定やリストの中の名前は member）で判定するゲートも作れる。支援者でも、住人でなければ入れない
 - クレジットのボード: 支援者の名前の一覧、見ている本人の状態（「あなたはサポーターです」など）、Discord の招待 URL
 - Discord の招待 URL のコピー欄と QR コード（VRChat の中ではリンクを開けないため。PC はコピー、スマホは QR）
+- テスト用のパネル: Unity の Play モードと SDK の Build & Test のときだけ出て、自分の扱い（ランク・住人）を切り替えて確かめられる
 - 文言は日本語・英語・韓国語・中国語（簡体・繁体）
 
 対象: VRChat Worlds SDK 3.10 以降 / Unity 2022.3。Nago Notice（`com.nagonago.notice`）に依存します。
@@ -25,6 +26,7 @@
 
 ## 版の履歴
 
+- 0.7.0: テスト用のパネルを足した。Unity の Play モード（ClientSim）と SDK の Build & Test のときだけ出て、自分のランクと住人の扱いを、リストの結果の代わりに切り替えられる。ゲート・ボード・住人だけに見せる物が、本物と同じ流れで切り替わる。持ち主の名前で入っていても、上書き中は持ち主の特別枠を使わないので、入れない人の見え方も確かめられる。Build & Test では Gate の Owner Display Names の人だけが使え、公開用のビルド（Build and Upload）ではパネルごと取り除く。新しく作る一式には付く。既にあるシーンには `Tools > SupporterGate > Add Test Panel (existing scene)` で足せる。ロビーの板の「ロビーへ戻る」ボタンをやめた（ロビーの中にあり、押しても何も変わらなかった。中からは VRChat のメニューの Respawn で戻れる）。既にあるシーンのボタンは `Tools > SupporterGate > Remove Return Button (existing scene)` で外せる。入れなくなった人をロビーへ戻す処理は、今までどおり動く
 - 0.6.2: Discord のコピー欄を、板（案内のパネル）の大きさに対する比率で置くようにした。0.6.1 までは 900×600 の板を前提に決まった位置に置いていたので、小さな板では欄がはみ出していた。QR は、板の形に合わせて正方形を保つ。ボタンの場所を空けるとき、案内の文の欄の下の辺だけを上げ、上の辺は動かさないようにした（0.6.1 は欄ごと上へずらしていたので、額縁に合わせた文が上に寄った）。既に欄を足したシーンでも、`Tools > SupporterGate > Add Discord Copy Panel (existing scene)` をもう一度実行すると、板の大きさに合わせて置き直す。0.6.1 で上へずれた文の欄は、元の位置に戻してから実行する
 - 0.6.1: QR の画像のファイルが無いとき（消した、Git で追跡していないなど）は、QR を出さないようにした（白い四角だけが出ていた）。そのときは入力欄と説明だけが出る。`Tools > SupporterGate > Update Discord QR` で作り直せば戻る。エディタを外から動かす道具向けに、ダイアログを出さずに結果の文を返す `SupporterGateSetup.AddDiscordCopyPanelsSilent()` を足した（`UpdateDiscordQr(null)` も、ダイアログを出さずに文を返す）
 - 0.6.0: 「メンバー」の呼び名を「住人 / Resident」に変えた（支援サイトの「メンバーシップ」と紛れるため）。ワールドの表示（「あなたは住人です」、住人だけのゲートの文など）が変わる。設定とコードの名前（`Use Member List`、リストの `members`、文言のキーの `.member`）はそのまま。案内のパネルに「URL をコピー・QR」のボタンを足した。押すと、Discord の招待 URL を入れた入力欄（PC で Ctrl+A、Ctrl+C でコピーできる）、QR コード（スマホで読める）、Discord での開き方（ブラウザに貼る、アプリの「＋」から「サーバーに参加」）が出る。新しく作る一式には付く。既にあるシーンには `Tools > SupporterGate > Add Discord Copy Panel (existing scene)` で足せる（案内の文は、ボタンの分だけ上に詰める）。QR の画像は、エディタがリストの `links.discord` を読んで作る（`Assets/NagoSupporterGate/DiscordInviteQR.png`）。招待 URL を変えたら `Tools > SupporterGate > Update Discord QR` で作り直す。リストの URL と QR の URL が違うときは、古い QR を出さない。メニューの `Convert Existing World` の「メンバーだけが入れるワールドにする」は「住人だけが入れるワールドにする」になった

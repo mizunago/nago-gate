@@ -509,11 +509,14 @@ public class SupporterGate : UdonSharpBehaviour
         return registry._IsMember(p) ? requiredRank : 0;
     }
 
-    /// <summary>リストのランク。持ち主の特別枠はリストに無くても支援者（requiredRank）として扱う（リストの取得前でも）</summary>
+    /// <summary>
+    /// リストのランク。持ち主の特別枠はリストに無くても支援者（requiredRank）として扱う（リストの取得前でも）。
+    /// テスト用の上書き中の自分には、特別枠を使わない（持ち主のまま、入れない人の見え方を確かめられるように）
+    /// </summary>
     private int RankOf(VRCPlayerApi p)
     {
         int r = ListRank(p);
-        if (r < requiredRank && IsOwnerName(p)) return requiredRank;
+        if (r < requiredRank && IsOwnerName(p) && !(p.isLocal && registry._IsTestOverride())) return requiredRank;
         return r;
     }
 
@@ -521,9 +524,13 @@ public class SupporterGate : UdonSharpBehaviour
     {
         VRCPlayerApi local = Networking.LocalPlayer;
         if (local == null) return SupporterRegistry.RankUnknown;
-        int r = ListRank(local);
-        if (r < requiredRank && IsOwnerName(local)) return requiredRank;
-        return r;
+        return RankOf(local);
+    }
+
+    /// <summary>自分の表示名が、Owner Display Names にあるか（テスト用のパネルが、Build & Test で使ってよい人かを見る）</summary>
+    public bool _IsLocalOwnerName()
+    {
+        return IsOwnerName(Networking.LocalPlayer);
     }
 
     private void OwnerMaintenance(bool presence)

@@ -129,8 +129,9 @@ public static class PlaySmoke
         File.AppendAllText(LogPath, "[EDITOR] gate mode=" + so.FindProperty("mode").intValue + " useMemberList=" + so.FindProperty("useMemberList").boolValue + "\n");
         so.FindProperty("noSupporterGraceSeconds").floatValue = 6f;
         SerializedProperty owners = so.FindProperty("ownerDisplayNames");
-        owners.arraySize = 1;
+        owners.arraySize = 2;
         owners.GetArrayElementAtIndex(0).stringValue = "OwnerDummy";
+        owners.GetArrayElementAtIndex(1).stringValue = "OwnerLocal";   // 持ち主として入る本人（テスト用のパネルの場面）
         so.ApplyModifiedPropertiesWithoutUndo();
         UdonSharpEditorUtility.CopyProxyToUdon(gate);
 
@@ -234,6 +235,10 @@ public static class PlaySmoke
             File.AppendAllText(LogPath, "[EDITOR] joinleave mode=" + jlMode + " keep=" + Env("SG_SMOKE_JL_KEEP") + "\n");
         }
 
+        // SG_SMOKE_TESTPANEL=1: テスト用のパネルのボタンを押して、扱いの上書きと戻しを確かめる
+        driver.testPanel = Object.FindObjectOfType<SupporterTestPanel>(true);
+        driver.testPanelSteps = Env("SG_SMOKE_TESTPANEL") != "";
+        driver.testPanelHold = Env("SG_SMOKE_TESTPANEL") == "hold";   // 「住人」を押したまま止める（画面を撮る）
         driver.skipEnter = Env("SG_SMOKE_NOENTER") == "1";         // stay in the lobby (for screenshots)
         driver.noticeGallery = Env("SG_SMOKE_NOTICES") == "1";     // show every kind of gate notice (for screenshots)
         driver.skipLangSwitch = Env("SG_SHOTS") != "";            // keep one language while taking screenshots
@@ -263,7 +268,7 @@ public static class PlaySmoke
             {
                 if (canvas.renderMode != RenderMode.WorldSpace) continue;
                 string n = canvas.name;
-                if (n != "LobbyPanel" && n != "ApprovalPanel" && n != "CreditsBoard" && n != "InfoPanel") continue;
+                if (n != "LobbyPanel" && n != "ApprovalPanel" && n != "CreditsBoard" && n != "InfoPanel" && n != "TestPanel") continue;
                 RenderCanvas(canvas, Path.Combine(dir, tag + "-" + n + ".png"));
             }
             if (withView) RenderView(Path.Combine(dir, tag + "-view.png"));

@@ -129,6 +129,19 @@ SCENARIOS = [
         "t=9  && allowed=False inside=False && This area is for residents only.",
         "t=19  && pos=(0.0, -44.0, 0.0) && allowed=False",
     ]),
+    ("testpanel/Dave（テスト用のパネル。住人限定。本人は支援者だが住人ではない。Play モードでは持ち主でなくても使える）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave", "SG_SMOKE_TESTPANEL": "1"}, [
+        "testpanel active=True canUse=True before allowed=False rank=1 member=False override=False",
+        "testpanel residentOn allowed=True rank=1 member=True override=True",
+        "testpanel rankHigh allowed=True rank=2 member=True override=True",
+        "testpanel none allowed=False rank=0 member=False override=True",
+        "testpanel reset allowed=False rank=1 member=False override=False",
+    ]),
+    ("testpanel/owner（テスト用のパネル。住人限定。本人は持ち主でリストに無い。上書き中は持ち主の特別枠を使わない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "OwnerLocal", "SG_SMOKE_REMOTE": "none", "SG_SMOKE_TESTPANEL": "1"}, [
+        "testpanel active=True canUse=True before allowed=True rank=0 member=False override=False",
+        "testpanel residentOn allowed=True rank=0 member=True override=True",
+        "testpanel none allowed=False rank=0 member=False override=True",
+        "testpanel reset allowed=True rank=0 member=False override=False",
+    ]),
     ("nomember/GuestLocal（住人向けの物が無い公開ワールド。本人は住人だが、住人に触れない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1"}, [
         "info(ja)= && 支援者の登録は見つかりません && 支援の方法は、/Discord で案内しています && <b>discord.gg/testInvite</b>",
         "info(en)= && No supporter registration found && How to support/is explained on our Discord",
@@ -195,7 +208,7 @@ def main() -> int:
         print("== コンパイルと配線の確認 ==")
         run_unity("PackageBatch.BuildAll", "unity-build.log", {}, True)
         result = (PROJECT / "batch-result.txt").read_text(encoding="utf-8", errors="replace") if (PROJECT / "batch-result.txt").exists() else ""
-        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result and "VERIFY_INVITE_OK" in result and "VERIFY_ADD_INVITE_OK" in result and "VERIFY_SMALL_BOARD_OK" in result
+        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result and "VERIFY_INVITE_OK" in result and "VERIFY_ADD_INVITE_OK" in result and "VERIFY_SMALL_BOARD_OK" in result and "VERIFY_TEST_PANEL_OK" in result
         print("  " + ("ok" if build_ok else "FAIL（unity-test/batch-result.txt と unity-build.log を見る）"))
         if not build_ok:
             return 1

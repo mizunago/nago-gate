@@ -105,6 +105,12 @@ public class SupporterRegistry : UdonSharpBehaviour
     private UdonSharpBehaviour[] _listeners = new UdonSharpBehaviour[MaxListeners];
     private int _listenerCount;
 
+    // ---- テスト用の上書き（SupporterTestPanel から。Play モードと Build & Test だけで使う） ----
+    // 自分（ローカルプレイヤー）のランクと住人の扱いを、リストの結果の代わりに使う。ほかの人の画面には影響しない
+    private bool _testOn;
+    private int _testRank;
+    private bool _testMember;
+
     void Start()
     {
         if (hasher == null) hasher = GetComponent<SupporterHash>();
@@ -135,6 +141,7 @@ public class SupporterRegistry : UdonSharpBehaviour
     public int _GetRank(VRCPlayerApi player)
     {
         if (player == null || !player.IsValid()) return 0;
+        if (_testOn && player.isLocal) return _testRank;
         int slot = FindSlot(player.playerId);
         if (slot < 0)
         {
@@ -160,6 +167,7 @@ public class SupporterRegistry : UdonSharpBehaviour
     public bool _IsMember(VRCPlayerApi player)
     {
         if (player == null || !player.IsValid()) return false;
+        if (_testOn && player.isLocal) return _testMember;
         int slot = FindSlot(player.playerId);
         if (slot < 0)
         {
@@ -181,12 +189,39 @@ public class SupporterRegistry : UdonSharpBehaviour
     /// <summary>任意の名前のランク（キャッシュなし。UI の確認用途向け）</summary>
     public int _GetRankOfName(string displayName)
     {
+        if (_testOn)
+        {
+            VRCPlayerApi local = Networking.LocalPlayer;
+            if (local != null && local.displayName == displayName) return _testRank;
+        }
         if (!_loaded || hasher == null) return RankUnknown;
         return LookupRank(HashOfName(displayName));
     }
 
+    /// <summary>テスト用の上書きを始める・変える。ランクと住人の扱いを、両方とも指定する</summary>
+    public void _SetTestOverride(int rank, bool member)
+    {
+        _testOn = true;
+        _testRank = rank < 0 ? 0 : rank;
+        _testMember = member;
+        Debug.Log($"[SupporterRegistry] テスト用の上書き: rank={_testRank} member={_testMember}");
+        NotifyListeners();
+    }
+
+    /// <summary>テスト用の上書きをやめて、リストの結果に戻す</summary>
+    public void _ClearTestOverride()
+    {
+        if (!_testOn) return;
+        _testOn = false;
+        Debug.Log("[SupporterRegistry] テスト用の上書きをやめました（リストどおり）");
+        NotifyListeners();
+    }
+
+    public bool _IsTestOverride() { return _testOn; }
+
     public int _GetTierCount() { return _tierCount; }
     public int _GetMaxRank() { return _tierCount > 0 ? _tierRanks[_tierCount - 1] : 0; }
+    public int _GetMinRank() { return _tierCount > 0 ? _tierRanks[0] : 0; }
 
     public string _GetTierLabel(int rank)
     {

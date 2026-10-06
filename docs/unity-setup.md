@@ -34,8 +34,11 @@ SupporterGate System
 ├─ ContentZone     本体エリアを覆う Trigger（入り込んだ非許可者をロビーへ戻す）
 ├─ LobbyPanel      状態表示・入場ボタン
 ├─ ApprovalPanel   支援者専用の入場許可パネル
-└─ CreditsBoard    支援者クレジット
+├─ CreditsBoard    支援者クレジット
+└─ TestPanel       テスト用のパネル（シーンでは非表示。Play モードと Build & Test だけに出る）
 ```
+
+ロビーの板には「ロビーへ戻る」ボタンを置かない（0.7.0 から）。ロビーの中にあって、押しても何も変わらなかったため。中からは VRChat のメニューの Respawn で戻れる（スポーン地点がロビーのため）。前の版で作ったシーンのボタンは、`Tools > SupporterGate > Remove Return Button (existing scene)` で外せる。入れなくなった人をロビーへ戻す処理は、ボタンとは別に動く。
 
 2. `Registry` の **Data Url** に Bot の公開 URL を入れる
 3. `Gate` の設定
@@ -207,6 +210,21 @@ public void _OnRegistryUpdated()
 - クレジットの名前を自分で並べるときは、`_AreCreditsReady()` が true になってから `_GetCreditCount()` / `_GetCreditName(i)` / `_GetCreditRank(i)` を読みます（鍵つきのリストでは、読み込みの少しあとに揃う。揃ったときにも `_OnRegistryUpdated` が呼ばれる）
 - `SupporterGate._IsLocalAllowed()` で入場可否を参照できます
 - 通知を自分のギミックから出す方法は Nago Notice の README を参照
+
+## テスト用のパネル（Play モードと Build & Test だけ）
+
+ロビーの板の右に、テスト用のパネルが付く（シーンでは非表示）。ボタンで、自分のランク（なし・いちばん下・いちばん上）と、住人かどうかを、リストの結果の代わりに使う。ゲート・ボード・住人だけに見せる物（`_IsLocalAllowed()` や `_IsLocalMember()` を見ている物）が、本物と同じ流れで切り替わる。「リストどおりに戻す」で元に戻る。
+
+| 場面 | パネル | 使える人 |
+|---|---|---|
+| Unity の Play モード（ClientSim） | 出る | 誰でも |
+| SDK の Build & Test | 出る | Gate の Owner Display Names の人だけ（パネルの Owner Only を OFF にすると誰でも） |
+| Build and Upload（公開用のビルド） | パネルごと取り除く | - |
+
+- 持ち主の名前で入っていても、上書き中は持ち主の特別枠を使わない。「ランクなし」と「住人ではない」を押すと、入れない人の見え方を確かめられる
+- 上書きは自分の画面だけに効く。Build & Test で 2 つのクライアントを開いても、相手の画面ではリストどおりに見える
+- 出し分けは、SDK がビルドの前に立てる印（Build & Test かどうか）で行う。印を読めないときは、取り除く側に倒す
+- 前の版で作ったシーンには、`Tools > SupporterGate > Add Test Panel (existing scene)` で足す。2 回実行しても増えない
 
 ## 動作確認
 

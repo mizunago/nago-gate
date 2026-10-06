@@ -5,6 +5,7 @@
 //
 //   Tools > SupporterGate > Create Scene Setup              新しく一式を作る
 //   Tools > SupporterGate > Wire Notices (existing scene)   既にあるシーンに、通知と文言の表を足して配線する
+//   （テスト用のパネルとロビーの板の後始末は SupporterGateSetup.Test.cs）
 
 #if UNITY_EDITOR
 using System.Collections.Generic;
@@ -81,12 +82,14 @@ public static partial class SupporterGateSetup
         TextMeshProUGUI status = CreateText(lobbyCanvas, "Status", "モード: -", 36, new Vector2(20f, 300f), new Vector2(860f, 260f), TextAlignmentOptions.TopLeft);
         TextMeshProUGUI message = CreateText(lobbyCanvas, "Message", "", 32, new Vector2(20f, 170f), new Vector2(860f, 120f), TextAlignmentOptions.TopLeft);
         message.color = new Color(1f, 0.6f, 0.4f);
-        GameObject enterBtn = CreateButton(lobbyCanvas, "EnterButton", "入場する", new Vector2(20f, 40f), new Vector2(400f, 100f), gate, nameof(SupporterGate._EnterContent));
-        GameObject returnBtn = CreateButton(lobbyCanvas, "ReturnButton", "ロビーへ戻る", new Vector2(480f, 40f), new Vector2(400f, 100f), gate, nameof(SupporterGate._ReturnToLobby));
+        // 「ロビーへ戻る」ボタンは置かない（ロビーの板の上では意味が無い。中からは VRChat の Respawn で戻れる）
+        GameObject enterBtn = CreateButton(lobbyCanvas, "EnterButton", "入場する", new Vector2(250f, 40f), new Vector2(400f, 100f), gate, nameof(SupporterGate._EnterContent));
         SetRef(gate, "enterButtonText", enterBtn.GetComponentInChildren<TextMeshProUGUI>());
-        SetRef(gate, "returnButtonText", returnBtn.GetComponentInChildren<TextMeshProUGUI>());
         SetRef(gate, "statusText", status);
         SetRef(gate, "messageText", message);
+
+        // ---- Test panel（Play モードと Build & Test だけに出る。シーンでは非表示） ----
+        CreateTestPanel(root, lobbyCanvas.transform.localPosition + TestPanelOffset, registry, gate);
 
         // ---- Approval panel ----
         GameObject approvalCanvas = CreateCanvas(root, "ApprovalPanel", new Vector3(1.6f, 1.5f, 3f), new Vector2(900f, 1000f));
@@ -268,7 +271,7 @@ public static partial class SupporterGateSetup
 
         // 5. スポーン地点とパネルを、部屋の中へ移す（部屋ごと動かせるように、部屋の子にする）
         Transform lobbySpawn = null;
-        foreach (string name in new[] { "LobbySpawn", "LobbyPanel", "ApprovalPanel", "CreditsBoard", InfoPanelName })
+        foreach (string name in new[] { "LobbySpawn", "LobbyPanel", "ApprovalPanel", "CreditsBoard", InfoPanelName, TestPanelName })
         {
             Transform t = root.transform.Find(name);
             if (t == null) continue;
@@ -563,6 +566,7 @@ public static partial class SupporterGateSetup
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterContentZone)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterCreditsBoard)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterInviteLink)) != null
+            && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterTestPanel)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(NoticeTable)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(NoticeHub)) != null;
     }

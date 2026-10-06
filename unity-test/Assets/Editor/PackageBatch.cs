@@ -181,6 +181,59 @@ public static class PackageBatch
         Log("VERIFY_GATE_DONE");
         VerifyInvite(credits);
         VerifyBoardOnly();
+        VerifyTestPanel();
+    }
+
+    /// <summary>
+    /// テスト用のパネル: 一式の生成で非表示のまま付き、ロビーの板に「ロビーへ戻る」が無い。
+    /// 場面ごとの出し分け（Build & Test は出して持ち主だけ・Play モードは誰でも・それ以外は取り除く）と、
+    /// 既にあるシーンへの後付け（2 回流しても増えない）、古いシーンの「ロビーへ戻る」の取り外しを確かめる
+    /// </summary>
+    private static void VerifyTestPanel()
+    {
+        var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+        SupporterGateSetup.CreateSceneSetup();
+        SupporterTestPanel[] panels = UnityEngine.Object.FindObjectsOfType<SupporterTestPanel>(true);
+        bool ok = panels.Length == 1;
+        if (!ok) { Log("VERIFY_TEST_PANEL_FAIL panels=" + panels.Length); return; }
+        SupporterTestPanel panel = panels[0];
+        Transform lobby = GameObject.Find("SupporterGate System/LobbyPanel").transform;
+        RectTransform enter = (RectTransform)lobby.Find("EnterButton");
+        int wired = 0;
+        foreach (Button b in panel.GetComponentsInChildren<Button>(true)) if (b.onClick.GetPersistentEventCount() == 1) wired++;
+        Log("test panel: active=" + panel.gameObject.activeSelf + " ownerOnly=" + Var(panel, "ownerOnly") + " registry=" + Var(panel, "registry") + " gate=" + Var(panel, "gate")
+            + " rankLabels=" + Var(panel, "rankLabels") + " playModeMark=" + Var(panel, "playModeMark") + " buttons=" + wired + " pos=" + panel.transform.localPosition
+            + " | lobby return=" + (lobby.Find("ReturnButton") != null) + " enter=" + enter.anchoredPosition + " | isBuildAndTest=" + SupporterTestPanelBuild.IsBuildAndTest());
+        ok = !panel.gameObject.activeSelf && Var(panel, "ownerOnly") == "True" && Var(panel, "registry").Contains("UdonBehaviour") && Var(panel, "gate").Contains("UdonBehaviour")
+            && Var(panel, "rankLabels") == "array[3]" && Var(panel, "playModeMark").Contains("PlayModeMark") && wired == 6 && lobby.Find("ReturnButton") == null && enter.anchoredPosition == new Vector2(250f, 40f)
+            && !SupporterTestPanelBuild.IsBuildAndTest();
+
+        // 出し分け（読み込んだシーンを直接変える。ビルドと Play モードでは、エディタがこれを呼ぶ）
+        int n1 = SupporterTestPanelBuild.Apply(scene, SupporterTestPanelBuild.Kind.BuildAndTest);
+        Transform mark = panel.transform.Find(SupporterTestPanelBuild.PlayModeMarkName);
+        string afterTest = "active=" + panel.gameObject.activeSelf + " ownerOnly=" + Var(panel, "ownerOnly") + " mark=" + (mark != null && mark.gameObject.activeSelf);
+        int n2 = SupporterTestPanelBuild.Apply(scene, SupporterTestPanelBuild.Kind.PlayMode);
+        string afterPlay = "active=" + panel.gameObject.activeSelf + " ownerOnly=" + Var(panel, "ownerOnly") + " mark=" + (mark != null && mark.gameObject.activeSelf);
+        int n3 = SupporterTestPanelBuild.Apply(scene, SupporterTestPanelBuild.Kind.Remove);
+        int left = UnityEngine.Object.FindObjectsOfType<SupporterTestPanel>(true).Length;
+        Log("test panel kinds: test(" + n1 + ") " + afterTest + " | play(" + n2 + ") " + afterPlay + " | remove(" + n3 + ") left=" + left);
+        ok = ok && n1 == 1 && afterTest == "active=True ownerOnly=True mark=False" && afterPlay == "active=True ownerOnly=True mark=True" && n3 == 1 && left == 0;
+
+        // 既にあるシーンへの後付け（前の版のシーン: パネルが無く、「ロビーへ戻る」がある）
+        GameObject fakeReturn = new GameObject("ReturnButton", typeof(RectTransform));
+        fakeReturn.transform.SetParent(lobby, false);
+        enter.anchoredPosition = new Vector2(20f, 40f);
+        string add1 = SupporterGateSetup.AddTestPanelsSilent();
+        string add2 = SupporterGateSetup.AddTestPanelsSilent();
+        string rm1 = SupporterGateSetup.RemoveReturnButtonsSilent();
+        string rm2 = SupporterGateSetup.RemoveReturnButtonsSilent();
+        SupporterTestPanel[] added = UnityEngine.Object.FindObjectsOfType<SupporterTestPanel>(true);
+        Log("test panel add: " + add1.Replace("\n", " / ") + " || again: " + add2.Replace("\n", " / ") + " || panels=" + added.Length
+            + (added.Length > 0 ? " active=" + added[0].gameObject.activeSelf + " parent=" + added[0].transform.parent.name + " pos=" + added[0].transform.localPosition : ""));
+        Log("return button: " + rm1.Replace("\n", " / ") + " || again: " + rm2.Replace("\n", " / ") + " || left=" + (lobby.Find("ReturnButton") != null) + " enter=" + enter.anchoredPosition);
+        ok = ok && added.Length == 1 && !added[0].gameObject.activeSelf && add1.StartsWith("テスト用のパネルを 1 個足しました") && add2.StartsWith("テスト用のパネルは、もうあります")
+            && rm1.StartsWith("「ロビーへ戻る」ボタンを 1 個外しました") && rm2.Contains("見つかりませんでした") && lobby.Find("ReturnButton") == null && enter.anchoredPosition == new Vector2(250f, 40f);
+        Log(ok ? "VERIFY_TEST_PANEL_OK" : "VERIFY_TEST_PANEL_FAIL");
     }
 
     /// <summary>Discord のコピー欄: 一式の生成で付き、配線され、QR が作れて、案内の文がボタンの分だけ上に詰まっている</summary>
