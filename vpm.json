@@ -211,6 +211,23 @@
           },
           "url": "https://mizunago.github.io/nago-gate/vpm/com.nagonago.supporter-gate-0.6.0.zip",
           "zipSHA256": "5f57e413ed2707cfd53d0d0dc579bb2155ca0248e4152526e3429522fc2a69ca"
+        },
+        "0.6.1": {
+          "name": "com.nagonago.supporter-gate",
+          "displayName": "Nago Supporter Gate",
+          "version": "0.6.1",
+          "unity": "2022.3",
+          "description": "Supporter-only gate for VRChat worlds: checks display names against a published supporter list, with per-guest approval by supporters.",
+          "author": {
+            "name": "nagonago",
+            "url": "https://github.com/mizunago"
+          },
+          "vpmDependencies": {
+            "com.vrchat.worlds": ">=3.10.0",
+            "com.nagonago.notice": ">=0.1.0"
+          },
+          "url": "https://mizunago.github.io/nago-gate/vpm/com.nagonago.supporter-gate-0.6.1.zip",
+          "zipSHA256": "23ab8565e3cf77765e67c6536de96af0614aa127534fd71779164af8062b8c91"
         }
       }
     }
