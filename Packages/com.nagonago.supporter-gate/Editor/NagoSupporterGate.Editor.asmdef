@@ -12,6 +12,7 @@
         "UdonSharp.Runtime",
         "UdonSharp.Editor",
         "Unity.TextMeshPro",
+        "Unity.Timeline",
         "UnityEngine.UI"
     ],
     "includePlatforms": [

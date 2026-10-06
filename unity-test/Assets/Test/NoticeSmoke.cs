@@ -32,6 +32,12 @@ public class NoticeSmoke : UdonSharpBehaviour
     public SupporterTestPanel testPanel;
     public bool testPanelSteps;
     public bool testPanelHold;
+    public SupporterContentGuard guard;
+    public GameObject guardPlain;
+    public Renderer guardSyncedRenderer;
+    public AudioSource guardAudio;
+    public bool guardSteps;
+    public NoticeSmoke peer;   // 編集時の検査だけで使う（ほかの Udon から呼ばれる Udon の見本）
 
     private int _tick;
 
@@ -40,7 +46,32 @@ public class NoticeSmoke : UdonSharpBehaviour
         SendCustomEventDelayedSeconds(nameof(_Step1), 2f);
         SendCustomEventDelayedSeconds(nameof(_Report), 1f);
         if (testPanelSteps) SendCustomEventDelayedSeconds(nameof(_TestPanelA), 4f);
+        if (guardSteps) SendCustomEventDelayedSeconds(nameof(_GuardA), 4f);
     }
+
+    private string GuardState()
+    {
+        return "hiding=" + guard._IsHiding() + " plain=" + guardPlain.activeSelf + " syncedRenderer=" + guardSyncedRenderer.enabled + " mute=" + guardAudio.mute;
+    }
+
+    // 入れない人に見せない仕組み: 入れない間は隠れ、住人にすると戻り、リストどおりに戻すとまた隠れる。
+    // 入れない間に、ほかの処理が表示や音を戻しても、消し直す
+    public void _GuardA()
+    {
+        Debug.Log("[SMOKE] guard before " + GuardState());
+        testPanel._ResidentOn();
+        Debug.Log("[SMOKE] guard resident " + GuardState());
+        testPanel._ResetToList();
+        Debug.Log("[SMOKE] guard back " + GuardState());
+        guardSyncedRenderer.enabled = true;   // Animator やスクリプトが表示を戻した
+        guardAudio.mute = false;              // 動画プレイヤーなどが音を戻した
+        SendCustomEventDelayedFrames(nameof(_GuardB), 2);
+        SendCustomEventDelayedSeconds(nameof(_GuardC), 1.5f);
+    }
+
+    public void _GuardB() { Debug.Log("[SMOKE] guard rehide syncedRenderer=" + guardSyncedRenderer.enabled); }
+
+    public void _GuardC() { Debug.Log("[SMOKE] guard remute mute=" + guardAudio.mute); }
 
     private string TestState()
     {

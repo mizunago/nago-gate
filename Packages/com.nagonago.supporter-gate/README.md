@@ -9,6 +9,7 @@
 - クレジットのボード: 支援者の名前の一覧、見ている本人の状態（「あなたはサポーターです」など）、Discord の招待 URL
 - Discord の招待 URL のコピー欄と QR コード（VRChat の中ではリンクを開けないため。PC はコピー、スマホは QR）
 - テスト用のパネル: Unity の Play モードと SDK の Build & Test のときだけ出て、自分の扱い（ランク・住人）を切り替えて確かめられる
+- 入れない人に見せない仕組み（ContentGuard）: 入れない人の画面では、ワールド本体を隠し、音を消す。同期する物や動く物は、止めずに見た目だけ消す。隠す物はメニューで自動で選ぶ
 - 文言は日本語・英語・韓国語・中国語（簡体・繁体）
 
 対象: VRChat Worlds SDK 3.10 以降 / Unity 2022.3。Nago Notice（`com.nagonago.notice`）に依存します。
@@ -26,6 +27,7 @@
 
 ## 版の履歴
 
+- 0.8.0: 入れない人に見せない仕組み（ContentGuard）を足した。あやしいけんきゅうじょのワールド側の仕組み（NonResidentGuard）を取り込んだもの。入れない人の画面では、ワールド本体を止め（SetActive）、同期する物（同期の設定が None でない Udon・ObjectSync・Pickup・Station）と、ほかのギミックが切り替える物は、止めずに Renderer と Canvas だけを消す（入れない間は毎フレーム消し直す）。音源は mute にする。入れるようになったら元に戻す。ゲートの Content Roots と違い、入れる・入れないが変わったときだけ切り替えるので、隠す物が多くても毎秒の引っかかりにならない。`Tools > SupporterGate > Set Up Content Guard (auto)` で、隠す物を自動で選ぶ（ワールド全体に効く物・入口の部屋・通知の板は対象にしない。ほかに外したい物はガードの Keep に入れる。何度実行してもよい）。`Convert Existing World` は、最後にこれも行う。ワールド本体を変えたら、もう一度実行する
 - 0.7.0: テスト用のパネルを足した。Unity の Play モード（ClientSim）と SDK の Build & Test のときだけ出て、自分のランクと住人の扱いを、リストの結果の代わりに切り替えられる。ゲート・ボード・住人だけに見せる物が、本物と同じ流れで切り替わる。持ち主の名前で入っていても、上書き中は持ち主の特別枠を使わないので、入れない人の見え方も確かめられる。Build & Test では Gate の Owner Display Names の人だけが使え、公開用のビルド（Build and Upload）ではパネルごと取り除く。新しく作る一式には付く。既にあるシーンには `Tools > SupporterGate > Add Test Panel (existing scene)` で足せる。ロビーの板の「ロビーへ戻る」ボタンをやめた（ロビーの中にあり、押しても何も変わらなかった。中からは VRChat のメニューの Respawn で戻れる）。既にあるシーンのボタンは `Tools > SupporterGate > Remove Return Button (existing scene)` で外せる。入れなくなった人をロビーへ戻す処理は、今までどおり動く
 - 0.6.2: Discord のコピー欄を、板（案内のパネル）の大きさに対する比率で置くようにした。0.6.1 までは 900×600 の板を前提に決まった位置に置いていたので、小さな板では欄がはみ出していた。QR は、板の形に合わせて正方形を保つ。ボタンの場所を空けるとき、案内の文の欄の下の辺だけを上げ、上の辺は動かさないようにした（0.6.1 は欄ごと上へずらしていたので、額縁に合わせた文が上に寄った）。既に欄を足したシーンでも、`Tools > SupporterGate > Add Discord Copy Panel (existing scene)` をもう一度実行すると、板の大きさに合わせて置き直す。0.6.1 で上へずれた文の欄は、元の位置に戻してから実行する
 - 0.6.1: QR の画像のファイルが無いとき（消した、Git で追跡していないなど）は、QR を出さないようにした（白い四角だけが出ていた）。そのときは入力欄と説明だけが出る。`Tools > SupporterGate > Update Discord QR` で作り直せば戻る。エディタを外から動かす道具向けに、ダイアログを出さずに結果の文を返す `SupporterGateSetup.AddDiscordCopyPanelsSilent()` を足した（`UpdateDiscordQr(null)` も、ダイアログを出さずに文を返す）

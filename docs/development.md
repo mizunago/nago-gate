@@ -20,7 +20,7 @@ Unity をバッチモードで動かし、次を確かめます。Unity の場�
 
 | 段階 | 確かめること |
 |---|---|
-| コンパイルと配線 | UdonSharp のコンパイル、プログラムアセット、通知のプレハブ、`Create Scene Setup` と `Wire Notices` の配線。テスト用のパネルの出し分け（Build & Test は出して持ち主だけ、Play モードは誰でも、公開用は取り除く）と、前の版のシーンへの後付け |
+| コンパイルと配線 | UdonSharp のコンパイル、プログラムアセット、通知のプレハブ、`Create Scene Setup` と `Wire Notices` の配線。テスト用のパネルの出し分け（Build & Test は出して持ち主だけ、Play モードは誰でも、公開用は取り除く）と、前の版のシーンへの後付け。入れない人に見せない仕組みの、隠す物の選び分け（止める物・見た目だけ消す物・音源・Keep） |
 | ClientSim での再生 | 場面ごとに実際に再生し、出た表示・プレイヤーの位置・入場の可否を、期待と照らす。Udon の例外が 1 つでも出たら失敗 |
 
 今ある場面:
@@ -42,6 +42,8 @@ Unity をバッチモードで動かし、次を確かめます。Unity の場�
 | joinleave/on・joinleave/off | 入退室の通知が、ON のときだけ出る（入室と退室。状態の表示も切り替わる） |
 | testpanel/Dave | テスト用のパネルが Play モードで出て、持ち主でない人も使える。「住人」で入れるようになり、「リストどおりに戻す」で元に戻る |
 | testpanel/owner | 持ち主の名前で入っていても、上書き中は持ち主の特別枠を使わない（「ランクなし」「住人ではない」で入れなくなる） |
+| guard/Dave | 入れない人に見せない仕組み: 入れない間は、止める物が止まり、同期する物は見た目と音だけ消える。住人にすると戻り、リストどおりに戻すとまた隠れる。ほかの処理が表示や音を戻しても、消し直す |
+| guard/GuestLocal | 入れる人には、何も隠れない |
 | joinleave/toggle・joinleave/restore | OFF から ON に切り替えると、そのあとの退室から通知が出て、設定が保存される。次に来たときに引き継ぐ（restore は、直前の toggle の保存を使うので単独では通らない） |
 
 支援者リストは `unity-test/TestData/supporters.json` を、スクリプトが `127.0.0.1` で配ります。場面を足すときは、`unity-test/Assets/Editor/PlaySmoke.cs`（シーンの組み立て）、`unity-test/Assets/Test/NoticeSmoke.cs`（再生中の操作とログ）、`tools/run_unity_tests.py` の `SCENARIOS`（期待する表示）を直します。

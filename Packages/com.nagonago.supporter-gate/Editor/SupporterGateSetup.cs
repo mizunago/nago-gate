@@ -311,6 +311,9 @@ public static partial class SupporterGateSetup
         SetInt(gate, "mode", (int)mode);
         SetBool(gate, "useMemberList", useMemberList);
 
+        // 10. 入れない人の画面で、ワールド本体を見せない・聞かせない（同期する物は見た目だけ消す）
+        string guardReport = SetUpContentGuardSilent();
+
         Undo.CollapseUndoOperations(group);
         Selection.activeGameObject = room;
         EditorSceneManager.MarkSceneDirty(root.scene);
@@ -321,11 +324,13 @@ public static partial class SupporterGateSetup
             "やったこと\n" +
             "・入口の部屋（LobbyRoom）を、ワールドの " + LobbyDepth.ToString("0") + " m 下に作りました\n" +
             "・スポーン地点を入口の部屋に替えました（元は " + oldSpawnCount + " か所。1 つ目を「入場したあとに出る場所」に引き継ぎました）\n" +
-            "・落下時のリスポーンの高さ: " + oldRespawn.ToString("0.#") + " → " + descriptor.RespawnHeightY.ToString("0.#") + "\n\n" +
+            "・落下時のリスポーンの高さ: " + oldRespawn.ToString("0.#") + " → " + descriptor.RespawnHeightY.ToString("0.#") + "\n" +
+            "・" + guardReport.Split('\n')[0] + "\n\n" +
             "次にやること\n" +
             "1. SupporterGate System > Registry の Data Url に、支援者リストの URL を入れる\n" +
             "2. 自分が入れるように、Gate の Owner Display Names に自分の VRChat の表示名を入れる\n" +
-            "3. 入口の部屋の見た目は自由に変えてよい（LobbyRoom ごと動かせます）";
+            "3. 入口の部屋の見た目は自由に変えてよい（LobbyRoom ごと動かせます）\n" +
+            "4. ワールド本体を変えたら、Tools > SupporterGate > Set Up Content Guard (auto) をもう一度実行する（入れない人に見せない物を選び直す）";
         Debug.Log("[SupporterGate] " + report);
         return report;
     }
@@ -567,6 +572,7 @@ public static partial class SupporterGateSetup
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterCreditsBoard)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterInviteLink)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterTestPanel)) != null
+            && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(SupporterContentGuard)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(NoticeTable)) != null
             && UdonSharpEditorUtility.GetUdonSharpProgramAsset(typeof(NoticeHub)) != null;
     }

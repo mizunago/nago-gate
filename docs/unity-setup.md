@@ -52,7 +52,7 @@ SupporterGate System
 | No Supporter Grace Seconds | 支援者が全員いなくなってから非支援者を戻すまでの秒数 |
 | Fail Open When Registry Unavailable | リスト取得失敗時に非支援者を通すか。限定ワールドでは OFF |
 | Owner Display Names | 持ち主の特別枠（下の節） |
-| Content Roots | 非許可時に非表示にするオブジェクト。**同期オブジェクト・ContentZone・NoticeHub を含めない** |
+| Content Roots | 非許可時に非表示にするオブジェクト。**同期オブジェクト・ContentZone・NoticeHub を含めない**。隠す物が多いワールドや、同期する物があるワールドでは、代わりに下の「入れない人に見せない仕組み」を使う（Content Roots は空になる） |
 | Notice / Texts | 共通の通知と文言の表。セットアップが配線する |
 | Notify … | 通知の種類ごとの ON/OFF（下の節） |
 
@@ -210,6 +210,30 @@ public void _OnRegistryUpdated()
 - クレジットの名前を自分で並べるときは、`_AreCreditsReady()` が true になってから `_GetCreditCount()` / `_GetCreditName(i)` / `_GetCreditRank(i)` を読みます（鍵つきのリストでは、読み込みの少しあとに揃う。揃ったときにも `_OnRegistryUpdated` が呼ばれる）
 - `SupporterGate._IsLocalAllowed()` で入場可否を参照できます
 - 通知を自分のギミックから出す方法は Nago Notice の README を参照
+
+## 入れない人に見せない仕組み（ContentGuard）
+
+入れない人（支援者・住人でない人）の画面で、ワールド本体を見せない・聞かせない仕組みです。ドローンのカメラなどで中を覗かれても、何も見えません。ワールド本体を置いたあとに `Tools > SupporterGate > Set Up Content Guard (auto)` を実行すると、ゲート一式の下に `ContentGuard` を作り、隠す物を自動で選びます。`Convert Existing World` は、最後にこれも行います。
+
+| 隠し方 | 対象 | 入れない間 |
+|---|---|---|
+| 止める（SetActive） | 下の物を含まない部分木の根 | GameObject ごと止める |
+| 見た目だけ消す | 止められない物の Renderer と Canvas（最初は非アクティブの物も含む） | enabled を false にし、毎フレーム消し直す（Animator やスクリプトが戻すため） |
+| 音を消す | ワールドの AudioSource | mute にし、ゲートの評価のたびにかけ直す（動画プレイヤーなどが戻すため） |
+
+止められない物（止めると壊れるので、見た目だけ消す）:
+
+- 同期する物: 同期の設定が None でない Udon（NoVariableSync を含む。ネットワークのイベントを受けられるため）・VRC Object Sync・VRC Pickup・VRC Station
+- ほかのギミックが SetActive で切り替える物: Udon の変数・Animator のクリップ・Timeline・UI のイベントから参照される GameObject
+- 外の Udon から呼ばれる Udon を含む部分（止めると、呼ぶ側が困る）
+- ワールド全体に効く物を含む部分: VRC Scene Descriptor・カメラ・ライト・ポストエフェクト・Light Volumes・Bakery のライトマップの保存役など（照明をまとめた親も止めず、中を見ていく）
+
+対象にしない物: ゲート一式（入口の部屋・パネル。ただし Gate の Content Roots は中身として扱う）・通知の板・EditorOnly・ガードの **Keep** に入れた物。入口の部屋をゲート一式の外に作った場合や、止めると困る管理役があれば、Keep に入れてからもう一度実行する（Keep は選び直しても残る）。
+
+- 入れる・入れないが変わったときだけ切り替える。ゲートの Content Roots のように毎秒すべてを調べ直さないので、隠す物が多くても引っかからない
+- 入れるようになったら、入れないに変わった時点の値（表示と mute）に戻す
+- リストの読み込みが終わるまでの数秒は、入れる人にも隠れる（入口の部屋にいる間）
+- ワールド本体を変えたら、もう一度実行する。前の版の Gate の Content Roots は、ガードが引き継いで空にする
 
 ## テスト用のパネル（Play モードと Build & Test だけ）
 

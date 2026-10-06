@@ -1,6 +1,7 @@
 // Batch helper for the nago packages (test project only; not shipped).
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
 using NagoNotice;
 using NagoNotice.EditorTools;
@@ -182,6 +183,97 @@ public static class PackageBatch
         VerifyInvite(credits);
         VerifyBoardOnly();
         VerifyTestPanel();
+        VerifyContentGuard();
+    }
+
+    /// <summary>
+    /// 入れない人に見せない仕組み（ContentGuard）の自動の選び方。
+    /// 止める物・見た目だけ消す物・音を消す物の選び分け、2 回流しても 1 つのまま、keep に入れた物を外す、を確かめる
+    /// </summary>
+    private static void VerifyContentGuard()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);   // Main Camera と Directional Light（ワールド全体に効く物）
+        GameObject world = new GameObject("VRCWorld");
+        world.AddComponent<VRC.SDK3.Components.VRCSceneDescriptor>();
+        world.AddComponent<VRC.Core.PipelineManager>();
+        Cube("WorldChild", world.transform);                                  // VRCWorld は止めないが、その下は根にできる
+        GameObject lights = new GameObject("Lights");                         // 照明をまとめた親: 止めない（中の照明は入口も照らす）
+        new GameObject("Lamp", typeof(Light)).transform.SetParent(lights.transform, false);
+        Cube("Shade", lights.transform);                                      // 照明でない子は根にできる
+        SupporterGateSetup.CreateSceneSetup();                               // ContentRoot（Gate の Content Roots）も中身として扱う
+        Cube("Plain", null);
+        GameObject synced = new GameObject("SyncedGroup");
+        GameObject pick = Cube("Pick", synced.transform);
+        pick.AddComponent<Rigidbody>();
+        pick.AddComponent<VRC.SDK3.Components.VRCPickup>();                  // 同期する物: 止めずに見た目だけ消す
+        Cube("Deco", synced.transform);
+        GameObject toggled = Cube("Toggled", null);                           // UI のボタンが切り替える: 根にしない
+        GameObject ui = new GameObject("UI", typeof(RectTransform), typeof(Canvas));
+        GameObject btnGo = new GameObject("Switch", typeof(RectTransform), typeof(Image), typeof(Button));
+        btnGo.transform.SetParent(ui.transform, false);
+        UnityEditor.Events.UnityEventTools.AddBoolPersistentListener(btnGo.GetComponent<Button>().onClick, toggled.SetActive, false);
+        GameObject inactive = Cube("Inactive", null);
+        new GameObject("InactiveCanvas", typeof(RectTransform), typeof(Canvas)).transform.SetParent(inactive.transform, false);
+        inactive.SetActive(false);                                            // 最初は非アクティブ: 根にしないが、見た目は消す対象
+        GameObject editorOnly = Cube("EditorOnlyThing", null);
+        editorOnly.tag = "EditorOnly";                                         // 何もしない
+        GameObject speaker = new GameObject("Speaker");
+        speaker.AddComponent<AudioSource>();
+        // 同期の設定が None の Udon（試験用の部品）。Mgr はほかの Udon から呼ばれるので根にしない。呼ぶ側の Caller は根にできる
+        GameObject mgr = new GameObject("Mgr");
+        NoticeSmoke called = mgr.AddUdonSharpComponent<NoticeSmoke>();
+        GameObject caller = new GameObject("Caller");
+        NoticeSmoke callerUb = caller.AddUdonSharpComponent<NoticeSmoke>();
+        callerUb.peer = called;
+        UdonSharpEditorUtility.CopyProxyToUdon(callerUb);
+        // NoVariableSync の Udon（パッケージの部品）は、ネットワークのイベントを受けられるので、同期する物として根にしない
+        GameObject netUb = new GameObject("NetUdon");
+        netUb.AddUdonSharpComponent<SupporterTestPanel>();
+
+        string first = SupporterGateSetup.SetUpContentGuardSilent();
+        string second = SupporterGateSetup.SetUpContentGuardSilent();
+        SupporterContentGuard[] guards = UnityEngine.Object.FindObjectsOfType<SupporterContentGuard>(true);
+        SupporterGate gate = UnityEngine.Object.FindObjectOfType<SupporterGate>(true);
+        string Names(string field)
+        {
+            SerializedProperty p = new SerializedObject(guards[0]).FindProperty(field);
+            List<string> n = new List<string>();
+            for (int i = 0; i < p.arraySize; i++) { UnityEngine.Object o = p.GetArrayElementAtIndex(i).objectReferenceValue; n.Add(o == null ? "null" : o.name); }
+            n.Sort(StringComparer.Ordinal);
+            return string.Join(",", n);
+        }
+        string roots = guards.Length == 1 ? Names("roots") : "-";
+        string renderers = guards.Length == 1 ? Names("hideRenderers") : "-";
+        string canvases = guards.Length == 1 ? Names("hideCanvases") : "-";
+        string sources = guards.Length == 1 ? Names("sources") : "-";
+        string gateRoots = Var(gate, "contentRoots");
+        Log("guard: " + first.Replace("\n", " / ") + " || again: " + second.Split('\n')[0]);
+        Log("guard: guards=" + guards.Length + " parent=" + (guards.Length > 0 ? guards[0].transform.parent.name : "-") + " gate.contentRoots=" + gateRoots
+            + " | roots=" + roots + " | renderers=" + renderers + " | canvases=" + canvases + " | sources=" + sources);
+        bool ok = guards.Length == 1 && guards[0].transform.parent.name == "SupporterGate System" && first.Contains("作りました") && second.Contains("選び直しました")
+            && roots == "Caller,ContentRoot (ここにワールド本体を入れる),Deco,Plain,Shade,Speaker,UI,WorldChild"
+            && renderers == "Inactive,Pick,Toggled" && canvases == "InactiveCanvas" && sources == "Speaker" && gateRoots == "array[0]";
+
+        // keep に入れた物は、根にも音を消す物にもしない（選び直しても keep は残る）
+        SerializedObject gso = new SerializedObject(guards[0]);
+        SerializedProperty keep = gso.FindProperty("keep");
+        keep.arraySize = 1;
+        keep.GetArrayElementAtIndex(0).objectReferenceValue = speaker;
+        gso.ApplyModifiedPropertiesWithoutUndo();
+        UdonSharpEditorUtility.CopyProxyToUdon(guards[0]);
+        string third = SupporterGateSetup.SetUpContentGuardSilent();
+        string rootsKeep = Names("roots"), sourcesKeep = Names("sources"), keepAfter = Names("keep");
+        Log("guard keep: roots=" + rootsKeep + " | sources=" + sourcesKeep + " | keep=" + keepAfter + " | " + third.Split('\n')[4]);
+        ok = ok && rootsKeep == "Caller,ContentRoot (ここにワールド本体を入れる),Deco,Plain,Shade,UI,WorldChild" && sourcesKeep == "" && keepAfter == "Speaker";
+        Log(ok ? "VERIFY_CONTENT_GUARD_OK" : "VERIFY_CONTENT_GUARD_FAIL");
+    }
+
+    private static GameObject Cube(string name, Transform parent)
+    {
+        GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = name;
+        if (parent != null) go.transform.SetParent(parent, false);
+        return go;
     }
 
     /// <summary>

@@ -163,6 +163,32 @@ public static class PlaySmoke
             texts[i] = rows[i].GetComponentInChildren<TextMeshProUGUI>(true);
         }
 
+        // SG_SMOKE_GUARD=1: 入れない人に見せない仕組み（ContentGuard）。止める物と、同期する物（見た目と音だけ消す）を置く
+        SupporterContentGuard guard = null;
+        GameObject guardPlain = null, guardSynced = null;
+        if (Env("SG_SMOKE_GUARD") == "1")
+        {
+            guardPlain = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            guardPlain.name = "GuardPlain";
+            guardPlain.transform.position = new Vector3(5f, 0.5f, 5f);
+            guardSynced = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            guardSynced.name = "GuardSynced";
+            guardSynced.transform.position = new Vector3(6.5f, 0.5f, 5f);
+            guardSynced.AddComponent<Rigidbody>().isKinematic = true;
+            guardSynced.AddComponent<VRC.SDK3.Components.VRCPickup>();
+            guardSynced.AddComponent<AudioSource>();
+            File.AppendAllText(LogPath, "[EDITOR] guard report: " + SupporterGateSetup.SetUpContentGuardSilent().Replace("\n", " / ") + "\n");
+            // 床（Plane）は、入口でも立つので隠さない
+            guard = Object.FindObjectOfType<SupporterContentGuard>(true);
+            SerializedObject kso = new SerializedObject(guard);
+            kso.FindProperty("keep").arraySize = 1;
+            kso.FindProperty("keep").GetArrayElementAtIndex(0).objectReferenceValue = floor;
+            kso.FindProperty("debugLog").boolValue = true;
+            kso.ApplyModifiedPropertiesWithoutUndo();
+            UdonSharpEditorUtility.CopyProxyToUdon(guard);
+            File.AppendAllText(LogPath, "[EDITOR] guard again: " + SupporterGateSetup.SetUpContentGuardSilent().Replace("\n", " / ") + "\n");
+        }
+
         GameObject driverGo = new GameObject("SmokeDriver");
         NoticeSmoke driver = driverGo.AddUdonSharpComponent<NoticeSmoke>();
         driver.hub = hub;
@@ -239,6 +265,14 @@ public static class PlaySmoke
         driver.testPanel = Object.FindObjectOfType<SupporterTestPanel>(true);
         driver.testPanelSteps = Env("SG_SMOKE_TESTPANEL") != "";
         driver.testPanelHold = Env("SG_SMOKE_TESTPANEL") == "hold";   // 「住人」を押したまま止める（画面を撮る）
+        if (guard != null)
+        {
+            driver.guard = guard;
+            driver.guardPlain = guardPlain;
+            driver.guardSyncedRenderer = guardSynced.GetComponent<Renderer>();
+            driver.guardAudio = guardSynced.GetComponent<AudioSource>();
+            driver.guardSteps = true;
+        }
         driver.skipEnter = Env("SG_SMOKE_NOENTER") == "1";         // stay in the lobby (for screenshots)
         driver.noticeGallery = Env("SG_SMOKE_NOTICES") == "1";     // show every kind of gate notice (for screenshots)
         driver.skipLangSwitch = Env("SG_SHOTS") != "";            // keep one language while taking screenshots

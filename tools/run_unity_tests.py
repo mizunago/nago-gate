@@ -118,7 +118,7 @@ SCENARIOS = [
         "t=19  && allowed=True inside=True",
     ]),
     ("convert/GuestLocal（ゲートの無いワールドを変換。本人は住人）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member"}, [
-        "convert report: 入口の部屋とゲートを足しました。入れるのは、住人だけです。",
+        "convert report: 入口の部屋とゲートを足しました。入れるのは、住人だけです。 && 入れない人の画面で、ワールド本体を見せない・聞かせない仕組み（ContentGuard）を作りました。",
         "convert again: このシーンには既に SupporterGate があります",
         "convert result: spawns=1 spawn0=LobbySpawn && parent=LobbyRoom && respawnY=-64 && contentSpawn=(3.00, 0.00, -4.00) rotY=90 && approvalActive=False",
         "gate mode=1 useMemberList=True",
@@ -141,6 +141,23 @@ SCENARIOS = [
         "testpanel residentOn allowed=True rank=0 member=True override=True",
         "testpanel none allowed=False rank=0 member=False override=True",
         "testpanel reset allowed=True rank=0 member=False override=False",
+    ]),
+    ("guard/Dave（入れない人に見せない仕組み。住人限定。本人は住人ではない。隠れ、住人にすると戻り、戻されても消し直す）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave", "SG_SMOKE_GUARD": "1"}, [
+        "guard report: 入れない人の画面で、ワールド本体を見せない・聞かせない仕組み（ContentGuard）を作りました。",
+        "guard again: && を選び直しました。 && 隠さない物（keep）: 1 個",
+        "guard before hiding=True plain=False syncedRenderer=False mute=True",
+        "guard resident hiding=False plain=True syncedRenderer=True mute=False",
+        "guard back hiding=True plain=False syncedRenderer=False mute=True",
+        "guard rehide syncedRenderer=False",
+        "guard remute mute=True",
+        "t=9  && allowed=False",
+    ]),
+    ("guard/GuestLocal（入れない人に見せない仕組み。住人限定。本人は住人。何も隠れない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_GUARD": "1"}, [
+        "guard before hiding=False plain=True syncedRenderer=True mute=False",
+        "guard back hiding=False plain=True syncedRenderer=True mute=False",
+        "guard rehide syncedRenderer=True",
+        "guard remute mute=False",
+        "t=9  && allowed=True inside=True",
     ]),
     ("nomember/GuestLocal（住人向けの物が無い公開ワールド。本人は住人だが、住人に触れない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1"}, [
         "info(ja)= && 支援者の登録は見つかりません && 支援の方法は、/Discord で案内しています && <b>discord.gg/testInvite</b>",
@@ -208,7 +225,7 @@ def main() -> int:
         print("== コンパイルと配線の確認 ==")
         run_unity("PackageBatch.BuildAll", "unity-build.log", {}, True)
         result = (PROJECT / "batch-result.txt").read_text(encoding="utf-8", errors="replace") if (PROJECT / "batch-result.txt").exists() else ""
-        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result and "VERIFY_INVITE_OK" in result and "VERIFY_ADD_INVITE_OK" in result and "VERIFY_SMALL_BOARD_OK" in result and "VERIFY_TEST_PANEL_OK" in result
+        build_ok = "PROGRAMS_OK" in result and "BUILD_DONE" in result and "EXCEPTION" not in result and "VERIFY_GATE_DONE" in result and "VERIFY_BOARD_ONLY_OK" in result and "VERIFY_JOINLEAVE_OK" in result and "VERIFY_INVITE_OK" in result and "VERIFY_ADD_INVITE_OK" in result and "VERIFY_SMALL_BOARD_OK" in result and "VERIFY_TEST_PANEL_OK" in result and "VERIFY_CONTENT_GUARD_OK" in result
         print("  " + ("ok" if build_ok else "FAIL（unity-test/batch-result.txt と unity-build.log を見る）"))
         if not build_ok:
             return 1
