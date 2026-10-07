@@ -170,6 +170,8 @@ public class NoticeSmoke : UdonSharpBehaviour
             SendCustomEventDelayedSeconds(nameof(_GalleryB), 4.6f);
         }
         Debug.Log("[SMOKE] status=" + gateStatus.text.Replace("\n", "/"));
+        // 入れない人に見せない仕組み: 状態（1 見せる / 2 確かめ中 / 3 入れない）、止める物を切り替えた回数、見た目と音を消し始めた回数
+        if (guard != null) Debug.Log("[SMOKE] guard state=" + guard._GetState() + " toggles=" + guard._GetRootToggles() + " hides=" + guard._GetHideCount());
         if (registry != null) Debug.Log("[SMOKE] link(discord)=" + registry._GetLink("discord") + " link(none)=[" + registry._GetLink("nothing") + "] loaded=" + registry._IsLoaded()
             + " hasMembers=" + registry._HasMemberList() + " localRank=" + registry._GetLocalRank() + " localMember=" + registry._IsLocalMember()
             + " rank(Paula)=" + registry._GetRankOfName("Paula") + " rank(Alice)=" + registry._GetRankOfName("Alice"));

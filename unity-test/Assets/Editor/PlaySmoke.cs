@@ -278,6 +278,7 @@ public static class PlaySmoke
             driver.guardAudio = guardSynced.GetComponent<AudioSource>();
             driver.guardSteps = true;
         }
+        if (driver.guard == null) driver.guard = Object.FindObjectOfType<SupporterContentGuard>(true);   // 変換で作られたガード（状態をログに出す）
         driver.skipEnter = Env("SG_SMOKE_NOENTER") == "1";         // stay in the lobby (for screenshots)
         driver.noticeGallery = Env("SG_SMOKE_NOTICES") == "1";     // show every kind of gate notice (for screenshots)
         driver.skipLangSwitch = Env("SG_SHOTS") != "";            // keep one language while taking screenshots

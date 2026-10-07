@@ -124,10 +124,12 @@ SCENARIOS = [
         "gate mode=1 useMemberList=True",
         "t=2  && pos=(0.0, -43.4, 0.0)",
         "t=9  && pos=(3.0, 0.0, -4.0) && allowed=True inside=True",
+        "guard state=1 toggles=0 hides=1",
     ]),
     ("convert/Dave（ゲートの無いワールドを変換。本人は住人ではない）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave"}, [
         "t=9  && allowed=False inside=False && This area is for residents only.",
         "t=19  && pos=(0.0, -44.0, 0.0) && allowed=False",
+        "guard state=3 toggles=1 hides=1",
     ]),
     ("testpanel/Dave（テスト用のパネル。住人限定。本人は支援者だが住人ではない。Play モードでは持ち主でなくても使える）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_NAME": "Dave", "SG_SMOKE_TESTPANEL": "1"}, [
         "testpanel active=True canUse=True before allowed=False rank=1 member=False override=False",
@@ -151,6 +153,7 @@ SCENARIOS = [
         "guard rehide syncedRenderer=False",
         "guard remute mute=True",
         "t=9  && allowed=False",
+        "guard state=3 toggles=3 hides=2",
     ]),
     ("guard/GuestLocal（入れない人に見せない仕組み。住人限定。本人は住人。何も隠れない）", {"SG_SMOKE_VARIANT": "member", "SG_SMOKE_GUARD": "1"}, [
         "guard before hiding=False plain=True syncedRenderer=True mute=False",
@@ -158,18 +161,21 @@ SCENARIOS = [
         "guard rehide syncedRenderer=True",
         "guard remute mute=False",
         "t=9  && allowed=True inside=True",
+        "guard state=1 toggles=0 hides=1",
     ]),
     ("owners/guest（持ち主と、許可した人だけのワールドを変換。本人はリストの住人だが、持ち主ではなく許可も無い）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_OWNERS": "approval"}, [
         "convert report: 入口の部屋とゲートを足しました。入れるのは、持ち主と、持ち主が許可した人です。 && 支援者のリストを使わない設定にし、支援者の名前の板と案内のパネルを隠しました（2 枚）",
         "convert result: && approvalActive=True creditsActive=False infoActive=False",
         "link(discord)= && loaded=False",
         "t=9  && allowed=False inside=False && You need approval from the owner in this instance.",
+        "guard state=3 toggles=1 hides=1",
         "status(late)= && <b>持ち主＋許可制</b> && 在室の持ち主: && あなた:</color> <b>一般</b> && <b>不可</b>",
     ], [], ["dataUrl が未設定"]),
     ("owners/owner（持ち主だけのワールドを変換。本人は持ち主。リストを待たずに入れる）", {"SG_SMOKE_CONVERT": "1", "SG_SMOKE_OWNERS": "only", "SG_SMOKE_NAME": "OwnerLocal", "SG_SMOKE_REMOTE": "none"}, [
         "convert report: 入口の部屋とゲートを足しました。入れるのは、持ち主だけです。",
         "convert result: && approvalActive=False creditsActive=False infoActive=False",
         "t=9  && pos=(3.0, 0.0, -4.0) && allowed=True inside=True",
+        "guard state=1 toggles=0 hides=0",
         "status(late)= && <b>持ち主だけ</b> && 在室の持ち主:</color> <b>1</b> && あなた:</color> <color=#7CFC9A><b>持ち主</b></color> && <b>可</b>",
     ], [], ["dataUrl が未設定"]),
     ("nomember/GuestLocal（住人向けの物が無い公開ワールド。本人は住人だが、住人に触れない）", {"SG_SMOKE_MODE": "open", "SG_SMOKE_NOMEMBER": "1"}, [

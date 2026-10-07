@@ -294,13 +294,16 @@ public static class PackageBatch
         string renderers = guards.Length == 1 ? Names("hideRenderers") : "-";
         string canvases = guards.Length == 1 ? Names("hideCanvases") : "-";
         string sources = guards.Length == 1 ? Names("sources") : "-";
+        string rootRenderers = guards.Length == 1 ? Names("rootRenderers") : "-";
+        string rootCanvases = guards.Length == 1 ? Names("rootCanvases") : "-";
         string gateRoots = Var(gate, "contentRoots");
         Log("guard: " + first.Replace("\n", " / ") + " || again: " + second.Split('\n')[0]);
         Log("guard: guards=" + guards.Length + " parent=" + (guards.Length > 0 ? guards[0].transform.parent.name : "-") + " gate.contentRoots=" + gateRoots
-            + " | roots=" + roots + " | renderers=" + renderers + " | canvases=" + canvases + " | sources=" + sources);
+            + " | roots=" + roots + " | renderers=" + renderers + " | canvases=" + canvases + " | sources=" + sources + " | rootRenderers=" + rootRenderers + " | rootCanvases=" + rootCanvases);
         bool ok = guards.Length == 1 && guards[0].transform.parent.name == "SupporterGate System" && first.Contains("作りました") && second.Contains("選び直しました")
-            && roots == "Caller,ContentRoot (ここにワールド本体を入れる),Deco,Plain,Shade,Speaker,UI,WorldChild"
-            && renderers == "Inactive,Pick,Toggled" && canvases == "InactiveCanvas" && sources == "Speaker" && gateRoots == "array[0]";
+            && roots == "Caller,ContentRoot (ここにワールド本体を入れる),Deco,Plain,Shade,UI,WorldChild"   // Speaker は音源を含むので止めない
+            && renderers == "Inactive,Pick,Toggled" && canvases == "InactiveCanvas" && sources == "Speaker" && gateRoots == "array[0]"
+            && rootRenderers == "Deco,Plain,Shade,WorldChild" && rootCanvases == "UI";
 
         // keep に入れた物は、根にも音を消す物にもしない（選び直しても keep は残る）
         SerializedObject gso = new SerializedObject(guards[0]);

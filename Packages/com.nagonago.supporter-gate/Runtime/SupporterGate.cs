@@ -105,6 +105,7 @@ public class SupporterGate : UdonSharpBehaviour
     private bool _prevApproved;
     private int _countdownShown = -1;   // 表示中の残り秒（-1 = 出していない）
     private float _startTime;
+    private bool _evaluated;            // 一度でも評価したか（入場の可否を、ほかの部品が当てにしてよいか）
 
     private UdonSharpBehaviour[] _listeners = new UdonSharpBehaviour[MaxListeners];
     private int _listenerCount;
@@ -147,6 +148,18 @@ public class SupporterGate : UdonSharpBehaviour
     public bool _RequiresActivation() { return requireSupporterActivation; }
     public bool _IsActivated() { return _activated; }
     public bool _IsLocalAllowed() { return _localAllowed; }
+
+    /// <summary>
+    /// 自分の入場の可否が決まっているか。リストを読み込み中（ランクが未判定）の間は false。
+    /// 読み込みに失敗した（通さない設定）ときと、持ち主だけのゲートでは、決まっている扱い
+    /// </summary>
+    public bool _IsLocalDecided()
+    {
+        if (!_evaluated) return false;
+        if (mode == SupporterGateMode.Open) return true;
+        if (LocalRank() != SupporterRegistry.RankUnknown) return true;
+        return registry != null && registry._HasError();
+    }
     public bool _IsLocalInside() { return _localInside; }
     public int _GetSupporterCount() { return _supporterCount; }
     public bool _IsSupporterPresent() { return _supporterCount > 0; }
@@ -354,6 +367,7 @@ public class SupporterGate : UdonSharpBehaviour
             allowed = presence && activationOk;
         }
 
+        _evaluated = true;
         bool wasAllowed = _localAllowed;
         bool changed = allowed != _localAllowed;
         _localAllowed = allowed;

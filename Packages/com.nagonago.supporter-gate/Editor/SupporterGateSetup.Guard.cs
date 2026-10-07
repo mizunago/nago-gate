@@ -10,6 +10,7 @@
 //        NoVariableSync の Udon も含める（同期する変数は無くても、ネットワークのイベントを受けられるため）
 //      - ほかのギミックが SetActive で切り替える物（Udon の変数・Animator・Timeline・UI のイベントから参照される GameObject）
 //      - 部分木の外の Udon から呼ばれる Udon を含む（止めると、呼ぶ側が困る）
+//      - 音源（AudioSource）を含む（止めて出し直すと、距離の減衰などの空間化が崩れることがある。止めずに mute する）
 //      - ワールド全体に効く物（VRC Scene Descriptor・カメラ・ライト・ポストエフェクト・ライトマップの保存役など）を含む。
 //        止めると、入口の部屋の見え方も変わったり、ワールドが壊れたりする（照明をまとめた親も、止めずに中を見る）
 //      当たったら、その物は根にせず、子を見ていく。最初から非アクティブの物と EditorOnly は根にしない
@@ -92,17 +93,21 @@ public static partial class SupporterGateSetup
 
         // 1. 止める物
         List<GameObject> roots = new List<GameObject>();
-        int skippedSynced = 0, skippedToggled = 0, skippedCalled = 0, skippedPinned = 0;
+        int skippedSynced = 0, skippedToggled = 0, skippedCalled = 0, skippedPinned = 0, skippedAudio = 0;
         foreach (Transform start in scan.Starts())
-            CollectRoots(start, scan, roots, ref skippedSynced, ref skippedToggled, ref skippedCalled, ref skippedPinned);
+            CollectRoots(start, scan, roots, ref skippedSynced, ref skippedToggled, ref skippedCalled, ref skippedPinned, ref skippedAudio);
         HashSet<Transform> rootSet = new HashSet<Transform>(roots.Select(r => r.transform));
 
-        // 2・3. 見た目だけ消す物と、音を消す物
+        // 2・3. 見た目だけ消す物と、音を消す物。止める物の下の見た目は、確かめ中（リストを読み込み中）に止めずに消すために、別に持つ
         Renderer[] renderers = scan.All<Renderer>().Where(r => !scan.UnderAny(r.transform, rootSet)).ToArray();
         Canvas[] canvases = scan.All<Canvas>().Where(c => !scan.UnderAny(c.transform, rootSet)).ToArray();
+        Renderer[] rootRenderers = scan.All<Renderer>().Where(r => scan.UnderAny(r.transform, rootSet)).ToArray();
+        Canvas[] rootCanvases = scan.All<Canvas>().Where(c => scan.UnderAny(c.transform, rootSet)).ToArray();
         AudioSource[] sources = scan.All<AudioSource>().ToArray();
 
         SetArray(gso, "roots", roots.ToArray());
+        SetArray(gso, "rootRenderers", rootRenderers);
+        SetArray(gso, "rootCanvases", rootCanvases);
         SetArray(gso, "hideRenderers", renderers);
         SetArray(gso, "hideCanvases", canvases);
         SetArray(gso, "sources", sources);
@@ -120,8 +125,8 @@ public static partial class SupporterGateSetup
         string msg =
             "入れない人の画面で、ワールド本体を見せない・聞かせない仕組み（" + GuardName + "）を" + (created ? "作りました" : "選び直しました") + "。\n" +
             "・止める物: " + roots.Count + " 個（同期する物を含むので分けた所 " + skippedSynced + "、ギミックが切り替える物 " + skippedToggled +
-            "、ほかの Udon から呼ばれる物 " + skippedCalled + "、ワールド全体に効く物 " + skippedPinned + "）\n" +
-            "・見た目だけ消す物: Renderer " + renderers.Length + " 個、Canvas " + canvases.Length + " 個\n" +
+            "、ほかの Udon から呼ばれる物 " + skippedCalled + "、ワールド全体に効く物 " + skippedPinned + "、音源を含む物 " + skippedAudio + "）\n" +
+            "・見た目だけ消す物: Renderer " + renderers.Length + " 個、Canvas " + canvases.Length + " 個（止める物の下は Renderer " + rootRenderers.Length + " 個、Canvas " + rootCanvases.Length + " 個）\n" +
             "・音を消す物: " + sources.Length + " 個\n" +
             "・隠さない物（keep）: " + keep.Count + " 個\n" +
             "Gate の Content Roots は空にしました（" + GuardName + " が切り替えます）。\n" +
@@ -130,7 +135,7 @@ public static partial class SupporterGateSetup
         return msg;
     }
 
-    private static void CollectRoots(Transform t, GuardScan scan, List<GameObject> result, ref int synced, ref int toggled, ref int called, ref int pinned)
+    private static void CollectRoots(Transform t, GuardScan scan, List<GameObject> result, ref int synced, ref int toggled, ref int called, ref int pinned, ref int audio)
     {
         GameObject go = t.gameObject;
         if (scan.Excluded(t) || !go.activeSelf) return;
@@ -143,8 +148,9 @@ public static partial class SupporterGateSetup
         if (why == "synced") synced++;
         else if (why == "toggled") toggled++;
         else if (why == "called") called++;
+        else if (why == "audio") audio++;
         else pinned++;
-        foreach (Transform c in t) CollectRoots(c, scan, result, ref synced, ref toggled, ref called, ref pinned);
+        foreach (Transform c in t) CollectRoots(c, scan, result, ref synced, ref toggled, ref called, ref pinned, ref audio);
     }
 
     private static void SetArray(SerializedObject so, string field, UnityEngine.Object[] values)
@@ -225,6 +231,8 @@ public static partial class SupporterGateSetup
         {
             if (_pinned.Any(p => p.IsChildOf(t))) return "pinned";
             if (ContainsSynced(t)) return "synced";
+            // 音源は止めない（VRChat が読み込み時に空間化などを設定するので、止めて出し直すと、距離の減衰が効かなくなることがある。0.9.1）
+            if (t.GetComponentInChildren<AudioSource>(true) != null) return "audio";
             if (_toggled.Contains(t.gameObject)) return "toggled";
             if (CalledFromOutside(t)) return "called";
             return null;
