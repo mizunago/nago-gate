@@ -541,8 +541,9 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   }
   log.info(`住人の申請を認定 ${who} by ${by} 有効=${rec.memberActive}`);
 
-  // 本人に知らせる。DM を受け取らない設定なら届かないが、「状態」のボタンで分かる。DM には、内容の説明は書かない
-  const dmText = (["ja", "en"] as Lang[]).map((l) => t(l, "member.approvedDm", channelRefs(config, l))).join("\n\n");
+  // 本人に知らせる。DM を受け取らない設定なら届かないが、「状態」のボタンで分かる。DM には、内容の説明は書かない。
+  // 本人の言語は分からないので、Discord の案内と同じ 4 言語を並べる（中国語の画面の人が、日本語と英語だけの DM で止まっていた）
+  const dmText = (["ja", "en", "zh-CN", "ko"] as Lang[]).map((l) => t(l, "member.approvedDm", channelRefs(config, l))).join("\n\n");
   let dmNote = "本人に DM で知らせました。";
   try {
     await target.send({ content: dmText });

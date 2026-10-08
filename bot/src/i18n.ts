@@ -220,7 +220,7 @@ const M = {
   },
   "modal.name": {
     ja: "VRChat の表示名（プロフィールに出ている名前）",
-    en: "VRChat display name (as shown on your profile)",
+    en: "VRChat display name (as on your profile)",
     "zh-CN": "VRChat 显示名称（个人资料上显示的名字）",
     "zh-TW": "VRChat 顯示名稱（個人資料上顯示的名字）",
     ko: "VRChat 표시 이름 (프로필에 표시되는 이름)",
