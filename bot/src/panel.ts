@@ -24,6 +24,7 @@ import { mentionPeople, personById, resolvePerson, resolvedReport, tierMention }
 import type { MemberRecord, Store } from "./store.js";
 import { isMemberEligible, isTesterActive, memberEligibleFrom, type SyncContext } from "./sync.js";
 import { grantTester, parseRankUser, revokeTester, TESTER_IDS, TESTER_MAX_DAYS, testerMenu } from "./tester.js";
+import { applicationsList, LIST_IDS, sendList, unregisteredList } from "./lists.js";
 import { adminActionLegend, adminActionRow, checkVerify, RENAME_IDS, renameMenu, resetRename, sendRenameDm, sendVerifyDm, VERIFY_IDS, verifyMenu, verifyPrompt } from "./verify.js";
 import { bringIntoGroup, type VrcProfile } from "./vrchat.js";
 
@@ -850,6 +851,18 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
 
   if (id.startsWith(IDS.memberApprove) || id.startsWith(IDS.memberDecline)) {
     await handleMemberReview(deps, interaction);
+    return;
+  }
+
+  // 管理者: 一覧（申請中の人・登録がまだの支援者）。コマンドの一覧のチャンネルのボタン
+  if (id === LIST_IDS.applications || id === LIST_IDS.unregistered) {
+    if (!isAdmin(config, interaction.member)) {
+      await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
+      return;
+    }
+    await interaction.deferReply({ ephemeral: true });
+    const list = id === LIST_IDS.applications ? await applicationsList(config, store, interaction.guild) : unregisteredList(config, store);
+    await sendList(interaction, list);
     return;
   }
 

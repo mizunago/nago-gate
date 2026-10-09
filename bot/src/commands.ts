@@ -13,6 +13,7 @@ import { activateMemberIfReady, buildPanelMessage, IDS, placePanels } from "./pa
 import { mentionPeople, personById, resolvedReport } from "./report.js";
 import { grantTester, revokeTester, TESTER_MAX_DAYS, testerList } from "./tester.js";
 import { adminActionLegend, adminActionRow } from "./verify.js";
+import { applicationsList, sendList, unregisteredList } from "./lists.js";
 import { keyedHashName } from "./protect.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
@@ -126,6 +127,8 @@ export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody
         .addUserOption((o) => o.setName("user").setDescription("対象").setRequired(true)),
     )
     .addSubcommand((s) => s.setName("testers").setDescription("今の協力者の一覧（期限の近い順）"))
+    .addSubcommand((s) => s.setName("applications").setDescription("まだ決めていない住人の申請と、認定済みで本人の同意待ちの人の一覧"))
+    .addSubcommand((s) => s.setName("unregistered").setDescription("支援サイトのロールはあるが、VRChat の表示名の登録がまだの支援者の一覧"))
     .addSubcommand((s) =>
       s
         .setName("member-grant")
@@ -298,6 +301,12 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
           : await revokeTester(config, store, interaction.guild, user.id, member.user.tag);
       if (r.ok) deps.requestPublish();
       await interaction.editReply({ content: r.message, allowedMentions: { users: [user.id] } });
+      return;
+    }
+    if (sub === "applications" || sub === "unregistered") {
+      await interaction.deferReply({ ephemeral: true });
+      const list = sub === "applications" ? await applicationsList(config, store, interaction.guild) : unregisteredList(config, store);
+      await sendList(interaction, list);
       return;
     }
     if (sub === "testers") {

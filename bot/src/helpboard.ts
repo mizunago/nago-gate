@@ -5,6 +5,7 @@ import { hasOwnChannel, panelChannelId } from "./channels.js";
 import { buildCommands } from "./commands.js";
 import type { AppConfig } from "./config.js";
 import { log } from "./log.js";
+import { LIST_IDS } from "./lists.js";
 import { IDS } from "./panel.js";
 
 const HEADER = "## コマンド一覧";
@@ -56,6 +57,11 @@ export function buildCommandHelpLines(config: AppConfig): string[] {
   lines.push("", "**人を調べる**");
   lines.push("下の `🔎 人を調べる` を押して、Discord のユーザー名か VRChat の表示名を入れると、その人の手続きがどこまで済んでいて、何がまだかを出します（自分にだけ見える）。");
   lines.push("`/vrc-admin lookup` でも同じものが出ます。");
+  lines.push("", "**一覧**（下のボタン。自分にだけ見える）");
+  lines.push("`📨 申請中の人` … まだ決めていない住人の申請と、認定済みで本人の同意待ちの人（申請のメッセージへのリンクつき）。");
+  lines.push("　`/vrc-admin applications` でも出ます。");
+  lines.push("`🧾 登録がまだの支援者` … 支援サイトのロールはあるが、VRChat の表示名を登録していない人（まだワールドに入れない）。");
+  lines.push("　`/vrc-admin unregistered` でも出ます。");
   lines.push("", "**本人確認と、表示名の登録のやり直し**（申請のメッセージと、人を調べた結果のボタン）");
   lines.push("`🔑 本人確認を頼む` … Discord と VRChat の名前がかけ離れていて、同じ人か分からないときに使う。");
   lines.push("　Bot が確認の文字を決め、本人に送る文（コピー用）と「DM で送る」を出す。");
@@ -88,6 +94,8 @@ function lookupButtons(): ActionRowBuilder<ButtonBuilder>[] {
   return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder().setCustomId(IDS.adminLookup).setLabel("人を調べる").setStyle(ButtonStyle.Primary).setEmoji("🔎"),
+      new ButtonBuilder().setCustomId(LIST_IDS.applications).setLabel("申請中の人").setStyle(ButtonStyle.Secondary).setEmoji("📨"),
+      new ButtonBuilder().setCustomId(LIST_IDS.unregistered).setLabel("登録がまだの支援者").setStyle(ButtonStyle.Secondary).setEmoji("🧾"),
     ),
   ];
 }
