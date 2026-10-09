@@ -14,7 +14,7 @@ import { channelRefs } from "./channels.js";
 import type { AppConfig } from "./config.js";
 import { t, type Lang } from "./i18n.js";
 import { log } from "./log.js";
-import { fmtDate } from "./register.js";
+import { fmtDate, fmtTime, nameChangeTimes } from "./register.js";
 import type { Store } from "./store.js";
 import type { VrcGroupAccess } from "./sync.js";
 import { TESTER_IDS } from "./tester.js";
@@ -221,7 +221,7 @@ export function renameMenu(config: AppConfig, store: Store, userId: string, now:
   const rec = store.get(userId);
   if (!rec || !rec.vrcName) return { content: `<@${userId}> は、まだ表示名を登録していません。\n登録の制限はかかっていません。`, components: [] };
   const head = `<@${userId}>（${rec.discordTag ?? "-"}）の表示名は **${rec.vrcName}** です。`;
-  const next = rec.nameChangedAt ? new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000) : null;
+  const { next, fixUntil } = nameChangeTimes(config, rec, now);
   if (!next || next <= now) {
     return {
       content: `${head}\n今すぐ登録し直せます（制限はかかっていません）。\n本人に知らせるときは、下の「DM で知らせる」か、次の文をコピーしてください。\n\`\`\`\n${dmText(config, "rename.dm", {})}\n\`\`\``,
@@ -234,7 +234,8 @@ export function renameMenu(config: AppConfig, store: Store, userId: string, now:
   return {
     content: [
       head,
-      `${fmtDate(next.toISOString())} まで変えられません（${config.nameChangeCooldownDays} 日に 1 回）。`,
+      ...(fixUntil ? [`${fmtTime(fixUntil)} までは、本人がもう一度登録すれば、打ち間違いを直せます（登録から ${config.nameFixMinutes} 分のうち）。`] : []),
+      `${fixUntil ? "それを過ぎると、" : ""}${fmtDate(next.toISOString())} まで変えられません（${config.nameChangeCooldownDays} 日に 1 回）。`,
       "間違えて登録した場合は、下のボタンで、すぐに登録し直せるようにできます。",
       "本人が登録し直すと、ワールドのリストも新しい名前に変わります。",
     ].join("\n"),

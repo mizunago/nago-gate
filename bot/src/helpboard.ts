@@ -47,6 +47,7 @@ export function buildCommandHelpLines(config: AppConfig): string[] {
   lines.push("", "**ボタンの場所と、することの中身**");
   lines.push(`${at("register")}: \`登録\` … Discord と VRChat のアカウントをつなぐ（VRChat の表示名を入れる、30 日に 1 回まで変えられる）`);
   lines.push("　支援者も、住人の申請をする人も、最初にこれ");
+  lines.push(`　登録から ${config.nameFixMinutes} 分のうちは、打ち間違いを何度でも直せる（30 日の数え始めは変わらない）`);
   lines.push(`${at("register")}${hasOwnChannel(config, "status") ? `・${at("status")}` : ""}: \`状態\` … 本人が、自分の登録・支援・住人の申請の状態を見る`);
   lines.push(`${at("status")}: \`クレジット ON / OFF\` … ワールドの支援者のボードに、名前を出すかを選ぶ（支援者にだけ関係する）`);
   if (config.member) {

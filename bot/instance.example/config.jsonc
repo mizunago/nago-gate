@@ -49,6 +49,7 @@
   "rules": {
     "graceDays": 31,                // 支援停止後もアクセスを維持する日数
     "nameChangeCooldownDays": 30,   // /vrc register で名前を変更できる間隔
+    "nameFixMinutes": 60,           // 登録・変更から この分数のうちは、打ち間違いを何度でも直せる（30 日の数え始めは変わらない）
     "maxNameLength": 32             // 登録できる表示名の最大文字数
   },
 

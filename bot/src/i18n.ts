@@ -209,6 +209,13 @@ const M = {
   },
   "status.nextChange": { ja: "次回名前変更可能", en: "Next name change", "zh-CN": "下次可更改名称", "zh-TW": "下次可更改名稱", ko: "다음 이름 변경 가능" },
   "status.now": { ja: "今すぐ", en: "now", "zh-CN": "现在", "zh-TW": "現在", ko: "지금" },
+  "status.fixUntil": {
+    ja: "{time} までは、もう一度登録すれば、打ち間違いを何度でも直せます。",
+    en: "Until {time}, you can fix a typo as many times as you need by registering again.",
+    "zh-CN": "在 {time} 之前，重新注册即可修正输入错误，次数不限。",
+    "zh-TW": "在 {time} 之前，重新註冊即可修正輸入錯誤，次數不限。",
+    ko: "{time}까지는 다시 등록하면 오타를 몇 번이든 고칠 수 있습니다.",
+  },
 
   // ---- ボタン / フォーム / テキスト投稿 ----
   "modal.title": {

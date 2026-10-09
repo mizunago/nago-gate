@@ -4,7 +4,7 @@ import type { Guild, GuildMember } from "discord.js";
 import { channelRefs } from "./channels.js";
 import { tierByRank, type AppConfig } from "./config.js";
 import { normalizeName } from "./hash.js";
-import { fmtDate } from "./register.js";
+import { fmtDate, fmtTime, nameChangeTimes } from "./register.js";
 import type { MemberRecord, Store } from "./store.js";
 import { desiredRoleIds, isMemberEligible, isTesterActive, rankFromRoles } from "./sync.js";
 
@@ -46,9 +46,11 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
 
   // 登録（Discord と VRChat をつなぐ）
   if (rec?.vrcName) {
-    // 次に表示名を変えられる日（30 日に 1 回）。間違えて登録した人は「🔄 名前の登録をやり直させる」で、すぐに登録し直せるようにできる
-    const nextChange = rec.nameChangedAt ? new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000) : null;
-    const locked = nextChange && nextChange > now ? `、次に変えられるのは ${fmtDate(nextChange.toISOString())}` : "";
+    // 次に表示名を変えられる日（30 日に 1 回。登録から少しのうちは、本人が打ち間違いを直せる）。
+    // 間違えて登録した人は「🔄 名前の登録をやり直させる」で、すぐに登録し直せるようにできる
+    const { next: nextChange, fixUntil } = nameChangeTimes(config, rec, now);
+    const fixable = fixUntil ? `（${fmtTime(fixUntil)} までは、本人が打ち間違いを直せる）` : "";
+    const locked = nextChange && nextChange > now ? `、次に変えられるのは ${fmtDate(nextChange.toISOString())}${fixable}` : "";
     lines.push(`${DONE} 登録（VRChat とつなぐ）: **${rec.vrcName}**${rec.vrcUserId ? `　https://vrchat.com/home/user/${rec.vrcUserId}` : ""}${locked}`);
   } else {
     lines.push(`${TODO} 登録（VRChat とつなぐ）: まだ`);

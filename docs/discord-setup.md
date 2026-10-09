@@ -44,7 +44,7 @@ cp -r instance.example instance
   "discord": { "guildId": "...", "adminRoleIds": [] },
   "tiers":   [ { "id": "supporter", "rank": 1, "label": "Supporter", "color": "#F5C542",
                  "roleId": "<共通ロール>", "sourceRoleIds": ["<Patreon ティアロール>", "<Ci-en プランロール>"] } ],
-  "rules":   { "graceDays": 31, "nameChangeCooldownDays": 30, "maxNameLength": 32 },
+  "rules":   { "graceDays": 31, "nameChangeCooldownDays": 30, "nameFixMinutes": 60, "maxNameLength": 32 },
   "sync":    { "intervalMinutes": 10 },
   "publish": { "type": "gist", "gistId": "...", "fileName": "supporters.json" }
 }
@@ -241,6 +241,7 @@ npm start
   - Bot が VRChat のプロフィールを読み、文字があれば本人確認が済んだとして、申請のチャンネルで持ち主に知らせる（VRChat の API は、本人が押したときだけ使う。1 人 30 秒に 1 回まで）
   - 本人確認は、認定の条件ではない。済んだかどうかは「人を調べる」に出る
 - 🔄 名前の登録をやり直させる: 表示名を間違えて登録した人（30 日に 1 回の制限にかかる）を、すぐに登録し直せるようにする
+  - 登録・変更から 60 分（`nameFixMinutes`）のうちは、本人がもう一度登録するだけで、打ち間違いを何度でも直せる。直しても 30 日の数え始めは変わらない。このボタンは、60 分を過ぎてから間違いに気づいた人に使う
   - 今の表示名と、次に変えられる日が出る。「登録し直せるようにする」を押すと制限が外れる
   - 本人に送る文（コピー用）と「DM で知らせる」も出る
 

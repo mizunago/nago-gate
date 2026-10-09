@@ -27,6 +27,23 @@ export function fmtDate(iso: string | null): string {
   return `<t:${Math.floor(new Date(iso).getTime() / 1000)}:D>`;
 }
 
+/** 時刻だけ（見る人の時間帯で出る） */
+export function fmtTime(d: Date): string {
+  return `<t:${Math.floor(d.getTime() / 1000)}:t>`;
+}
+
+/**
+ * 表示名を次に変えられる日と、打ち間違いを直せる期限。
+ * 登録・変更から nameFixMinutes 分のうちは、何度でも直せる（登録の直後に打ち間違いに気づく人が多いため。2026-10-10 発注者）。
+ * 直しても 30 日の数え始めは動かさないので、直せる時間は延びない。期限を過ぎていれば fixUntil は null
+ */
+export function nameChangeTimes(config: AppConfig, rec: MemberRecord, now: Date = new Date()): { next: Date | null; fixUntil: Date | null } {
+  if (!rec.nameChangedAt) return { next: null, fixUntil: null };
+  const at = new Date(rec.nameChangedAt).getTime();
+  const fixUntil = new Date(at + config.nameFixMinutes * 60_000);
+  return { next: new Date(at + config.nameChangeCooldownDays * 86_400_000), fixUntil: fixUntil > now ? fixUntil : null };
+}
+
 /** 住人の状態を 1 行で表す */
 export function memberState(config: AppConfig, rec: MemberRecord, lang: Lang): string {
   if (rec.banned) return t(lang, "member.state.none");
@@ -68,10 +85,9 @@ export function describe(config: AppConfig, rec: MemberRecord | null, lang: Lang
     const testerTier = tierByRank(config, rec.testerRank);
     lines.push(`${t(lang, "status.tester")}: ${t(lang, "status.testerUntil", { tier: testerTier ? testerTier.label : String(rec.testerRank), date: fmtDate(rec.testerUntil) })}`);
   }
-  if (rec.nameChangedAt) {
-    const next = new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000);
-    lines.push(`${t(lang, "status.nextChange")}: ${next > new Date() ? fmtDate(next.toISOString()) : t(lang, "status.now")}`);
-  }
+  const { next, fixUntil } = nameChangeTimes(config, rec);
+  if (next) lines.push(`${t(lang, "status.nextChange")}: ${next > new Date() ? fmtDate(next.toISOString()) : t(lang, "status.now")}`);
+  if (fixUntil) lines.push(t(lang, "status.fixUntil", { time: fmtTime(fixUntil) }));
   return lines.join("\n");
 }
 
@@ -109,9 +125,12 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
 
   const now = new Date();
   const changed = !rec.vrcName || normalizeName(rec.vrcName) !== normalized;
+  const old = rec.vrcName;
+  let fixing = false;
   if (changed && rec.vrcName && rec.nameChangedAt) {
-    const next = new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000);
-    if (next > now) {
+    const { next, fixUntil } = nameChangeTimes(config, rec, now);
+    if (fixUntil) fixing = true;
+    else if (next && next > now) {
       // 入力の間違いをすぐ直そうとした人もここで止まる。管理者が気づけるよう、外し方も書く
       log.warn(
         `表示名の変更を断った（${config.nameChangeCooldownDays} 日に 1 回の制限） ${input.discordTag} (${input.discordId}): ${rec.vrcName} -> ${v.name}、次に変えられるのは ${next.toISOString()}。` +
@@ -126,11 +145,17 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   }
 
   rec.vrcName = v.name;
-  if (changed) rec.nameChangedAt = now.toISOString();
+  // 打ち間違いの直しでは、30 日の数え始めを動かさない
+  if (changed && !fixing) rec.nameChangedAt = now.toISOString();
   if (input.credit !== null) rec.showCredit = input.credit;
   rec.updatedAt = now.toISOString();
   store.save();
-  log.info(`登録 ${input.discordTag} (${input.discordId}): name=${v.name} changed=${changed} credit=${rec.showCredit} effectiveRank=${rec.effectiveRank}`);
+  const fix = fixing ? ` （登録から ${config.nameFixMinutes} 分のうちの、打ち間違いの直し: ${old} -> ${v.name}）` : "";
+  log.info(`登録 ${input.discordTag} (${input.discordId}): name=${v.name} changed=${changed} credit=${rec.showCredit} effectiveRank=${rec.effectiveRank}${fix}`);
+  if (changed && old && rec.memberAppliedAt && !rec.memberApprovedAt) {
+    // 申請のメッセージには、申請したときの表示名が出たまま。認定すると、今の表示名がワールドのリストに載る
+    log.warn(`住人の申請中の人が表示名を変えた ${input.discordTag} (${input.discordId}): ${old} -> ${v.name}。申請のメッセージの表示名は古いままで、認定すると新しい名前でリストに載る`);
+  }
 
   const message =
     `${t(lang, "registered")}\n${describe(config, rec, lang)}\n` +

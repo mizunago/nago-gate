@@ -59,6 +59,8 @@ export interface AppConfig {
   commandsChannelId: string | null;
   graceDays: number;
   nameChangeCooldownDays: number;
+  /** 登録・変更から、この分数のうちは表示名の打ち間違いを何度でも直せる（30 日の数え始めは動かさない） */
+  nameFixMinutes: number;
   syncIntervalMinutes: number;
   maxNameLength: number;
   tiers: TierConfig[];
@@ -124,7 +126,7 @@ interface ConfigFile {
     commandsChannelId?: string;
   };
   tiers?: Partial<TierConfig>[];
-  rules?: { graceDays?: number; nameChangeCooldownDays?: number; maxNameLength?: number };
+  rules?: { graceDays?: number; nameChangeCooldownDays?: number; nameFixMinutes?: number; maxNameLength?: number };
   sync?: { intervalMinutes?: number };
   publish?: PublishConfig;
   member?: { roleId?: string; minDays?: number; mode?: string; reviewChannelId?: string; reapplyDays?: number };
@@ -268,6 +270,7 @@ function loadConfig(configPath: string, instanceDir: string): AppConfig {
     commandsChannelId: raw.discord?.commandsChannelId || null,
     graceDays: raw.rules?.graceDays ?? 31,
     nameChangeCooldownDays: raw.rules?.nameChangeCooldownDays ?? 30,
+    nameFixMinutes: raw.rules?.nameFixMinutes ?? 60,
     maxNameLength: raw.rules?.maxNameLength ?? 32,
     syncIntervalMinutes: raw.sync?.intervalMinutes ?? 10,
     tiers: tiers.sort((a, b) => a.rank - b.rank),
