@@ -1,7 +1,7 @@
 // 住人の申請の本人確認と、表示名の登録のやり直し（どちらも管理者がボタンで始める）。
 //
 // 本人確認: 申請した人の Discord と VRChat の名前がかけ離れていて、同じ人か分からないときに使う。
-//   管理者が「🔑 本人確認…」を押すと、Bot が確認の文字（nago-XXXX）を決めて、本人に送る文を出す（コピー用と、「DM で送る」）。
+//   管理者が「🔑 本人確認を頼む」を押すと、Bot が確認の文字（nago-XXXX）を決めて、本人に送る文を出す（コピー用と、「DM で送る」）。
 //   本人が VRChat のプロフィールの「ステータス」か「自己紹介」にその文字を入れ、住人のボタンから「確かめる」を押すと、
 //   Bot が VRChat のプロフィールを読み、文字があれば本人確認が済んだとして、申請のチャンネルで管理者に知らせる。
 //   VRChat の API は、本人がボタンを押したときだけ使う（1 人 30 秒に 1 回まで）。
@@ -47,15 +47,28 @@ export interface AdminReply {
   components: ActionRowBuilder<ButtonBuilder>[];
 }
 
+/** 入口のボタンの名前（何をするかが分かる名前にする。説明は adminActionLegend の文で添える） */
+export const ACTION_LABELS = { tester: "協力者にする", verify: "本人確認を頼む", rename: "名前の登録をやり直させる" } as const;
+
 /** 管理者の操作の入口のボタン（人を調べた結果と、申請のメッセージに付ける）。どれも押すと説明が出るだけ */
 export function adminActionRow(userId: string, withTester: boolean): ActionRowBuilder<ButtonBuilder> {
   const row = new ActionRowBuilder<ButtonBuilder>();
-  if (withTester) row.addComponents(new ButtonBuilder().setCustomId(`${TESTER_IDS.menu}${userId}`).setLabel("協力者…").setStyle(ButtonStyle.Secondary).setEmoji("🧪"));
+  if (withTester) row.addComponents(new ButtonBuilder().setCustomId(`${TESTER_IDS.menu}${userId}`).setLabel(ACTION_LABELS.tester).setStyle(ButtonStyle.Secondary).setEmoji("🧪"));
   row.addComponents(
-    new ButtonBuilder().setCustomId(`${VERIFY_IDS.menu}${userId}`).setLabel("本人確認…").setStyle(ButtonStyle.Secondary).setEmoji("🔑"),
-    new ButtonBuilder().setCustomId(`${RENAME_IDS.menu}${userId}`).setLabel("登録のやり直し…").setStyle(ButtonStyle.Secondary).setEmoji("🔄"),
+    new ButtonBuilder().setCustomId(`${VERIFY_IDS.menu}${userId}`).setLabel(ACTION_LABELS.verify).setStyle(ButtonStyle.Secondary).setEmoji("🔑"),
+    new ButtonBuilder().setCustomId(`${RENAME_IDS.menu}${userId}`).setLabel(ACTION_LABELS.rename).setStyle(ButtonStyle.Secondary).setEmoji("🔄"),
   );
   return row;
+}
+
+/** 入口のボタンの説明（ボタンの名前だけでは、押すと何が起こるか分かりにくいため。2026-10-10 発注者） */
+export function adminActionLegend(withTester: boolean): string {
+  return [
+    "**下のボタン**（押すと説明が出るだけで、すぐには何も変わりません）",
+    ...(withTester ? [`🧪 ${ACTION_LABELS.tester}: 期間を決めて、ワールドに支援者と同じに入れる（ボードには載らない）`] : []),
+    `🔑 ${ACTION_LABELS.verify}: 名前がかけ離れていて本人か分からないとき、VRChat のプロフィールに文字を入れてもらって確かめる`,
+    `🔄 ${ACTION_LABELS.rename}: 表示名を間違えて登録した人を、30 日を待たずに登録し直せるようにする`,
+  ].join("\n");
 }
 
 function newCode(): string {
@@ -70,7 +83,7 @@ function dmText(config: AppConfig, key: "verify.dm" | "rename.dm", vars: Record<
 
 // ---- 本人確認（管理者） ----
 
-/** 「🔑 本人確認…」を押したとき。確認の文字が無ければ決めて、本人に送る文（コピー用）と「DM で送る」を出す */
+/** 「🔑 本人確認を頼む」を押したとき。確認の文字が無ければ決めて、本人に送る文（コピー用）と「DM で送る」を出す */
 export function verifyMenu(config: AppConfig, store: Store, userId: string, now: Date = new Date()): AdminReply {
   const rec = store.get(userId);
   if (!rec || !rec.vrcName) return { content: `<@${userId}> は、まだ VRChat の表示名を登録していません。\n本人確認は、表示名の登録のあとに頼めます。`, components: [] };
@@ -102,7 +115,7 @@ export function verifyMenu(config: AppConfig, store: Store, userId: string, now:
 /** 「DM で送る」を押したとき */
 export async function sendVerifyDm(config: AppConfig, store: Store, guild: Guild, userId: string, by: string): Promise<string> {
   const rec = store.get(userId);
-  if (!rec || !rec.verifyCode) return "確認の文字がまだありません。\nもう一度「🔑 本人確認…」を押してください。";
+  if (!rec || !rec.verifyCode) return "確認の文字がまだありません。\nもう一度「🔑 本人確認を頼む」を押してください。";
   if (rec.verifiedAt) return `<@${userId}> の本人確認は、もう済んでいます。`;
   const member = await guild.members.fetch(userId).catch(() => null);
   if (!member) return `<@${userId}> は、もうサーバーにいません。`;
@@ -203,7 +216,7 @@ async function notifyVerified(config: AppConfig, guild: Guild, userId: string, t
 
 // ---- 登録のやり直し（管理者） ----
 
-/** 「🔄 登録のやり直し…」を押したとき。今の制限と、外すボタンを出す */
+/** 「🔄 名前の登録をやり直させる」を押したとき。今の制限と、外すボタンを出す */
 export function renameMenu(config: AppConfig, store: Store, userId: string, now: Date = new Date()): AdminReply {
   const rec = store.get(userId);
   if (!rec || !rec.vrcName) return { content: `<@${userId}> は、まだ表示名を登録していません。\n登録の制限はかかっていません。`, components: [] };

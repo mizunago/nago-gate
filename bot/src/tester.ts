@@ -94,7 +94,7 @@ export function testerList(config: AppConfig, store: Store, now: Date = new Date
   return `**協力者**（${testers.length} 人、期限の近い順）\n${lines.join("\n")}`;
 }
 
-/** 「🧪 協力者…」を押したときの返事（説明と、協力者にする・外すのボタン） */
+/** 「🧪 協力者にする」を押したときの返事（説明と、協力者にする・外すのボタン） */
 export function testerMenu(config: AppConfig, store: Store, userId: string, now: Date = new Date()): { content: string; components: ActionRowBuilder<ButtonBuilder>[] } {
   const rec = store.get(userId);
   const lines = [
@@ -107,7 +107,7 @@ export function testerMenu(config: AppConfig, store: Store, userId: string, now:
   return { content: lines.join("\n"), components: testerButtons(config, [{ userId, rec, member: null }], now) };
 }
 
-/** 協力者にする・外すのボタン（「🧪 協力者…」を押したあとの返事に付ける） */
+/** 協力者にする・外すのボタン（「🧪 協力者にする」を押したあとの返事に付ける） */
 export function testerButtons(config: AppConfig, people: ResolvedPerson[], now: Date = new Date()): ActionRowBuilder<ButtonBuilder>[] {
   if (people.length !== 1) return [];
   const p = people[0];

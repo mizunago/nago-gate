@@ -24,7 +24,7 @@ import { mentionPeople, personById, resolvePerson, resolvedReport, tierMention }
 import type { MemberRecord, Store } from "./store.js";
 import { isMemberEligible, isTesterActive, memberEligibleFrom, type SyncContext } from "./sync.js";
 import { grantTester, parseRankUser, revokeTester, TESTER_IDS, TESTER_MAX_DAYS, testerMenu } from "./tester.js";
-import { adminActionRow, checkVerify, RENAME_IDS, renameMenu, resetRename, sendRenameDm, sendVerifyDm, VERIFY_IDS, verifyMenu, verifyPrompt } from "./verify.js";
+import { adminActionLegend, adminActionRow, checkVerify, RENAME_IDS, renameMenu, resetRename, sendRenameDm, sendVerifyDm, VERIFY_IDS, verifyMenu, verifyPrompt } from "./verify.js";
 import { bringIntoGroup, type VrcProfile } from "./vrchat.js";
 
 export const IDS = {
@@ -401,6 +401,8 @@ function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, pr
   if (isTesterActive(rec, now)) lines.push(`協力者: ${tierMention(config, rec.testerRank)} 相当、${fmtDate(rec.testerUntil)} まで`);
   lines.push("本人確認: していません。\n登録した表示名が、申請した本人の VRChat アカウントかどうかは、必要なら直接たずねて確かめてください。");
   lines.push("プロフィールを見て、下のボタンで決めてください。\n認定すると、本人にくわしい案内（内容の注意と共有のお願い）が見えるようになり、本人が同意した時点で住人のロールが付きます。");
+  // 2 段目のボタン（本人確認・登録のやり直し）の説明
+  lines.push("", adminActionLegend(false));
   return lines.join("\n");
 }
 
@@ -808,7 +810,7 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
     return;
   }
 
-  // 協力者にする・外す（人を調べた結果の「🧪 協力者…」から）
+  // 協力者にする・外す（人を調べた結果の「🧪 協力者にする」から）
   if (id.startsWith(TESTER_IDS.menu) || id.startsWith(TESTER_IDS.grant) || id.startsWith(TESTER_IDS.revoke)) {
     if (!isAdmin(config, interaction.member)) {
       await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
@@ -923,7 +925,7 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
     const people = await resolvePerson(interaction.guild, store, query);
     log.info(`人を調べる「${query}」 by ${interaction.user.tag}: ${people.length} 件`);
     await interaction.reply({
-      content: resolvedReport(config, interaction.guild, query, people, new Date()),
+      content: resolvedReport(config, interaction.guild, query, people, new Date()) + (people.length === 1 ? `\n\n${adminActionLegend(true)}` : ""),
       components: people.length === 1 ? [adminActionRow(people[0].userId, true)] : [],
       ephemeral: true,
       allowedMentions: mentionPeople(people),
