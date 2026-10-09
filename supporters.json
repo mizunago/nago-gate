@@ -1,6 +1,6 @@
 {
  "v": 2,
- "generatedAt": "2026-10-09T10:46:28.869Z",
+ "generatedAt": "2026-10-09T22:04:11.871Z",
  "tiers": [
   {
    "id": "supporter",
@@ -66,7 +66,8 @@
     "8f53bee7d9d09109e904d13f2edc8848c070b4e7ea940f593aa5a9451bb21659": 1,
     "3e7749310c044e125d8019edfee89141b258c4fc08d1ff877a147d3628bbbc09": 1,
     "4e349faa2d6185eb9729a36c079ea06993deb10e9655280c17b74d151f0c4e52": 1,
-    "3869a432bcacee60a0f58b3d39f6599bb3e1f5ea3da9beed9536f83e6aa97091": 1
+    "3869a432bcacee60a0f58b3d39f6599bb3e1f5ea3da9beed9536f83e6aa97091": 1,
+    "83aea76ba6a60bb84daaa17f49d9424a9051109dfb7d96f3036ca7caefbf0452": 1
    }
   }
  ]
