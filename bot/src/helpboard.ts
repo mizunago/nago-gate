@@ -57,7 +57,7 @@ export function buildCommandHelpLines(config: AppConfig): string[] {
   lines.push("下の `🔎 人を調べる` を押して、Discord のユーザー名か VRChat の表示名を入れると、その人の手続きがどこまで済んでいて、何がまだかを出します（自分にだけ見える）。");
   lines.push("`/vrc-admin lookup` でも同じものが出ます。");
   lines.push("", "**協力者**（デバッグなどを手伝ってくれる、支援者ではない人）");
-  lines.push("人を調べた結果の下の `🧪 協力者にする` を押して日数を入れると、その期間だけ、ワールドに支援者と同じに入れます。");
+  lines.push("人を調べた結果の下の `🧪 協力者…` を押し、ランクを選んで日数を入れると、その期間だけ、ワールドに支援者と同じに入れます。");
   lines.push("支援者のボードには載らず、Supporter・Platinum のロールも付きません。");
   lines.push("期限が来ると自動で外れます。\n一覧は `/vrc-admin testers`、コマンドでは `/vrc-admin tester-grant` と `tester-revoke` です。");
   return lines;

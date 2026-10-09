@@ -10,12 +10,12 @@ import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
 import { activateMemberIfReady, buildPanelMessage, IDS, placePanels } from "./panel.js";
-import { personById, resolvedReport } from "./report.js";
-import { grantTester, revokeTester, TESTER_MAX_DAYS, testerButtons, testerList } from "./tester.js";
+import { mentionPeople, personById, resolvedReport } from "./report.js";
+import { grantTester, revokeTester, TESTER_MAX_DAYS, testerEntryButton, testerList } from "./tester.js";
 import { keyedHashName } from "./protect.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
-import { isMemberEligible, publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
+import { isMemberEligible, isTesterActive, publishIfChanged, runSync, updateEffectiveRank, type SyncContext } from "./sync.js";
 
 export function buildCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
   const vrc = new SlashCommandBuilder()
@@ -282,9 +282,9 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       const people = await personById(interaction.guild, store, user.id);
       await interaction.reply({
         content: resolvedReport(config, interaction.guild, user.id, people, new Date()),
-        components: testerButtons(config, people),
+        components: testerEntryButton(people),
         ephemeral: true,
-        allowedMentions: { parse: [] },
+        allowedMentions: mentionPeople(people),
       });
       return;
     }
@@ -296,11 +296,12 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
           ? await grantTester(config, store, interaction.guild, user.id, interaction.options.getInteger("rank", true), interaction.options.getInteger("days") ?? config.tester.defaultDays, member.user.tag)
           : await revokeTester(config, store, interaction.guild, user.id, member.user.tag);
       if (r.ok) deps.requestPublish();
-      await interaction.editReply({ content: r.message, allowedMentions: { parse: [] } });
+      await interaction.editReply({ content: r.message, allowedMentions: { users: [user.id] } });
       return;
     }
     if (sub === "testers") {
-      await interaction.reply({ content: testerList(config, store).slice(0, 1900), ephemeral: true, allowedMentions: { parse: [] } });
+      const testers = store.all().filter((r) => isTesterActive(r, new Date())).map((r) => r.discordId).slice(0, 100);
+      await interaction.reply({ content: testerList(config, store).slice(0, 1900), ephemeral: true, allowedMentions: { users: testers } });
       return;
     }
     if (sub === "whois") {

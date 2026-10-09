@@ -20,10 +20,10 @@ import { tierByRank, type AppConfig, type MemberConfig } from "./config.js";
 import { langOf, t, type Lang } from "./i18n.js";
 import { log } from "./log.js";
 import { describe, fmtDate, memberState, parseTextRegister, registerName } from "./register.js";
-import { personById, resolvePerson, resolvedReport, tierMention } from "./report.js";
+import { mentionPeople, personById, resolvePerson, resolvedReport, tierMention } from "./report.js";
 import type { MemberRecord, Store } from "./store.js";
 import { isMemberEligible, isTesterActive, memberEligibleFrom, type SyncContext } from "./sync.js";
-import { grantTester, parseRankUser, revokeTester, TESTER_IDS, TESTER_MAX_DAYS, testerButtons } from "./tester.js";
+import { grantTester, parseRankUser, revokeTester, TESTER_IDS, TESTER_MAX_DAYS, testerEntryButton, testerMenu } from "./tester.js";
 import { bringIntoGroup, type VrcProfile } from "./vrchat.js";
 
 export const IDS = {
@@ -466,7 +466,9 @@ async function submitApplication(deps: PanelDeps, interaction: ButtonInteraction
       new ButtonBuilder().setCustomId(IDS.adminLookupUser + rec.discordId).setLabel("くわしく").setStyle(ButtonStyle.Secondary).setEmoji("🔎"),
     );
     await channel
-      .send({ content: reviewContent(config, rec, ownerId, profile, profileNote, now), components: [row], allowedMentions: { users: [ownerId] }, flags: MessageFlags.SuppressEmbeds })
+      // 申請した人もメンションの相手に入れる（入れないと、Discord が名前を出せず「不明なユーザー」と出る）。
+      // 申請のチャンネルは管理者しか見られないので、申請した人に通知は飛ばない
+      .send({ content: reviewContent(config, rec, ownerId, profile, profileNote, now), components: [row], allowedMentions: { users: [ownerId, rec.discordId] }, flags: MessageFlags.SuppressEmbeds })
       .catch((err) => log.warn(`住人の申請を、管理のチャンネルに出せませんでした ${who}: ${String(err)}。/vrc-admin member-grant で認定できます`));
   } else {
     log.warn(`住人の申請を出すチャンネルがありません ${who}。/vrc-admin member-grant で認定できます`);
@@ -492,7 +494,8 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
   const now = new Date();
   // 結果を、申請のメッセージの下に書き足して、決めるボタンを外す（「くわしく」は残す）
   const close = async (note: string): Promise<void> => {
-    await interaction.editReply({ content: `${interaction.message.content}\n\n${note}`, components: [lookupRow(userId)], allowedMentions: { parse: [] } });
+    // 書き換えでは通知は飛ばない。申請した人の名前が出るよう、メンションの相手に入れておく
+    await interaction.editReply({ content: `${interaction.message.content}\n\n${note}`, components: [lookupRow(userId)], allowedMentions: { users: [userId, interaction.guild.ownerId] } });
   };
   if (!mc || !rec || !rec.memberAppliedAt) {
     await close("ℹ️ この申請は、もう処理済みか、取り下げられています。");
@@ -786,28 +789,34 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
       await interaction.showModal(modal);
       return;
     }
+    // 申請のメッセージの「くわしく」: 進み具合だけを出す（協力者のボタンは付けない。閉じるときに誤って押しやすいため）
     const userId = id.slice(IDS.adminLookupUser.length);
     const people = await personById(interaction.guild, store, userId);
     await interaction.reply({
       content: resolvedReport(config, interaction.guild, userId, people, new Date()),
-      components: testerButtons(config, people),
       ephemeral: true,
-      allowedMentions: { parse: [] },
+      allowedMentions: mentionPeople(people),
     });
     return;
   }
 
-  // 協力者にする・外す（人を調べた結果のボタン）
-  if (id.startsWith(TESTER_IDS.grant) || id.startsWith(TESTER_IDS.revoke)) {
+  // 協力者にする・外す（人を調べた結果の「🧪 協力者…」から）
+  if (id.startsWith(TESTER_IDS.menu) || id.startsWith(TESTER_IDS.grant) || id.startsWith(TESTER_IDS.revoke)) {
     if (!isAdmin(config, interaction.member)) {
       await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
       return;
     }
+    if (id.startsWith(TESTER_IDS.menu)) {
+      const userId = id.slice(TESTER_IDS.menu.length);
+      await interaction.reply({ ...testerMenu(config, store, userId), ephemeral: true, allowedMentions: { users: [userId] } });
+      return;
+    }
     if (id.startsWith(TESTER_IDS.revoke)) {
+      const userId = id.slice(TESTER_IDS.revoke.length);
       await interaction.deferReply({ ephemeral: true });
-      const r = await revokeTester(config, store, interaction.guild, id.slice(TESTER_IDS.revoke.length), interaction.user.tag);
+      const r = await revokeTester(config, store, interaction.guild, userId, interaction.user.tag);
       if (r.ok) deps.requestPublish();
-      await interaction.editReply({ content: r.message, allowedMentions: { parse: [] } });
+      await interaction.editReply({ content: r.message, allowedMentions: { users: [userId] } });
       return;
     }
     const target = parseRankUser(id.slice(TESTER_IDS.grant.length));
@@ -879,9 +888,9 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
     log.info(`人を調べる「${query}」 by ${interaction.user.tag}: ${people.length} 件`);
     await interaction.reply({
       content: resolvedReport(config, interaction.guild, query, people, new Date()),
-      components: testerButtons(config, people),
+      components: testerEntryButton(people),
       ephemeral: true,
-      allowedMentions: { parse: [] },
+      allowedMentions: mentionPeople(people),
     });
     return;
   }
@@ -900,7 +909,7 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
     await interaction.deferReply({ ephemeral: true });
     const r = await grantTester(config, store, interaction.guild, target.userId, target.rank, days, interaction.user.tag);
     if (r.ok) deps.requestPublish();
-    await interaction.editReply({ content: r.message, allowedMentions: { parse: [] } });
+    await interaction.editReply({ content: r.message, allowedMentions: { users: [target.userId] } });
     return;
   }
   const name = interaction.fields.getTextInputValue(IDS.modalName);

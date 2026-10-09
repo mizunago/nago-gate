@@ -13,6 +13,8 @@ import type { Store } from "./store.js";
 import { isTesterActive, updateEffectiveRank } from "./sync.js";
 
 export const TESTER_IDS = {
+  /** 協力者の操作を出す（後ろに userId）。人を調べた結果には、このボタンだけを置く（誤って押しても、すぐには何も変わらない） */
+  menu: "sg:admin:tester-menu:",
   /** 協力者にする（後ろに "<rank>:<userId>"）。押すと、日数を入れる欄が出る */
   grant: "sg:admin:tester:",
   /** 日数を入れる欄（後ろに "<rank>:<userId>"） */
@@ -92,7 +94,30 @@ export function testerList(config: AppConfig, store: Store, now: Date = new Date
   return `**協力者**（${testers.length} 人、期限の近い順）\n${lines.join("\n")}`;
 }
 
-/** 人を調べた結果に付けるボタン。1 人に絞れたときだけ出す */
+/** 人を調べた結果に付けるボタン（「🧪 協力者…」の 1 つだけ）。1 人に絞れたときだけ出す */
+export function testerEntryButton(people: ResolvedPerson[]): ActionRowBuilder<ButtonBuilder>[] {
+  if (people.length !== 1) return [];
+  return [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setCustomId(`${TESTER_IDS.menu}${people[0].userId}`).setLabel("協力者…").setStyle(ButtonStyle.Secondary).setEmoji("🧪"),
+    ),
+  ];
+}
+
+/** 「🧪 協力者…」を押したときの返事（説明と、協力者にする・外すのボタン） */
+export function testerMenu(config: AppConfig, store: Store, userId: string, now: Date = new Date()): { content: string; components: ActionRowBuilder<ButtonBuilder>[] } {
+  const rec = store.get(userId);
+  const lines = [
+    `<@${userId}>（${rec?.discordTag ?? "-"}）を協力者にするときは、ランクを選んでください。`,
+    "次に日数を入れると、協力者になります（日数の画面で取り消せば、何も変わりません）。",
+    "協力者は、その期間だけ、ワールドに支援者と同じに入れます。",
+    "支援者のボードには載らず、Supporter・Platinum のロールも付きません。",
+  ];
+  if (rec && isTesterActive(rec, now)) lines.unshift(`今は協力者です（${tierMention(config, rec.testerRank)} 相当、${fmtDate(rec.testerUntil)} まで）。\n選び直すと、ランクと期間を今日から付け直します。`);
+  return { content: lines.join("\n"), components: testerButtons(config, [{ userId, rec, member: null }], now) };
+}
+
+/** 協力者にする・外すのボタン（「🧪 協力者…」を押したあとの返事に付ける） */
 export function testerButtons(config: AppConfig, people: ResolvedPerson[], now: Date = new Date()): ActionRowBuilder<ButtonBuilder>[] {
   if (people.length !== 1) return [];
   const p = people[0];

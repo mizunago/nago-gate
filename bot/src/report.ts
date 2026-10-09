@@ -171,6 +171,14 @@ export async function resolvePerson(guild: Guild, store: Store, query: string): 
   return [...found.values()];
 }
 
+/**
+ * 探した結果を返すときのメンションの設定。名前が出るよう、当たった人をメンションの相手に入れる
+ * （入れないと、Discord が名前を出せず「不明なユーザー」と出る）。返事は本人にだけ見えるので、当たった人に通知は飛ばない
+ */
+export function mentionPeople(people: ResolvedPerson[]): { users: string[] } {
+  return { users: people.map((p) => p.userId).slice(0, 100) };
+}
+
 /** 探した結果を、持ち主に返す文にする */
 export function resolvedReport(config: AppConfig, guild: Guild, query: string, people: ResolvedPerson[], now: Date): string {
   if (people.length === 0) return `「${query}」に当たる人は、サーバーにも記録にもいません。\nDiscord のユーザー名か、VRChat の表示名で試してください。`;
