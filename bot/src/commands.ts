@@ -11,7 +11,8 @@ import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
 import { activateMemberIfReady, buildPanelMessage, IDS, placePanels } from "./panel.js";
 import { mentionPeople, personById, resolvedReport } from "./report.js";
-import { grantTester, revokeTester, TESTER_MAX_DAYS, testerEntryButton, testerList } from "./tester.js";
+import { grantTester, revokeTester, TESTER_MAX_DAYS, testerList } from "./tester.js";
+import { adminActionRow } from "./verify.js";
 import { keyedHashName } from "./protect.js";
 import { describe, fmtDate, registerName, validateName } from "./register.js";
 import { setupCommunity, setupInfo, setupRoles, setupWorld, type WorldVisibility } from "./setup.js";
@@ -282,7 +283,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       const people = await personById(interaction.guild, store, user.id);
       await interaction.reply({
         content: resolvedReport(config, interaction.guild, user.id, people, new Date()),
-        components: testerEntryButton(people),
+        components: people.length === 1 ? [adminActionRow(people[0].userId, true)] : [],
         ephemeral: true,
         allowedMentions: mentionPeople(people),
       });

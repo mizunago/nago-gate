@@ -30,6 +30,14 @@ export interface MemberRecord {
   testerRank: number;
   /** 協力者の枠の期限 (ISO)。期限を過ぎると、同期のときに外れる */
   testerUntil: string | null;
+  /** 本人確認で、VRChat のプロフィールに入れてもらう文字（管理者が頼んだとき Bot が決める）。頼んでいなければ null */
+  verifyCode: string | null;
+  /** 本人確認を頼んだ日時 */
+  verifyRequestedAt: string | null;
+  /** 本人確認が済んだ日時（決めた文字が、VRChat のプロフィールにあった） */
+  verifiedAt: string | null;
+  /** 本人が最後に「確かめる」を押した日時（VRChat の API を使いすぎないため） */
+  verifyCheckedAt: string | null;
   /** 最後に支援ロールを確認できた日時 */
   lastActiveAt: string | null;
   /** 最後に活動を確認した Discord ユーザー名（管理用） */
@@ -97,6 +105,10 @@ export class Store {
       rec.banReason ??= null;
       rec.testerRank ??= 0;
       rec.testerUntil ??= null;
+      rec.verifyCode ??= null;
+      rec.verifyRequestedAt ??= null;
+      rec.verifiedAt ??= null;
+      rec.verifyCheckedAt ??= null;
       rec.supportRank ??= rec.effectiveRank;
     }
     return parsed;
@@ -131,6 +143,10 @@ export class Store {
       manualUntil: null,
       testerRank: 0,
       testerUntil: null,
+      verifyCode: null,
+      verifyRequestedAt: null,
+      verifiedAt: null,
+      verifyCheckedAt: null,
       lastActiveAt: null,
       discordTag: null,
       memberConsentAt: null,

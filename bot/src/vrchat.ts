@@ -29,6 +29,8 @@ export interface VrcProfile {
   id: string;
   displayName: string;
   bio: string;
+  /** ステータスの文（本人確認で、決めた文字が入っているかを見る）。取れなければ空 */
+  statusDescription: string;
   /** VRChat に登録した日（YYYY-MM-DD）。取れなければ空 */
   dateJoined: string;
   /** トラストランク（Visitor / New User / User / Known User / Trusted User）。取れなければ空 */
@@ -108,7 +110,7 @@ export class VrcClient {
 
   /** 1 人のプロフィール（公開されている範囲）。メンバーの申請を、持ち主が確かめるときに使う */
   async getProfile(userId: string): Promise<VrcProfile> {
-    const u = await this.call<{ id?: string; displayName?: string; bio?: string; date_joined?: string; tags?: string[]; ageVerificationStatus?: string }>(
+    const u = await this.call<{ id?: string; displayName?: string; bio?: string; statusDescription?: string; date_joined?: string; tags?: string[]; ageVerificationStatus?: string }>(
       "GET",
       `/users/${encodeURIComponent(userId)}`,
     );
@@ -116,6 +118,7 @@ export class VrcClient {
       id: u?.id ?? userId,
       displayName: u?.displayName ?? "",
       bio: typeof u?.bio === "string" ? u.bio : "",
+      statusDescription: typeof u?.statusDescription === "string" ? u.statusDescription : "",
       dateJoined: typeof u?.date_joined === "string" ? u.date_joined : "",
       trust: trustRank(u?.tags),
       ageVerification: typeof u?.ageVerificationStatus === "string" ? u.ageVerificationStatus : "",

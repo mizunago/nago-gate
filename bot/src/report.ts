@@ -45,10 +45,21 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
   }
 
   // 登録（Discord と VRChat をつなぐ）
-  if (rec?.vrcName) lines.push(`${DONE} 登録（VRChat とつなぐ）: **${rec.vrcName}**${rec.vrcUserId ? `　https://vrchat.com/home/user/${rec.vrcUserId}` : ""}`);
-  else {
+  if (rec?.vrcName) {
+    // 次に表示名を変えられる日（30 日に 1 回）。間違えて登録した人は「🔄 登録のやり直し…」で、すぐに登録し直せるようにできる
+    const nextChange = rec.nameChangedAt ? new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000) : null;
+    const locked = nextChange && nextChange > now ? `、次に変えられるのは ${fmtDate(nextChange.toISOString())}` : "";
+    lines.push(`${DONE} 登録（VRChat とつなぐ）: **${rec.vrcName}**${rec.vrcUserId ? `　https://vrchat.com/home/user/${rec.vrcUserId}` : ""}${locked}`);
+  } else {
     lines.push(`${TODO} 登録（VRChat とつなぐ）: まだ`);
     nexts.push(`本人に、${ch.register} で 🧾 登録 を押して、VRChat の表示名を入れてもらう`);
+  }
+
+  // 本人確認（管理者が「🔑 本人確認…」で頼んだときだけ出す）
+  if (rec?.verifiedAt) lines.push(`${DONE} 本人確認: 済み（${fmtDate(rec.verifiedAt)}、VRChat のプロフィールに確認の文字 ${rec.verifyCode ?? "-"} があった）`);
+  else if (rec?.verifyCode) {
+    lines.push(`${WAIT} 本人確認: 頼んだ（${fmtDate(rec.verifyRequestedAt)}、確認の文字 ${rec.verifyCode}）、本人が「確かめる」を押す待ち`);
+    nexts.push(`本人に、VRChat のプロフィールに ${rec.verifyCode} を入れて、${ch.resident} の 🏠 住人 から「確かめる」を押してもらう`);
   }
 
   // 支援（協力者の枠は含めない。Supporter・Platinum のロールは、支援のランクで付く）

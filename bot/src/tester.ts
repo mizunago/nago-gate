@@ -94,16 +94,6 @@ export function testerList(config: AppConfig, store: Store, now: Date = new Date
   return `**協力者**（${testers.length} 人、期限の近い順）\n${lines.join("\n")}`;
 }
 
-/** 人を調べた結果に付けるボタン（「🧪 協力者…」の 1 つだけ）。1 人に絞れたときだけ出す */
-export function testerEntryButton(people: ResolvedPerson[]): ActionRowBuilder<ButtonBuilder>[] {
-  if (people.length !== 1) return [];
-  return [
-    new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId(`${TESTER_IDS.menu}${people[0].userId}`).setLabel("協力者…").setStyle(ButtonStyle.Secondary).setEmoji("🧪"),
-    ),
-  ];
-}
-
 /** 「🧪 協力者…」を押したときの返事（説明と、協力者にする・外すのボタン） */
 export function testerMenu(config: AppConfig, store: Store, userId: string, now: Date = new Date()): { content: string; components: ActionRowBuilder<ButtonBuilder>[] } {
   const rec = store.get(userId);

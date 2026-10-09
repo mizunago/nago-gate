@@ -23,7 +23,8 @@ import { describe, fmtDate, memberState, parseTextRegister, registerName } from 
 import { mentionPeople, personById, resolvePerson, resolvedReport, tierMention } from "./report.js";
 import type { MemberRecord, Store } from "./store.js";
 import { isMemberEligible, isTesterActive, memberEligibleFrom, type SyncContext } from "./sync.js";
-import { grantTester, parseRankUser, revokeTester, TESTER_IDS, TESTER_MAX_DAYS, testerEntryButton, testerMenu } from "./tester.js";
+import { grantTester, parseRankUser, revokeTester, TESTER_IDS, TESTER_MAX_DAYS, testerMenu } from "./tester.js";
+import { adminActionRow, checkVerify, RENAME_IDS, renameMenu, resetRename, sendRenameDm, sendVerifyDm, VERIFY_IDS, verifyMenu, verifyPrompt } from "./verify.js";
 import { bringIntoGroup, type VrcProfile } from "./vrchat.js";
 
 export const IDS = {
@@ -468,7 +469,7 @@ async function submitApplication(deps: PanelDeps, interaction: ButtonInteraction
     await channel
       // 申請した人もメンションの相手に入れる（入れないと、Discord が名前を出せず「不明なユーザー」と出る）。
       // 申請のチャンネルは管理者しか見られないので、申請した人に通知は飛ばない
-      .send({ content: reviewContent(config, rec, ownerId, profile, profileNote, now), components: [row], allowedMentions: { users: [ownerId, rec.discordId] }, flags: MessageFlags.SuppressEmbeds })
+      .send({ content: reviewContent(config, rec, ownerId, profile, profileNote, now), components: [row, adminActionRow(rec.discordId, false)], allowedMentions: { users: [ownerId, rec.discordId] }, flags: MessageFlags.SuppressEmbeds })
       .catch((err) => log.warn(`住人の申請を、管理のチャンネルに出せませんでした ${who}: ${String(err)}。/vrc-admin member-grant で認定できます`));
   } else {
     log.warn(`住人の申請を出すチャンネルがありません ${who}。/vrc-admin member-grant で認定できます`);
@@ -629,7 +630,14 @@ async function handleMemberButton(deps: PanelDeps, interaction: ButtonInteractio
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId(IDS.memberLeave).setLabel(t(lang, pending ? "member.withdraw" : "member.leave")).setStyle(ButtonStyle.Secondary),
       );
-      await interaction.reply({ content: `${t(lang, "member.label")}: ${memberState(config, rec, lang)}`, components: [row], ephemeral: true });
+      // 管理者から本人確認を頼まれていれば、お願いの文と「確かめる」を先に出す
+      const verify = verifyPrompt(store, interaction.user.id, lang);
+      const state = `${t(lang, "member.label")}: ${memberState(config, rec, lang)}`;
+      await interaction.reply({
+        content: verify ? `${verify.text}\n\n${state}` : state,
+        components: verify ? [verify.row, row] : [row],
+        ephemeral: true,
+      });
     }
     return;
   }
@@ -843,6 +851,34 @@ export async function handleButton(deps: PanelDeps, interaction: ButtonInteracti
     return;
   }
 
+  // 本人: 本人確認の「確かめる」
+  if (id === VERIFY_IDS.check) {
+    await checkVerify(config, store, deps.vrc?.get() ?? null, interaction, lang);
+    return;
+  }
+
+  // 管理者: 本人確認と、表示名の登録のやり直し（人を調べた結果と、申請のメッセージのボタン）
+  const adminVerify = [VERIFY_IDS.menu, VERIFY_IDS.dm, RENAME_IDS.menu, RENAME_IDS.reset, RENAME_IDS.dm].find((p) => id.startsWith(p));
+  if (adminVerify) {
+    if (!isAdmin(config, interaction.member)) {
+      await interaction.reply({ content: "この操作は、管理者だけができます。", ephemeral: true });
+      return;
+    }
+    const userId = id.slice(adminVerify.length);
+    const mention = { users: [userId] };
+    if (adminVerify === VERIFY_IDS.menu) await interaction.reply({ ...verifyMenu(config, store, userId), ephemeral: true, allowedMentions: mention });
+    else if (adminVerify === RENAME_IDS.menu) await interaction.reply({ ...renameMenu(config, store, userId), ephemeral: true, allowedMentions: mention });
+    else if (adminVerify === RENAME_IDS.reset) await interaction.reply({ ...resetRename(config, store, userId, interaction.user.tag), ephemeral: true, allowedMentions: mention });
+    else {
+      await interaction.deferReply({ ephemeral: true });
+      const message = adminVerify === VERIFY_IDS.dm
+        ? await sendVerifyDm(config, store, interaction.guild, userId, interaction.user.tag)
+        : await sendRenameDm(config, store, interaction.guild, userId, interaction.user.tag);
+      await interaction.editReply({ content: message, allowedMentions: mention });
+    }
+    return;
+  }
+
   if (id === IDS.member || id === IDS.memberAgree || id === IDS.memberLeave) {
     await handleMemberButton(deps, interaction, lang);
     return;
@@ -888,7 +924,7 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
     log.info(`人を調べる「${query}」 by ${interaction.user.tag}: ${people.length} 件`);
     await interaction.reply({
       content: resolvedReport(config, interaction.guild, query, people, new Date()),
-      components: testerEntryButton(people),
+      components: people.length === 1 ? [adminActionRow(people[0].userId, true)] : [],
       ephemeral: true,
       allowedMentions: mentionPeople(people),
     });
