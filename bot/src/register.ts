@@ -112,7 +112,11 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   if (changed && rec.vrcName && rec.nameChangedAt) {
     const next = new Date(new Date(rec.nameChangedAt).getTime() + config.nameChangeCooldownDays * 86_400_000);
     if (next > now) {
-      log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): クールダウン中 ${rec.vrcName} -> ${v.name} next=${next.toISOString()}`);
+      // 入力の間違いをすぐ直そうとした人もここで止まる。管理者が気づけるよう、外し方も書く
+      log.warn(
+        `表示名の変更を断った（${config.nameChangeCooldownDays} 日に 1 回の制限） ${input.discordTag} (${input.discordId}): ${rec.vrcName} -> ${v.name}、次に変えられるのは ${next.toISOString()}。` +
+          "入力の間違いの直しなら、人を調べて「🔄 名前の登録をやり直させる」で制限を外せる",
+      );
       return {
         ok: false,
         changed: false,

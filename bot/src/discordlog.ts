@@ -45,11 +45,31 @@ export async function attachDiscordLog(client: Client, channelId: string): Promi
   };
 
   setLogSink((line, level) => {
-    // ISO 時刻を時刻だけに短縮し、レベルに印を付ける
-    const short = line.replace(/^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2}:\d{2})\.\d{3}Z /, "$1 ");
-    const mark = level === "ERROR" ? "❌ " : level === "WARN" ? "⚠️ " : "";
-    buffer.push((mark + short).slice(0, MAX_LEN));
+    buffer.push(formatForDiscord(line, level));
     if (!timer) timer = setTimeout(flush, FLUSH_MS);
   });
   return true;
+}
+
+const JST_MS = 9 * 3600_000;
+const ISO = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z/g;
+
+/** ISO の時刻（UTC）を、日本時間に直す。withDate なら "YYYY-MM-DD HH:MM"、無ければ "HH:MM:SS" */
+function jst(iso: string, withDate: boolean): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return iso;
+  const s = new Date(t + JST_MS).toISOString();
+  return withDate ? `${s.slice(0, 10)} ${s.slice(11, 16)}` : s.slice(11, 19);
+}
+
+/**
+ * ログの 1 行を、ログのチャンネル向けに直す。先頭の時刻は日本時間の時刻だけに縮め、行の途中の日時も日本時間にする
+ * （ファイルとコンソールのログは UTC の ISO のまま）。レベルに印を付ける
+ */
+export function formatForDiscord(line: string, level: "INFO" | "WARN" | "ERROR"): string {
+  const head = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) /.exec(line);
+  let body = head ? `${jst(head[1], false)} ${line.slice(head[0].length)}` : line;
+  body = body.replace(ISO, (iso) => jst(iso, true));
+  const mark = level === "ERROR" ? "❌ " : level === "WARN" ? "⚠️ " : "";
+  return (mark + body).slice(0, MAX_LEN);
 }
