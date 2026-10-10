@@ -51,7 +51,9 @@ export function personReport(config: AppConfig, rec: MemberRecord | null, live: 
     const { next: nextChange, fixUntil } = nameChangeTimes(config, rec, now);
     const fixable = fixUntil ? `（${fmtTime(fixUntil)} までは、本人が打ち間違いを直せる）` : "";
     const locked = nextChange && nextChange > now ? `、次に変えられるのは ${fmtDate(nextChange.toISOString())}${fixable}` : "";
-    lines.push(`${DONE} 登録（VRChat とつなぐ）: **${rec.vrcName}**${rec.vrcUserId ? `　https://vrchat.com/home/user/${rec.vrcUserId}` : ""}${locked}`);
+    // URL のすぐ後ろに文を続けると、Discord が文までリンクにしてしまう。リンクの文字で囲んで行の最後に置く（<> で VRChat のカードも出さない）
+    const profile = rec.vrcUserId ? `　[VRChat のプロフィール](<https://vrchat.com/home/user/${rec.vrcUserId}>)` : "";
+    lines.push(`${DONE} 登録（VRChat とつなぐ）: **${rec.vrcName}**${locked}${profile}`);
   } else {
     lines.push(`${TODO} 登録（VRChat とつなぐ）: まだ`);
     nexts.push(`本人に、${ch.register} で 🧾 登録 を押して、VRChat の表示名を入れてもらう`);
