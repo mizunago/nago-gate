@@ -20,6 +20,8 @@ export interface RegisterResult {
   ok: boolean;
   message: string;
   changed: boolean;
+  /** 表示名を変えたときの、前の表示名（初めての登録や、変えていないときは null） */
+  previous: string | null;
 }
 
 export function fmtDate(iso: string | null): string {
@@ -105,13 +107,13 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   const v = validateName(config, input.name, lang);
   if (!v.ok) {
     log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): ${v.reason} name=${JSON.stringify(input.name)}`);
-    return { ok: false, changed: false, message: t(lang, "err.cannotRegister", { reason: v.reason }) };
+    return { ok: false, changed: false, previous: null, message: t(lang, "err.cannotRegister", { reason: v.reason }) };
   }
 
   // BAN 中の人は登録できない（Discord 側の BAN だけが解かれて、入り直した場合）
   if (store.get(input.discordId)?.banned) {
     log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): BAN 中 name=${JSON.stringify(input.name)}`);
-    return { ok: false, changed: false, message: t(lang, "err.banned") };
+    return { ok: false, changed: false, previous: null, message: t(lang, "err.banned") };
   }
 
   const rec = store.getOrCreate(input.discordId);
@@ -120,7 +122,7 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   const dup = store.findByNormalizedName(normalized, normalizeName);
   if (dup && dup.discordId !== input.discordId) {
     log.warn(`登録拒否 ${input.discordTag} (${input.discordId}): 重複 name=${v.name} 既存=${dup.discordTag ?? dup.discordId}`);
-    return { ok: false, changed: false, message: t(lang, "err.duplicateName") };
+    return { ok: false, changed: false, previous: null, message: t(lang, "err.duplicateName") };
   }
 
   const now = new Date();
@@ -139,6 +141,7 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
       return {
         ok: false,
         changed: false,
+        previous: null,
         message: t(lang, "err.cooldown", { days: config.nameChangeCooldownDays, date: fmtDate(next.toISOString()) }),
       };
     }
@@ -152,16 +155,12 @@ export function registerName(config: AppConfig, store: Store, input: RegisterInp
   store.save();
   const fix = fixing ? ` （登録から ${config.nameFixMinutes} 分のうちの、打ち間違いの直し: ${old} -> ${v.name}）` : "";
   log.info(`登録 ${input.discordTag} (${input.discordId}): name=${v.name} changed=${changed} credit=${rec.showCredit} effectiveRank=${rec.effectiveRank}${fix}`);
-  if (changed && old && rec.memberAppliedAt && !rec.memberApprovedAt) {
-    // 申請のメッセージには、申請したときの表示名が出たまま。認定すると、今の表示名がワールドのリストに載る
-    log.warn(`住人の申請中の人が表示名を変えた ${input.discordTag} (${input.discordId}): ${old} -> ${v.name}。申請のメッセージの表示名は古いままで、認定すると新しい名前でリストに載る`);
-  }
 
   const message =
     `${t(lang, "registered")}\n${describe(config, rec, lang)}\n` +
     t(lang, rec.effectiveRank > 0 ? "registered.active" : "registered.inactive") +
     `\n\n${t(lang, "share.notice")}`;
-  return { ok: true, changed: true, message };
+  return { ok: true, changed: true, previous: changed ? old : null, message };
 }
 
 /** テキスト投稿から「/vrc register name:xxx credit:true」風の記述を抜き出す */

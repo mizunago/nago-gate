@@ -9,7 +9,7 @@ import { tierByRank, type AppConfig } from "./config.js";
 import { hashName, normalizeName } from "./hash.js";
 import { langOf, localizations, t } from "./i18n.js";
 import { log } from "./log.js";
-import { activateMemberIfReady, buildPanelMessage, IDS, placePanels } from "./panel.js";
+import { activateMemberIfReady, buildPanelMessage, IDS, placePanels, refreshReviewAfterRename } from "./panel.js";
 import { mentionPeople, personById, resolvedReport } from "./report.js";
 import { grantTester, revokeTester, TESTER_MAX_DAYS, testerList } from "./tester.js";
 import { adminActionLegend, adminActionRow } from "./verify.js";
@@ -191,6 +191,7 @@ export async function handleInteraction(deps: CommandDeps, interaction: ChatInpu
       if (r.ok && (await activateMemberIfReady(config, store, member))) deps.requestPublish();
       if (r.changed) deps.requestPublish();
       await interaction.reply({ content: r.message, ephemeral: true });
+      if (r.previous) await refreshReviewAfterRename(deps, interaction.guild, member.id, r.previous);
       return;
     }
     if (sub === "status") {

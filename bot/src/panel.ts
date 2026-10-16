@@ -377,13 +377,13 @@ function ageText(v: string): string {
 }
 
 /** 管理者に見せる、申請の内容 */
-function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, profile: VrcProfile | null, profileNote: string, now: Date): string {
+export function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, profile: VrcProfile | null, profileNote: string, now: Date, renamedFrom: string | null = null): string {
   const days = rec.joinedAt ? Math.floor((now.getTime() - new Date(rec.joinedAt).getTime()) / 86_400_000) : null;
   const lines = [
     `📨 **住人の申請** <@${ownerId}>`,
     `申請した人: <@${rec.discordId}>（${rec.discordTag ?? "-"}）`,
     `サーバーに参加: ${rec.joinedAt ? `${fmtDate(rec.joinedAt)}（${days} 日前）` : "不明"}`,
-    `VRChat の表示名: **${rec.vrcName ?? "-"}**`,
+    `VRChat の表示名: **${rec.vrcName ?? "-"}**${renamedFrom ? `（申請のあとで、本人が「${renamedFrom}」から直した）` : ""}`,
   ];
   if (profile) {
     lines.push(`VRChat のプロフィール: https://vrchat.com/home/user/${profile.id}`);
@@ -414,6 +414,54 @@ function lookupRow(userId: string): ActionRowBuilder<ButtonBuilder> {
   );
 }
 
+/** 申請した人の VRChat のプロフィール（公開されている範囲）を、確認用に引く */
+async function reviewProfile(deps: PanelDeps, rec: MemberRecord, who: string): Promise<{ profile: VrcProfile | null; profileNote: string }> {
+  const access = deps.vrc?.get() ?? null;
+  if (!access || !rec.vrcName) return { profile: null, profileNote: "VRChat の API を使っていないので、表示名で検索してください" };
+  try {
+    const user = await access.client.findUserByDisplayName(rec.vrcName);
+    if (!user) return { profile: null, profileNote: "この表示名のユーザーが、VRChat で見つかりませんでした（表示名を変えたか、登録の間違いかもしれません）" };
+    if (rec.vrcUserId !== user.id) {
+      rec.vrcUserId = user.id;
+      deps.store.save();
+    }
+    return { profile: await access.client.getProfile(user.id), profileNote: "" };
+  } catch (err) {
+    log.warn(`住人の申請: VRChat のプロフィールの取得に失敗 ${who}: ${String(err)}`);
+    return { profile: null, profileNote: "取得できませんでした（表示名で検索してください）" };
+  }
+}
+
+/**
+ * 住人の申請中（まだ決めていない）に表示名を直した人の、申請のメッセージを書き換える（新しい名前で VRChat のプロフィールを引き直す）。
+ * 書き換えないと、申請したときの名前と「見つかりませんでした」が残る（2026-10-17、登録から 11 分後に空白を消して直した人）。
+ * 本人が登録を押したときだけ呼ぶので、VRChat の API もそのときだけ使う
+ */
+export async function refreshReviewAfterRename(deps: PanelDeps, guild: Guild, userId: string, previous: string): Promise<void> {
+  const { config, store } = deps;
+  const rec = store.get(userId);
+  if (!config.member || !rec || !rec.memberAppliedAt || rec.memberApprovedAt) return;
+  const who = `${rec.discordTag ?? "-"} (${userId})`;
+  const left = `住人の申請中の人が表示名を変えた ${who}: ${previous} -> ${rec.vrcName}`;
+  const channelId = config.member.reviewChannelId ?? config.commandsChannelId ?? config.logChannelId;
+  const channel = channelId ? await guild.channels.fetch(channelId).catch(() => null) : null;
+  const msgs = channel && channel.isTextBased() ? await channel.messages.fetch({ limit: 100 }).catch(() => null) : null;
+  const msg = [...(msgs?.values() ?? [])].find(
+    (m) => m.author.id === guild.client.user.id && JSON.stringify(m.components).includes(`"${IDS.memberApprove}${userId}"`),
+  );
+  if (!msg) {
+    log.warn(`${left}。申請のメッセージが見つからず、書き換えられなかった（認定すると新しい名前でリストに載る）`);
+    return;
+  }
+  const { profile, profileNote } = await reviewProfile(deps, rec, who);
+  const content = reviewContent(config, rec, guild.ownerId, profile, profileNote, new Date(), previous);
+  const ok = await msg
+    .edit({ content, allowedMentions: { users: [guild.ownerId, userId] } })
+    .then(() => true)
+    .catch((err) => (log.warn(`${left}。申請のメッセージを書き換えられなかった: ${String(err)}`), false));
+  if (ok) log.info(`${left}。申請のメッセージを新しい名前で書き換えた（VRChat: ${profile ? "見つかった" : "見つからない"}）`);
+}
+
 /** 申請を受け付けて、管理者のチャンネルに確認の依頼を出す */
 async function submitApplication(deps: PanelDeps, interaction: ButtonInteraction<"cached">, lang: Lang, rec: MemberRecord, now: Date): Promise<void> {
   const { config, store } = deps;
@@ -438,27 +486,7 @@ async function submitApplication(deps: PanelDeps, interaction: ButtonInteraction
   store.save();
   log.info(`住人の申請 ${who}: VRChat の表示名=${rec.vrcName ?? "-"} 参加日=${rec.joinedAt ?? "-"} ランク=${rec.effectiveRank}`);
 
-  // 申請した人の VRChat のプロフィール（公開されている範囲）を、確認用に添える
-  let profile: VrcProfile | null = null;
-  let profileNote = "VRChat の API を使っていないので、表示名で検索してください";
-  const access = deps.vrc?.get() ?? null;
-  if (access && rec.vrcName) {
-    try {
-      const user = await access.client.findUserByDisplayName(rec.vrcName);
-      if (user) {
-        if (rec.vrcUserId !== user.id) {
-          rec.vrcUserId = user.id;
-          store.save();
-        }
-        profile = await access.client.getProfile(user.id);
-      } else {
-        profileNote = "この表示名のユーザーが、VRChat で見つかりませんでした（表示名を変えたか、登録の間違いかもしれません）";
-      }
-    } catch (err) {
-      profileNote = "取得できませんでした（表示名で検索してください）";
-      log.warn(`住人の申請: VRChat のプロフィールの取得に失敗 ${who}: ${String(err)}`);
-    }
-  }
+  const { profile, profileNote } = await reviewProfile(deps, rec, who);
 
   const channelId = mc.reviewChannelId ?? config.commandsChannelId ?? config.logChannelId;
   const channel = channelId ? await interaction.guild.channels.fetch(channelId).catch(() => null) : null;
@@ -981,6 +1009,7 @@ export async function handleModal(deps: PanelDeps, interaction: ModalSubmitInter
     if (rec && !started && applyBlocked(config, rec, lang, new Date()) === null) message += `\n${t(lang, "member.nextApply", channelRefs(config, lang))}`;
   }
   await interaction.reply({ content: message, ephemeral: true });
+  if (r.previous && interaction.inCachedGuild()) await refreshReviewAfterRename(deps, interaction.guild, interaction.user.id, r.previous);
 }
 
 const HINT_TTL_MS = 90_000;
@@ -1005,6 +1034,7 @@ export async function handleRegisterChannelMessage(deps: PanelDeps, msg: Message
     });
     if (ja.ok && (await activateMemberIfReady(config, store, msg.member))) deps.requestPublish();
     if (ja.changed) deps.requestPublish();
+    if (ja.previous) await refreshReviewAfterRename(deps, msg.guild, msg.author.id, ja.previous);
     const enMsg = ja.ok
       ? t("en", "registered")
       : registerName(config, store, { discordId: msg.author.id, discordTag: msg.author.tag, name: parsed.name, credit: parsed.credit, lang: "en" }).message;
