@@ -39,6 +39,8 @@ export interface VrcProfile {
   ageVerification: string;
   /** VRC+ の会員か。分からなければ null */
   vrcPlus: boolean | null;
+  /** プロフィールに載せているリンク（X など） */
+  bioLinks: string[];
 }
 
 /** タグからトラストランクの名前を引く。タグが無ければ空 */
@@ -110,7 +112,7 @@ export class VrcClient {
 
   /** 1 人のプロフィール（公開されている範囲）。メンバーの申請を、持ち主が確かめるときに使う */
   async getProfile(userId: string): Promise<VrcProfile> {
-    const u = await this.call<{ id?: string; displayName?: string; bio?: string; statusDescription?: string; date_joined?: string; tags?: string[]; ageVerificationStatus?: string }>(
+    const u = await this.call<{ id?: string; displayName?: string; bio?: string; bioLinks?: unknown[]; statusDescription?: string; date_joined?: string; tags?: string[]; ageVerificationStatus?: string }>(
       "GET",
       `/users/${encodeURIComponent(userId)}`,
     );
@@ -123,7 +125,14 @@ export class VrcClient {
       trust: trustRank(u?.tags),
       ageVerification: typeof u?.ageVerificationStatus === "string" ? u.ageVerificationStatus : "",
       vrcPlus: Array.isArray(u?.tags) ? u.tags.includes("system_supporter") : null,
+      bioLinks: Array.isArray(u?.bioLinks) ? u.bioLinks.filter((l): l is string => typeof l === "string" && l.length > 0) : [],
     };
+  }
+
+  /** 入っているグループの名前（本人が公開している範囲）。住人の申請の確認に添える */
+  async userGroupNames(userId: string): Promise<string[]> {
+    const list = await this.call<{ name?: string }[]>("GET", `/users/${encodeURIComponent(userId)}/groups`);
+    return (list ?? []).map((g) => g.name ?? "").filter((n) => n.length > 0);
   }
 
   /**

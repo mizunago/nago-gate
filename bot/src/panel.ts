@@ -362,11 +362,14 @@ function applyBlocked(config: AppConfig, rec: MemberRecord, lang: Lang, now: Dat
   const mc = config.member;
   if (!mc) return t(lang, "member.unavailable");
   const again = reapplyFrom(mc, rec);
-  if (again && again > now) return t(lang, "member.declinedWait", { date: fmtDate(again.toISOString()) });
+  if (again && again > now) return t(lang, "member.declinedWait", { ...channelRefs(config, lang), date: fmtDate(again.toISOString()) });
   const from = memberEligibleFrom(config, rec);
   if (from && from > now) return t(lang, "member.applyTooEarly", { days: mc.minDays, date: fmtDate(from.toISOString()) });
   return null;
 }
+
+/** 申請の確認に使うプロフィール（入っているグループの名前つき。取れなければ null） */
+type ReviewProfile = VrcProfile & { groups?: string[] | null };
 
 /** VRChat の年齢確認の値を、読める形にする */
 function ageText(v: string): string {
@@ -376,8 +379,22 @@ function ageText(v: string): string {
   return v;
 }
 
+/** 申請の内容に添える、プロフィールの目印（判断の材料を並べるだけで、Bot は決めない） */
+export function reviewMarks(profile: VrcProfile, hasBio: boolean, hasLinks: boolean, now: Date): string[] {
+  const marks: string[] = [];
+  const low = profile.trust === "Visitor" || profile.trust === "New User";
+  const years = profile.dateJoined ? (now.getTime() - new Date(profile.dateJoined).getTime()) / (365 * 86_400_000) : 0;
+  if (!hasBio) marks.push("⚠️ 自己紹介が空");
+  if (low && years >= 1) marks.push(`⚠️ 登録から ${Math.floor(years)} 年以上たつのに、ランクが低い`);
+  else if (low) marks.push("⚠️ ランクが低い（New User 以下）");
+  if (profile.vrcPlus) marks.push("✅ VRC+");
+  if (profile.ageVerification === "18+" || profile.ageVerification === "verified") marks.push("✅ 年齢確認");
+  if (hasLinks) marks.push("✅ リンクあり");
+  return marks;
+}
+
 /** 管理者に見せる、申請の内容 */
-export function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, profile: VrcProfile | null, profileNote: string, now: Date, renamedFrom: string | null = null): string {
+export function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: string, profile: ReviewProfile | null, profileNote: string, now: Date, renamedFrom: string | null = null): string {
   const days = rec.joinedAt ? Math.floor((now.getTime() - new Date(rec.joinedAt).getTime()) / 86_400_000) : null;
   const lines = [
     `📨 **住人の申請** <@${ownerId}>`,
@@ -393,7 +410,16 @@ export function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: str
     if (profile.vrcPlus !== null) lines.push(`・VRC+: ${profile.vrcPlus ? "会員" : "会員ではない"}`);
     if (profile.ageVerification) lines.push(`・年齢確認: ${ageText(profile.ageVerification)}`);
     const bio = profile.bio.replace(/\s+/g, " ").trim();
-    if (bio.length > 0) lines.push(`・自己紹介: ${bio.slice(0, 200)}${bio.length > 200 ? "…" : ""}`);
+    lines.push(`・自己紹介: ${bio.length > 0 ? `${bio.slice(0, 200)}${bio.length > 200 ? "…" : ""}` : "（空）"}`);
+    const links = profile.bioLinks ?? [];
+    // <> で囲んで、リンクのカードを出さない
+    if (links.length > 0) lines.push(`・リンク: ${links.slice(0, 3).map((l) => `<${l}>`).join(" ")}`);
+    if (profile.groups) {
+      const shown = profile.groups.join("、");
+      lines.push(`・入っているグループ（${profile.groups.length}）: ${profile.groups.length === 0 ? "なし（か非公開）" : `${shown.slice(0, 250)}${shown.length > 250 ? "…" : ""}`}`);
+    }
+    const marks = reviewMarks(profile, bio.length > 0, links.length > 0, now);
+    if (marks.length > 0) lines.push(`・目印: ${marks.join("　")}`);
   } else {
     lines.push(`VRChat のプロフィール: ${profileNote}`);
   }
@@ -415,7 +441,7 @@ function lookupRow(userId: string): ActionRowBuilder<ButtonBuilder> {
 }
 
 /** 申請した人の VRChat のプロフィール（公開されている範囲）を、確認用に引く */
-async function reviewProfile(deps: PanelDeps, rec: MemberRecord, who: string): Promise<{ profile: VrcProfile | null; profileNote: string }> {
+async function reviewProfile(deps: PanelDeps, rec: MemberRecord, who: string): Promise<{ profile: ReviewProfile | null; profileNote: string }> {
   const access = deps.vrc?.get() ?? null;
   if (!access || !rec.vrcName) return { profile: null, profileNote: "VRChat の API を使っていないので、表示名で検索してください" };
   try {
@@ -425,7 +451,13 @@ async function reviewProfile(deps: PanelDeps, rec: MemberRecord, who: string): P
       rec.vrcUserId = user.id;
       deps.store.save();
     }
-    return { profile: await access.client.getProfile(user.id), profileNote: "" };
+    const profile: ReviewProfile = await access.client.getProfile(user.id);
+    // グループの一覧は添えるだけなので、取れなくても申請は続ける
+    profile.groups = await access.client.userGroupNames(user.id).catch((err) => {
+      log.warn(`住人の申請: VRChat のグループの一覧の取得に失敗 ${who}: ${String(err)}`);
+      return null;
+    });
+    return { profile, profileNote: "" };
   } catch (err) {
     log.warn(`住人の申請: VRChat のプロフィールの取得に失敗 ${who}: ${String(err)}`);
     return { profile: null, profileNote: "取得できませんでした（表示名で検索してください）" };
@@ -545,7 +577,19 @@ async function handleMemberReview(deps: PanelDeps, interaction: ButtonInteractio
     rec.updatedAt = now.toISOString();
     store.save();
     log.info(`住人の申請を見送り ${who} by ${by}`);
-    await close(`⏸️ 見送りました（${by}、${fmtDate(now.toISOString())}）。\n本人には知らせていません。\n本人は「状態」のボタンで、見送りと、次に申請できる日を見られます。`);
+    // 本人に、見送りの案内を DM で送る。理由は書かず、全員に同じ文を送る（どの点で見送ったかを伝えないため）。
+    // 本人の言語は分からないので、認定の DM と同じ 4 言語を並べる
+    const again = new Date(now.getTime() + mc.reapplyDays * 86_400_000).toISOString();
+    const declineDm = (["ja", "en", "zh-CN", "ko"] as Lang[]).map((l) => t(l, "member.declinedWait", { ...channelRefs(config, l), date: fmtDate(again) })).join("\n\n");
+    const sentDm = await interaction.guild.members
+      .fetch(userId)
+      .then((m) => m.send({ content: declineDm }))
+      .then(() => true)
+      .catch(() => false);
+    const dmNote = sentDm
+      ? "本人に、見送りの案内（全員に同じ文。理由は書かない）を DM で送りました。"
+      : "本人への DM は届きませんでした（受け取らない設定か、サーバーにいない）。\n本人は「状態」のボタンで、見送りと、次に申請できる日を見られます。";
+    await close(`⏸️ 見送りました（${by}、${fmtDate(now.toISOString())}）。\n${dmNote}`);
     return;
   }
 

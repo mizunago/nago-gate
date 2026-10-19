@@ -422,11 +422,11 @@ const M = {
   },
   // ---- 申請制（member.mode が apply のとき） ----
   "member.explainApply": {
-    ja: "**住人の申請**\n住人には、申請して、確認が済んだ方だけがなれます。\n支援の有無は関係ありません。\n・18 歳以上の方だけ申請してください\n・確認のために、登録した VRChat の表示名から、公開されているプロフィールを拝見します\n・確認には日数がかかることがあります\n・見送る場合もあります\n・くわしい案内は、確認が済んだ方にお見せします",
-    en: "**Resident application**\nOnly people who apply and are approved become residents. It does not matter whether you are a supporter.\n- Please apply only if you are 18 or older\n- To review your application, we look at the public VRChat profile of the display name you registered\n- The review can take some days, and an application may be declined\n- The details are shown to you after your application is approved",
-    "zh-CN": "**居民申请**\n只有提出申请并通过确认的人才能成为居民。\n与是否支持无关。\n・请仅在年满 18 岁时申请\n・为了确认，我们会查看你所注册的 VRChat 显示名称的公开个人资料\n・确认可能需要几天时间，也可能不予通过\n・详细说明将在确认通过后向你展示",
-    "zh-TW": "**居民申請**\n只有提出申請並通過確認的人才能成為居民。\n與是否支持無關。\n・請僅在年滿 18 歲時申請\n・為了確認，我們會查看你所註冊的 VRChat 顯示名稱的公開個人資料\n・確認可能需要幾天時間，也可能不予通過\n・詳細說明將在確認通過後向你展示",
-    ko: "**주민 신청**\n주민은 신청 후 확인이 끝난 분만 될 수 있습니다. 후원 여부와는 관계없습니다.\n・18세 이상인 분만 신청해 주세요\n・확인을 위해, 등록한 VRChat 표시 이름의 공개 프로필을 봅니다\n・확인에는 며칠이 걸릴 수 있으며, 보류될 수도 있습니다\n・자세한 안내는 확인이 끝난 분께 보여 드립니다",
+    ja: "**住人の申請**\n住人には、申請して、確認が済んだ方だけがなれます。\n支援の有無は関係ありません。\n・18 歳以上の方だけ申請してください\n・確認のために、登録した VRChat の表示名から、公開されているプロフィールを拝見します\n・自己紹介や SNS のリンクなど、プロフィールに書いてあることが多いほど、確認が早く済みます\n・VRChat を始めたばかりの方は、しばらく遊んでから申請してください\n・確認には日数がかかることがあります\n・見送る場合もあります\n・くわしい案内は、確認が済んだ方にお見せします",
+    en: "**Resident application**\nOnly people who apply and are approved become residents. It does not matter whether you are a supporter.\n- Please apply only if you are 18 or older\n- To review your application, we look at the public VRChat profile of the display name you registered\n- The more your profile tells us (a bio, links to your social accounts), the faster the review\n- If you have just started VRChat, please play for a while before applying\n- The review can take some days, and an application may be declined\n- The details are shown to you after your application is approved",
+    "zh-CN": "**居民申请**\n只有提出申请并通过确认的人才能成为居民。\n与是否支持无关。\n・请仅在年满 18 岁时申请\n・为了确认，我们会查看你所注册的 VRChat 显示名称的公开个人资料\n・个人资料中写得越多（自我介绍、社交账号链接等），确认就越快\n・刚开始玩 VRChat 的人，请先玩一段时间再申请\n・确认可能需要几天时间，也可能不予通过\n・详细说明将在确认通过后向你展示",
+    "zh-TW": "**居民申請**\n只有提出申請並通過確認的人才能成為居民。\n與是否支持無關。\n・請僅在年滿 18 歲時申請\n・為了確認，我們會查看你所註冊的 VRChat 顯示名稱的公開個人資料\n・個人資料中寫得越多（自我介紹、社群帳號連結等），確認就越快\n・剛開始玩 VRChat 的人，請先玩一段時間再申請\n・確認可能需要幾天時間，也可能不予通過\n・詳細說明將在確認通過後向你展示",
+    ko: "**주민 신청**\n주민은 신청 후 확인이 끝난 분만 될 수 있습니다. 후원 여부와는 관계없습니다.\n・18세 이상인 분만 신청해 주세요\n・확인을 위해, 등록한 VRChat 표시 이름의 공개 프로필을 봅니다\n・자기소개나 SNS 링크 등 프로필에 적힌 내용이 많을수록 확인이 빨리 끝납니다\n・VRChat을 막 시작하신 분은 조금 지낸 뒤에 신청해 주세요\n・확인에는 며칠이 걸릴 수 있으며, 보류될 수도 있습니다\n・자세한 안내는 확인이 끝난 분께 보여 드립니다",
   },
   "member.confirmApply": {
     ja: "下のボタンを押すと、18 歳以上であることを確認して、申請します。",
@@ -537,11 +537,11 @@ const M = {
     ko: "서버에 참가한 지 {days}일 후부터 신청할 수 있습니다 ({date} 이후).",
   },
   "member.declinedWait": {
-    ja: "前回の申請は、見送りとなりました。\n次に申請できるのは {date} 以降です。",
-    en: "Your last application was not approved. You can apply again from {date}.",
-    "zh-CN": "上次申请未通过。\n{date} 之后可再次申请。",
-    "zh-TW": "上次申請未通過。\n{date} 之後可再次申請。",
-    ko: "지난 신청은 보류되었습니다. {date} 이후 다시 신청할 수 있습니다.",
+    ja: "前回の住人の申請は、見送りとなりました。\n公開されているプロフィールだけでは確認しきれなかったときなどに、見送っています。\n理由は、一人ひとりにはお知らせしていません。\n自己紹介を書く、SNS のリンクを載せる、VRChat でしばらく遊ぶなどしてから、{date} 以降に {resident} の **🏠 住人** からまた申請してください。",
+    en: "Your last resident application was not approved.\nWe decline an application when, for example, we could not confirm enough from the public profile. We do not share the reason with each person.\nPlease write a bio, add links to your social accounts, or spend some more time in VRChat, and then apply again with **🏠 Resident** in {resident} from {date}.",
+    "zh-CN": "上次的居民申请未通过。\n例如仅凭公开的个人资料无法充分确认时，我们会不予通过。\n我们不会向个人说明理由。\n请填写自我介绍、添加社交账号链接，或在 VRChat 中多玩一段时间，然后在 {date} 之后通过 {resident} 的 **🏠 Resident** 再次申请。",
+    "zh-TW": "上次的居民申請未通過。\n例如僅憑公開的個人資料無法充分確認時，我們會不予通過。\n我們不會向個人說明理由。\n請填寫自我介紹、加上社群帳號連結，或在 VRChat 中多玩一段時間，然後在 {date} 之後透過 {resident} 的 **🏠 Resident** 再次申請。",
+    ko: "지난 주민 신청은 보류되었습니다.\n공개 프로필만으로 충분히 확인할 수 없는 경우 등에 보류하고 있습니다. 개별적인 이유는 안내하지 않습니다.\n자기소개를 쓰거나, SNS 링크를 올리거나, VRChat에서 조금 더 지낸 뒤에, {date} 이후 {resident}의 **🏠 Resident**에서 다시 신청해 주세요.",
   },
   "member.withdraw": { ja: "申請を取り下げる", en: "Withdraw application", "zh-CN": "撤回申请", "zh-TW": "撤回申請", ko: "신청 철회" },
   "member.withdrawn": { ja: "申請を取り下げました。", en: "Your application has been withdrawn.", "zh-CN": "已撤回申请。", "zh-TW": "已撤回申請。", ko: "신청을 철회했습니다." },
