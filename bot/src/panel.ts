@@ -380,11 +380,11 @@ function ageText(v: string): string {
 }
 
 /** 申請の内容に添える、プロフィールの目印（判断の材料を並べるだけで、Bot は決めない） */
-export function reviewMarks(profile: VrcProfile, hasBio: boolean, hasLinks: boolean, now: Date): string[] {
+export function reviewMarks(profile: VrcProfile, hasBio: boolean | null, hasLinks: boolean | null, now: Date): string[] {
   const marks: string[] = [];
   const low = profile.trust === "Visitor" || profile.trust === "New User";
   const years = profile.dateJoined ? (now.getTime() - new Date(profile.dateJoined).getTime()) / (365 * 86_400_000) : 0;
-  if (!hasBio) marks.push("⚠️ 自己紹介が空");
+  if (hasBio === false) marks.push("⚠️ 自己紹介が空");
   if (low && years >= 1) marks.push(`⚠️ 登録から ${Math.floor(years)} 年以上たつのに、ランクが低い`);
   else if (low) marks.push("⚠️ ランクが低い（New User 以下）");
   if (profile.vrcPlus) marks.push("✅ VRC+");
@@ -409,16 +409,17 @@ export function reviewContent(config: AppConfig, rec: MemberRecord, ownerId: str
     if (profile.trust) lines.push(`・ランク: ${profile.trust}`);
     if (profile.vrcPlus !== null) lines.push(`・VRC+: ${profile.vrcPlus ? "会員" : "会員ではない"}`);
     if (profile.ageVerification) lines.push(`・年齢確認: ${ageText(profile.ageVerification)}`);
-    const bio = profile.bio.replace(/\s+/g, " ").trim();
-    lines.push(`・自己紹介: ${bio.length > 0 ? `${bio.slice(0, 200)}${bio.length > 200 ? "…" : ""}` : "（空）"}`);
-    const links = profile.bioLinks ?? [];
+    // 自己紹介とリンクは、VRChat が返さないことがある（2026-10 時点では返さない）。返さないときは行を出さず、「空」とも扱わない
+    const bio = profile.bio === null ? null : profile.bio.replace(/\s+/g, " ").trim();
+    if (bio !== null) lines.push(`・自己紹介: ${bio.length > 0 ? `${bio.slice(0, 200)}${bio.length > 200 ? "…" : ""}` : "（空）"}`);
+    const links = profile.bioLinks;
     // <> で囲んで、リンクのカードを出さない
-    if (links.length > 0) lines.push(`・リンク: ${links.slice(0, 3).map((l) => `<${l}>`).join(" ")}`);
+    if (links && links.length > 0) lines.push(`・リンク: ${links.slice(0, 3).map((l) => `<${l}>`).join(" ")}`);
     if (profile.groups) {
       const shown = profile.groups.join("、");
       lines.push(`・入っているグループ（${profile.groups.length}）: ${profile.groups.length === 0 ? "なし（か非公開）" : `${shown.slice(0, 250)}${shown.length > 250 ? "…" : ""}`}`);
     }
-    const marks = reviewMarks(profile, bio.length > 0, links.length > 0, now);
+    const marks = reviewMarks(profile, bio === null ? null : bio.length > 0, links ? links.length > 0 : null, now);
     if (marks.length > 0) lines.push(`・目印: ${marks.join("　")}`);
   } else {
     lines.push(`VRChat のプロフィール: ${profileNote}`);

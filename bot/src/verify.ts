@@ -2,7 +2,7 @@
 //
 // 本人確認: 申請した人の Discord と VRChat の名前がかけ離れていて、同じ人か分からないときに使う。
 //   管理者が「🔑 本人確認を頼む」を押すと、Bot が確認の文字（nago-XXXX）を決めて、本人に送る文を出す（コピー用と、「DM で送る」）。
-//   本人が VRChat のプロフィールの「ステータス」か「自己紹介」にその文字を入れ、住人のボタンから「確かめる」を押すと、
+//   本人が VRChat のプロフィールの「ステータス」にその文字を入れ（自己紹介は、今の VRChat の API では読めない）、住人のボタンから「確かめる」を押すと、
 //   Bot が VRChat のプロフィールを読み、文字があれば本人確認が済んだとして、申請のチャンネルで管理者に知らせる。
 //   VRChat の API は、本人がボタンを押したときだけ使う（1 人 30 秒に 1 回まで）。
 // 登録のやり直し: 表示名を間違えて登録した人（30 日に 1 回の制限にかかる）を、すぐに登録し直せるようにする。
@@ -180,7 +180,7 @@ export async function checkVerify(
     }
     const profile = await access.client.getProfile(user.id);
     const code = rec.verifyCode.toLowerCase();
-    const found = `${profile.bio}\n${profile.statusDescription}`.toLowerCase().includes(code);
+    const found = `${profile.bio ?? ""}\n${profile.statusDescription}`.toLowerCase().includes(code);
     if (!found) {
       log.info(`本人確認: まだ見つからない ${who} name=${rec.vrcName} code=${rec.verifyCode}`);
       await interaction.editReply({ content: t(lang, "verify.notFound", { code: rec.verifyCode }) });

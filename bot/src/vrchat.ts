@@ -28,7 +28,8 @@ export interface VrcUser {
 export interface VrcProfile {
   id: string;
   displayName: string;
-  bio: string;
+  /** 自己紹介。VRChat が返さなければ null（2026-10 時点の API は、自分のも他人のも返さない） */
+  bio: string | null;
   /** ステータスの文（本人確認で、決めた文字が入っているかを見る）。取れなければ空 */
   statusDescription: string;
   /** VRChat に登録した日（YYYY-MM-DD）。取れなければ空 */
@@ -39,8 +40,8 @@ export interface VrcProfile {
   ageVerification: string;
   /** VRC+ の会員か。分からなければ null */
   vrcPlus: boolean | null;
-  /** プロフィールに載せているリンク（X など） */
-  bioLinks: string[];
+  /** プロフィールに載せているリンク（X など）。VRChat が返さなければ null */
+  bioLinks: string[] | null;
 }
 
 /** タグからトラストランクの名前を引く。タグが無ければ空 */
@@ -119,13 +120,13 @@ export class VrcClient {
     return {
       id: u?.id ?? userId,
       displayName: u?.displayName ?? "",
-      bio: typeof u?.bio === "string" ? u.bio : "",
+      bio: typeof u?.bio === "string" ? u.bio : null,
       statusDescription: typeof u?.statusDescription === "string" ? u.statusDescription : "",
       dateJoined: typeof u?.date_joined === "string" ? u.date_joined : "",
       trust: trustRank(u?.tags),
       ageVerification: typeof u?.ageVerificationStatus === "string" ? u.ageVerificationStatus : "",
       vrcPlus: Array.isArray(u?.tags) ? u.tags.includes("system_supporter") : null,
-      bioLinks: Array.isArray(u?.bioLinks) ? u.bioLinks.filter((l): l is string => typeof l === "string" && l.length > 0) : [],
+      bioLinks: Array.isArray(u?.bioLinks) ? u.bioLinks.filter((l): l is string => typeof l === "string" && l.length > 0) : null,
     };
   }
 
