@@ -13,6 +13,7 @@
 //      - 音源（AudioSource）を含む（止めて出し直すと、距離の減衰などの空間化が崩れることがある。止めずに mute する）
 //      - ワールド全体に効く物（VRC Scene Descriptor・カメラ・ライト・ポストエフェクト・ライトマップの保存役など）を含む。
 //        止めると、入口の部屋の見え方も変わったり、ワールドが壊れたりする（照明をまとめた親も、止めずに中を見る）
+//      - ガードの keep に入れた物を子に持つ（止めると、keep も一緒に消える）
 //      当たったら、その物は根にせず、子を見ていく。最初から非アクティブの物と EditorOnly は根にしない
 //   2. 見た目だけ消す物: 根に入らなかった Renderer と Canvas（最初は非アクティブの物も含める。あとでスイッチが出す物があるため）
 //   3. 音を消す物: ワールドの AudioSource
@@ -93,9 +94,9 @@ public static partial class SupporterGateSetup
 
         // 1. 止める物
         List<GameObject> roots = new List<GameObject>();
-        int skippedSynced = 0, skippedToggled = 0, skippedCalled = 0, skippedPinned = 0, skippedAudio = 0;
+        int skippedSynced = 0, skippedToggled = 0, skippedCalled = 0, skippedPinned = 0, skippedAudio = 0, skippedKeep = 0;
         foreach (Transform start in scan.Starts())
-            CollectRoots(start, scan, roots, ref skippedSynced, ref skippedToggled, ref skippedCalled, ref skippedPinned, ref skippedAudio);
+            CollectRoots(start, scan, roots, ref skippedSynced, ref skippedToggled, ref skippedCalled, ref skippedPinned, ref skippedAudio, ref skippedKeep);
         HashSet<Transform> rootSet = new HashSet<Transform>(roots.Select(r => r.transform));
 
         // 2・3. 見た目だけ消す物と、音を消す物。止める物の下の見た目は、確かめ中（リストを読み込み中）に止めずに消すために、別に持つ
@@ -125,7 +126,7 @@ public static partial class SupporterGateSetup
         string msg =
             "入れない人の画面で、ワールド本体を見せない・聞かせない仕組み（" + GuardName + "）を" + (created ? "作りました" : "選び直しました") + "。\n" +
             "・止める物: " + roots.Count + " 個（同期する物を含むので分けた所 " + skippedSynced + "、ギミックが切り替える物 " + skippedToggled +
-            "、ほかの Udon から呼ばれる物 " + skippedCalled + "、ワールド全体に効く物 " + skippedPinned + "、音源を含む物 " + skippedAudio + "）\n" +
+            "、ほかの Udon から呼ばれる物 " + skippedCalled + "、ワールド全体に効く物 " + skippedPinned + "、音源を含む物 " + skippedAudio + "、隠さない物を含む物 " + skippedKeep + "）\n" +
             "・見た目だけ消す物: Renderer " + renderers.Length + " 個、Canvas " + canvases.Length + " 個（止める物の下は Renderer " + rootRenderers.Length + " 個、Canvas " + rootCanvases.Length + " 個）\n" +
             "・音を消す物: " + sources.Length + " 個\n" +
             "・隠さない物（keep）: " + keep.Count + " 個\n" +
@@ -135,7 +136,7 @@ public static partial class SupporterGateSetup
         return msg;
     }
 
-    private static void CollectRoots(Transform t, GuardScan scan, List<GameObject> result, ref int synced, ref int toggled, ref int called, ref int pinned, ref int audio)
+    private static void CollectRoots(Transform t, GuardScan scan, List<GameObject> result, ref int synced, ref int toggled, ref int called, ref int pinned, ref int audio, ref int keepParents)
     {
         GameObject go = t.gameObject;
         if (scan.Excluded(t) || !go.activeSelf) return;
@@ -149,8 +150,9 @@ public static partial class SupporterGateSetup
         else if (why == "toggled") toggled++;
         else if (why == "called") called++;
         else if (why == "audio") audio++;
+        else if (why == "keep") keepParents++;
         else pinned++;
-        foreach (Transform c in t) CollectRoots(c, scan, result, ref synced, ref toggled, ref called, ref pinned, ref audio);
+        foreach (Transform c in t) CollectRoots(c, scan, result, ref synced, ref toggled, ref called, ref pinned, ref audio, ref keepParents);
     }
 
     private static void SetArray(SerializedObject so, string field, UnityEngine.Object[] values)
@@ -230,6 +232,8 @@ public static partial class SupporterGateSetup
         public string WhyNotRoot(Transform t)
         {
             if (_pinned.Any(p => p.IsChildOf(t))) return "pinned";
+            // keep を子に持つ物を止めると、keep も一緒に消える（EvilFallFactory の入口の白箱。0.9.2）
+            if (_keep.Any(k => k != t && k.IsChildOf(t))) return "keep";
             if (ContainsSynced(t)) return "synced";
             // 音源は止めない（VRChat が読み込み時に空間化などを設定するので、止めて出し直すと、距離の減衰が効かなくなることがある。0.9.1）
             if (t.GetComponentInChildren<AudioSource>(true) != null) return "audio";

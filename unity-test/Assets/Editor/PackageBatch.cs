@@ -277,6 +277,10 @@ public static class PackageBatch
         // NoVariableSync の Udon（パッケージの部品）は、ネットワークのイベントを受けられるので、同期する物として根にしない
         GameObject netUb = new GameObject("NetUdon");
         netUb.AddUdonSharpComponent<SupporterTestPanel>();
+        // 下で keep にする入口（Entrance）を子に持つ親。keep にした後は、親を止めず、ほかの子（Floor）だけを止める（EvilFallFactory の Z0/Blockout）
+        GameObject blockout = new GameObject("Blockout");
+        GameObject entrance = Cube("Entrance", blockout.transform);
+        Cube("Floor", blockout.transform);
 
         string first = SupporterGateSetup.SetUpContentGuardSilent();
         string second = SupporterGateSetup.SetUpContentGuardSilent();
@@ -301,21 +305,24 @@ public static class PackageBatch
         Log("guard: guards=" + guards.Length + " parent=" + (guards.Length > 0 ? guards[0].transform.parent.name : "-") + " gate.contentRoots=" + gateRoots
             + " | roots=" + roots + " | renderers=" + renderers + " | canvases=" + canvases + " | sources=" + sources + " | rootRenderers=" + rootRenderers + " | rootCanvases=" + rootCanvases);
         bool ok = guards.Length == 1 && guards[0].transform.parent.name == "SupporterGate System" && first.Contains("作りました") && second.Contains("選び直しました")
-            && roots == "Caller,ContentRoot (ここにワールド本体を入れる),Deco,Plain,Shade,UI,WorldChild"   // Speaker は音源を含むので止めない
+            && roots == "Blockout,Caller,ContentRoot (ここにワールド本体を入れる),Deco,Plain,Shade,UI,WorldChild"   // Speaker は音源を含むので止めない
             && renderers == "Inactive,Pick,Toggled" && canvases == "InactiveCanvas" && sources == "Speaker" && gateRoots == "array[0]"
-            && rootRenderers == "Deco,Plain,Shade,WorldChild" && rootCanvases == "UI";
+            && rootRenderers == "Deco,Entrance,Floor,Plain,Shade,WorldChild" && rootCanvases == "UI";
 
-        // keep に入れた物は、根にも音を消す物にもしない（選び直しても keep は残る）
+        // keep に入れた物は、根にも音を消す物にもしない（選び直しても keep は残る）。keep を子に持つ親も止めない
         SerializedObject gso = new SerializedObject(guards[0]);
         SerializedProperty keep = gso.FindProperty("keep");
-        keep.arraySize = 1;
+        keep.arraySize = 2;
         keep.GetArrayElementAtIndex(0).objectReferenceValue = speaker;
+        keep.GetArrayElementAtIndex(1).objectReferenceValue = entrance;
         gso.ApplyModifiedPropertiesWithoutUndo();
         UdonSharpEditorUtility.CopyProxyToUdon(guards[0]);
         string third = SupporterGateSetup.SetUpContentGuardSilent();
         string rootsKeep = Names("roots"), sourcesKeep = Names("sources"), keepAfter = Names("keep");
-        Log("guard keep: roots=" + rootsKeep + " | sources=" + sourcesKeep + " | keep=" + keepAfter + " | " + third.Split('\n')[4]);
-        ok = ok && rootsKeep == "Caller,ContentRoot (ここにワールド本体を入れる),Deco,Plain,Shade,UI,WorldChild" && sourcesKeep == "" && keepAfter == "Speaker";
+        string renderersKeep = Names("hideRenderers"), rootRenderersKeep = Names("rootRenderers");
+        Log("guard keep: roots=" + rootsKeep + " | sources=" + sourcesKeep + " | keep=" + keepAfter + " | renderers=" + renderersKeep + " | rootRenderers=" + rootRenderersKeep + " | " + third.Split('\n')[1] + " | " + third.Split('\n')[4]);
+        ok = ok && rootsKeep == "Caller,ContentRoot (ここにワールド本体を入れる),Deco,Floor,Plain,Shade,UI,WorldChild" && sourcesKeep == "" && keepAfter == "Entrance,Speaker"
+            && renderersKeep == "Inactive,Pick,Toggled" && rootRenderersKeep == "Deco,Floor,Plain,Shade,WorldChild" && third.Contains("隠さない物を含む物 1");
         Log(ok ? "VERIFY_CONTENT_GUARD_OK" : "VERIFY_CONTENT_GUARD_FAIL");
     }
 
