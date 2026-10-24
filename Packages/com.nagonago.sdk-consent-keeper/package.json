@@ -1,0 +1,14 @@
+{
+  "name": "com.nagonago.sdk-consent-keeper",
+  "displayName": "Nago SDK Consent Keeper",
+  "version": "0.1.0",
+  "unity": "2022.3",
+  "description": "Remembers the VRChat SDK copyright ownership agreement across Unity restarts, after you have agreed once yourself. Only content IDs you agreed to in the SDK panel are remembered, and the SDK still checks VRChat's server record for the logged-in user. Tools > Nago SDK Consent Keeper to show or forget.",
+  "author": {
+    "name": "nagonago",
+    "url": "https://github.com/mizunago"
+  },
+  "vpmDependencies": {
+    "com.vrchat.base": ">=3.10.0"
+  }
+}

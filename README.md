@@ -8,7 +8,8 @@ sien/
 ├─ bot/       Discord Bot（Node.js / TypeScript）
 ├─ Packages/  Unity 側の VPM パッケージ（UdonSharp）
 │   ├─ com.nagonago.supporter-gate   支援者ゲート
-│   └─ com.nagonago.notice           共通の通知（ゲート以外のワールドでも使える）
+│   ├─ com.nagonago.notice           共通の通知（ゲート以外のワールドでも使える）
+│   └─ com.nagonago.sdk-consent-keeper  SDK の著作権の同意を、Unity を起動し直しても覚えておく（エディター拡張）
 ├─ unity-test/  パッケージを実際に動かして確かめる Unity プロジェクト（SDK は含まない）
 ├─ tools/     VPM の一覧と zip を作る、動作を確かめる、各プロジェクトとのずれを調べるスクリプト
 ├─ docs/      セットアップガイド
@@ -84,6 +85,8 @@ un.bat をダブルクリックでも可 / サーバーは docker compose up -d 
 5. `Gate` の **Mode** を選び、`ContentRoot` の下にワールド本体を入れる
 
 通知だけを使うワールドは、**Nago Notice** だけを足して `Tools > Nago Notice > Add Notice Hub To Scene`（[使い方](Packages/com.nagonago.notice/README.md)）。入退室の通知を足すときは `Tools > Nago Notice > Add Join-Leave Notice To Scene`。
+
+Build and Upload の前の著作権の同意を起動のたびに押したくないときは、**Nago SDK Consent Keeper** を足す。最初の 1 回は自分で OK を押し、次の起動からは覚えた同意が使われる（[しくみ](Packages/com.nagonago.sdk-consent-keeper/README.md)）。
 
 ## パッケージを公開する（保守する人向け）
 

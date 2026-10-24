@@ -185,6 +185,30 @@ public static class PackageBatch
         VerifyTestPanel();
         VerifyContentGuard();
         VerifyOwnersOnly();
+        VerifyConsentKeeper();
+    }
+
+    /// <summary>
+    /// SDK の著作権の同意を覚える拡張: SDK が SessionState に入れた ID を覚え、起動し直した（SessionState が消えた）あとに戻し、消すメニューで消える
+    /// </summary>
+    private static void VerifyConsentKeeper()
+    {
+        SdkConsentKeeper.Forget();
+        SessionState.SetString(SdkConsentKeeper.SessionKey, "wrld_test-a");      // SDK の画面で OK を押したあと
+        int remembered = SdkConsentKeeper.Remember();
+        bool stored = System.IO.File.Exists(SdkConsentKeeper.StorePath) && System.IO.File.ReadAllText(SdkConsentKeeper.StorePath).Contains("wrld_test-a");
+        SessionState.EraseString(SdkConsentKeeper.SessionKey);                     // Unity を起動し直したのと同じ
+        int restored = SdkConsentKeeper.Restore();
+        string afterRestore = SessionState.GetString(SdkConsentKeeper.SessionKey, "");
+        SessionState.SetString(SdkConsentKeeper.SessionKey, afterRestore + ";wrld_test-b");   // 別のワールドで同意
+        int rememberedB = SdkConsentKeeper.Remember();
+        int again = SdkConsentKeeper.Restore();                                    // もう入っている物は足さない
+        int forgot = SdkConsentKeeper.Forget();
+        bool cleared = !System.IO.File.Exists(SdkConsentKeeper.StorePath) && SessionState.GetString(SdkConsentKeeper.SessionKey, "") == "";
+        Log("consent keeper: remembered=" + remembered + " stored=" + stored + " restored=" + restored + " session=" + afterRestore
+            + " rememberedB=" + rememberedB + " again=" + again + " forgot=" + forgot + " cleared=" + cleared);
+        bool ok = remembered == 1 && stored && restored == 1 && afterRestore == "wrld_test-a" && rememberedB == 1 && again == 0 && forgot == 2 && cleared;
+        Log(ok ? "VERIFY_CONSENT_KEEPER_OK" : "VERIFY_CONSENT_KEEPER_FAIL");
     }
 
     /// <summary>

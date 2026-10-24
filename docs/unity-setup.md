@@ -15,6 +15,7 @@
 |---|---|
 | `com.nagonago.supporter-gate` | 支援者ゲート（Registry / Gate / 承認パネル / クレジット） |
 | `com.nagonago.notice` | 共通の通知。ゲート以外のギミックからも使える（[README](../Packages/com.nagonago.notice/README.md)） |
+| `com.nagonago.sdk-consent-keeper` | SDK の著作権の同意を、Unity を起動し直しても覚えておく。入れるだけで動く（[README](../Packages/com.nagonago.sdk-consent-keeper/README.md)） |
 
 以前に `Assets/SupporterGate` をコピーして使っていたプロジェクトは、[古い置き方からの入れ替え](#古い置き方からの入れ替え) を見てください。
 

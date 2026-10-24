@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.nagonago.notice": "file:../../Packages/com.nagonago.notice",
+    "com.nagonago.sdk-consent-keeper": "file:../../Packages/com.nagonago.sdk-consent-keeper",
     "com.nagonago.supporter-gate": "file:../../Packages/com.nagonago.supporter-gate",
     "com.unity.textmeshpro": "3.0.6",
     "com.unity.timeline": "1.7.5",
