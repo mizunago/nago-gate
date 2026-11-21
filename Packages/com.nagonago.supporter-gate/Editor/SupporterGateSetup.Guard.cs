@@ -18,7 +18,7 @@
 //   2. 見た目だけ消す物: 根に入らなかった Renderer と Canvas（最初は非アクティブの物も含める。あとでスイッチが出す物があるため）
 //   3. 音を消す物: ワールドの AudioSource
 //   どれも、ゲート一式（入口の部屋・パネル。ただし Gate の Content Roots は中身として扱う）・通知の板・EditorOnly・
-//   ガードの keep に入れた物の下は、対象にしない。
+//   ガードの keep に入れた物・シーンに保存されない物（TMP_SubMesh など）の下は、対象にしない。
 // 選んだ根はガードに渡し、Gate の Content Roots は空にする（ゲートは毎秒すべての根を調べ直すので、根が多いと引っかかる）。
 
 #if UNITY_EDITOR
@@ -202,7 +202,7 @@ public static partial class SupporterGateSetup
                 if (c.IsChildOf(_systemRoot)) yield return c;
         }
 
-        /// <summary>対象にしない物（ゲート一式・通知の板・EditorOnly・keep）。Gate の Content Roots の下は、ゲート一式の下でも対象にする</summary>
+        /// <summary>対象にしない物（ゲート一式・通知の板・EditorOnly・keep・シーンに保存されない物）。Gate の Content Roots の下は、ゲート一式の下でも対象にする</summary>
         public bool Excluded(Transform t)
         {
             for (Transform p = t; p != null; p = p.parent)
@@ -210,6 +210,8 @@ public static partial class SupporterGateSetup
                 if (p.CompareTag("EditorOnly")) return true;
                 if (_keep.Contains(p)) return true;
                 if (p.GetComponent<NoticeHub>() != null) return true;
+                // シーンに保存されない物（TMP が作る TMP_SubMesh など）は、保存すると参照が空になる（0.9.3）
+                if ((p.gameObject.hideFlags & HideFlags.DontSaveInEditor) != 0) return true;
             }
             if (t.IsChildOf(_systemRoot)) return !_gateContent.Any(c => t.IsChildOf(c));
             return false;

@@ -279,6 +279,7 @@ public static class PackageBatch
         pick.AddComponent<Rigidbody>();
         pick.AddComponent<VRC.SDK3.Components.VRCPickup>();                  // 同期する物: 止めずに見た目だけ消す
         Cube("Deco", synced.transform);
+        Cube("SubMesh", synced.transform).hideFlags = HideFlags.DontSave;     // シーンに保存されない物（TMP_SubMesh など）: 何にも入れない
         GameObject toggled = Cube("Toggled", null);                           // UI のボタンが切り替える: 根にしない
         GameObject ui = new GameObject("UI", typeof(RectTransform), typeof(Canvas));
         GameObject btnGo = new GameObject("Switch", typeof(RectTransform), typeof(Image), typeof(Button));
